@@ -189,7 +189,7 @@ fun Pill(text: String, modifier: Modifier = Modifier, selected: Boolean = false,
 fun PrimaryButton(text: String, modifier: Modifier = Modifier, danger: Boolean = false, onClick: () -> Unit) {
     val p = Fin.c
     Button(
-        onClick, modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(18.dp),
+        onClick, modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(18.dp),
         colors = if (danger) ButtonDefaults.buttonColors(containerColor = p.red.copy(alpha = 0.14f), contentColor = p.red)
         else ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = p.onAccent),
     ) { Text(text, fontWeight = FontWeight.ExtraBold) }
@@ -217,7 +217,7 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Mo
         label = { Text(label) }, placeholder = { if (placeholder.isNotEmpty()) Text(placeholder) }, singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboard),
         visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-        shape = RoundedCornerShape(16.dp), colors = fieldColors(),
+        shape = RoundedCornerShape(18.dp), colors = fieldColors(),
     )
 }
 
