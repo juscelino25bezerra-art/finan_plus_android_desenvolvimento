@@ -93,7 +93,10 @@ fun MovesScreen(s: AppState) {
     val days = if (calendar) androidx.compose.runtime.remember(s, nav.calMonth, today) { com.finanplus.core.MonthCalendar.build(s, nav.calMonth, today) } else emptyMap()
 
     LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        item { Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 8.dp).semantics { heading() }) }
+        item {
+            Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+            Text("Acompanhe entradas, saídas e pagamentos", style = MaterialTheme.typography.bodyMedium, color = p.muted, modifier = Modifier.padding(bottom = 12.dp))
+        }
         item { MovesViewSwitch(nav) }
         if (calendar) {
             calendarItems(s, nav, days, today, hide)
