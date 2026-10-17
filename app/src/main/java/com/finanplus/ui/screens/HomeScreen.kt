@@ -102,7 +102,7 @@ fun HomeScreen(s: AppState) {
     LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
         // topo: nome e data; a engrenagem saiu (a aba Ajustes faz o mesmo)
         item {
-            Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.Bottom) {
+            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
                     Text("Finan+", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
                     // data dinâmica (ex.: "Quinta, 8 de outubro"); muda sozinha com o dia
@@ -119,7 +119,7 @@ fun HomeScreen(s: AppState) {
             }
         }
         item {
-            Glass(radius = 30.dp, padding = 16.dp) {
+            Glass(radius = 26.dp, padding = 16.dp) {
                 // saldo atual em destaque; as ondas ficam junto ao rótulo, sem passar pelo valor
                 Box(Modifier.fillMaxWidth()) {
                     BalanceWaves(Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = 2.dp).width(120.dp).height(50.dp))
