@@ -5,10 +5,8 @@ package com.finanplus.ui
 
 import android.Manifest
 import android.os.Build
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -317,18 +315,14 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(Fin.c.bg))
             BottomNav(nav, shownTab, Modifier.align(Alignment.BottomCenter))
             if (shownTab == Tab.HOME || shownTab == Tab.MOVES) {
-                // O FAB fica ancorado acima da navegação; só sua opacidade muda.
                 val listScrolling = if (shownTab == Tab.HOME) homeListState.isScrollInProgress else movesListState.isScrollInProgress
                 val showFab = !listScrolling && !pager.isScrollInProgress && nav.sheet == null
-                AnimatedVisibility(
-                    visible = showFab,
-                    modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 18.dp, bottom = 116.dp),
-                    enter = fadeIn(animationSpec = tween(150)),
-                    exit = fadeOut(animationSpec = tween(100)),
-                ) {
-                    // Durante o fade-out o botão já deixa de receber toques e foco acessível.
-                    AddTransactionFab(nav, enabled = showFab)
-                }
+                // O próprio FAB recebe o alinhamento do Box pai: a animação nunca muda sua posição.
+                AddTransactionFab(
+                    nav, enabled = showFab,
+                    modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding()
+                        .padding(end = 18.dp, bottom = 116.dp),
+                )
             }
             SnackbarHost(
                 hostState = txSnackbarState,
@@ -395,15 +389,28 @@ private fun NavItem(t: Tab, nav: Nav, shown: Tab, modifier: Modifier) {
 @Composable
 private fun AddTransactionFab(nav: Nav, enabled: Boolean, modifier: Modifier = Modifier) {
     val p = Fin.c
+    val opacity by animateFloatAsState(
+        targetValue = if (enabled) 1f else 0f,
+        animationSpec = tween(durationMillis = if (enabled) 150 else 100),
+        label = "Visibilidade do botão adicionar",
+    )
     val action = if (enabled) Modifier
         .clickable(role = Role.Button, onClickLabel = "Adicionar movimentação") { nav.open(Sheet.AddChoice) }
         .semantics { contentDescription = "Adicionar movimentação" }
     else Modifier.clearAndSetSemantics {}
+    // A sombra, o fundo e o ícone são circulares e desaparecem juntos. Não animamos
+    // uma camada retangular com fade, que pode mostrar um quadrado ao aparecer.
     Box(
-        modifier.size(56.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(p.accent).then(action),
+        modifier.size(56.dp)
+            .shadow(8.dp * opacity, CircleShape)
+            .clip(CircleShape)
+            .background(p.accent.copy(alpha = opacity))
+            .then(action),
         contentAlignment = Alignment.Center,
     ) {
-        com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.ADD, p.onAccent, size = 26.dp)
+        com.finanplus.ui.components.AppIcon(
+            com.finanplus.ui.components.Ico.ADD, p.onAccent.copy(alpha = opacity), size = 26.dp,
+        )
     }
 }
 
