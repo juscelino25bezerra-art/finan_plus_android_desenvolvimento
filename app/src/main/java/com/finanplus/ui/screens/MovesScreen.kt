@@ -93,7 +93,7 @@ fun MovesScreen(s: AppState) {
     val days = if (calendar) androidx.compose.runtime.remember(s, nav.calMonth, today) { com.finanplus.core.MonthCalendar.build(s, nav.calMonth, today) } else emptyMap()
 
     LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        item { Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }) }
+        item { Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 8.dp).semantics { heading() }) }
         item { MovesViewSwitch(nav) }
         if (calendar) {
             calendarItems(s, nav, days, today, hide)
@@ -105,7 +105,7 @@ fun MovesScreen(s: AppState) {
         item { FilterChips(nav) }
         item { PeriodSummary(flow, pending, hide) }
         if (list.isEmpty()) item {
-            Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 24.dp) {
+            Glass(Modifier.fillMaxWidth().padding(top = 10.dp), radius = 22.dp) {
                 Text("Nenhum lançamento neste período", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text("Troque o mês, ajuste os filtros ou adicione uma movimentação no +.", color = p.muted, style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp))
