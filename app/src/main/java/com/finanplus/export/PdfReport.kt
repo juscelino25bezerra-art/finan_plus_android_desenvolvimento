@@ -364,7 +364,7 @@ object PdfReport {
             if (pen.y + 18 > H - M - FOOTER) { pen.newPage(); tableHeader(pen, cols, 3) }
             val base = pen.y + 11
             var x = M + 6
-            pen.text(Br.date(t.date), x, base, 8.5f, MUTED); x += cols[0].second
+            pen.text(Br.date(t.accountingDate), x, base, 8.5f, MUTED); x += cols[0].second
             pen.text(t.desc, x, base, 9f, INK, maxW = cols[1].second - 8); x += cols[1].second
             pen.text(t.category, x, base, 8.5f, MUTED, maxW = cols[2].second - 8); x += cols[2].second
             pen.text(money(t.value), x + cols[3].second - 8, base, 9f, RED, b = true, align = Paint.Align.RIGHT)
@@ -417,7 +417,7 @@ object PdfReport {
                 t.paid -> if (t.kind == Kind.INCOME) "Recebido" else "Pago"
                 else -> if (t.kind == Kind.INCOME) "A receber" else "A pagar"
             }
-            pen.text(Br.date(t.date), x, base, 8f, MUTED); x += cols[0].second
+            pen.text(Br.date(t.accountingDate), x, base, 8f, MUTED); x += cols[0].second
             pen.text(t.desc, x, base, 8.5f, if (payment) MUTED else INK, maxW = cols[1].second - 8); x += cols[1].second
             pen.text(t.category, x, base, 8f, MUTED, maxW = cols[2].second - 8); x += cols[2].second
             pen.text(where, x, base, 8f, MUTED, maxW = cols[3].second - 8); x += cols[3].second

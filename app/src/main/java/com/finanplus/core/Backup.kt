@@ -25,7 +25,13 @@ data class Normalized(val state: AppState, val dropped: Dropped, val version: In
  * são validados; itens inválidos são descartados e contados.
  */
 object Backup {
-    const val VERSION = 5
+    const val VERSION = 6
+    private const val MAX_TRANSACTIONS = 50_000
+    private const val MAX_ACCOUNTS = 100
+    private const val MAX_CARDS = 100
+    private const val MAX_RECURRING = 1_000
+    private const val MAX_GOALS = 1_000
+    private const val MAX_CATEGORIES_PER_KIND = 500
     private val ID_RE = Regex("^[A-Za-z0-9_.-]{1,48}$")
     private val DATE_RE = Regex("^\\d{4}-\\d{2}-\\d{2}$")
     private val YM_RE = Regex("^\\d{4}-(0[1-9]|1[0-2])$")
@@ -38,6 +44,7 @@ object Backup {
 
     private fun str(v: Any?, max: Int = 120): String = when (v) {
         is String -> v
+        is Json.NumberToken -> numToString(v)
         is Double -> numToString(v)
         is Number -> v.toString()
         else -> ""
@@ -47,7 +54,12 @@ object Backup {
         if (d == Math.floor(d) && Math.abs(d) < 1e15) d.toLong().toString()
         else java.math.BigDecimal.valueOf(d).stripTrailingZeros().toPlainString()
 
+    private fun numToString(n: Json.NumberToken): String = try {
+        java.math.BigDecimal(n.text).stripTrailingZeros().toPlainString()
+    } catch (_: NumberFormatException) { "" }
+
     private fun num(v: Any?): Double? = when (v) {
+        is Json.NumberToken -> v.text.toDoubleOrNull()?.takeIf { it.isFinite() }
         is Number -> v.toDouble().takeIf { it.isFinite() }
         is String -> v.trim().toDoubleOrNull()?.takeIf { it.isFinite() }
         is Boolean -> if (v) 1.0 else 0.0
@@ -57,14 +69,20 @@ object Backup {
      *  [Money.MAX_ABS] é recusado (somas estouravam e o saldo trocava de sinal). Inválido = 0. */
     private fun cents(v: Any?): Cents {
         if (v is Boolean) return 0L
-        return num(v)?.let { Money.fromReaisOrNull(it) } ?: 0L
+        return when (v) {
+            is Json.NumberToken -> Money.fromReaisOrNull(v.text) ?: 0L
+            is String -> Money.fromReaisOrNull(v) ?: 0L
+            else -> num(v)?.let { Money.fromReaisOrNull(it) } ?: 0L
+        }
     }
     private fun intIn(v: Any?, a: Int, b: Int, def: Int): Int {
-        val n = num(v)?.roundToInt() ?: return def
+        val d = num(v) ?: return def
+        if (d < Int.MIN_VALUE.toDouble() || d > Int.MAX_VALUE.toDouble()) return def
+        val n = d.roundToInt()
         return if (n in a..b) n else def
     }
     private fun safeId(v: Any?): String {
-        val s = when (v) { is Double -> numToString(v); is String -> v; else -> "" }
+        val s = when (v) { is Json.NumberToken -> numToString(v); is Double -> numToString(v); is String -> v; else -> "" }
         return if (ID_RE.matches(s)) s else ""
     }
 
@@ -80,13 +98,14 @@ object Backup {
         fun idFor(v: Any?): String { var id = safeId(v); if (id.isEmpty() || id in used) id = Ids.new(); used.add(id); return id }
         // id original do arquivo → id usado aqui (quando o original é inválido ou repetido, as referências acompanham a troca)
         val accMap = HashMap<String, String>(); val cardMap = HashMap<String, String>()
-        fun rawId(v: Any?) = when (v) { is Double -> numToString(v); is String -> v.trim(); else -> "" }
+        fun rawId(v: Any?) = when (v) { is Json.NumberToken -> numToString(v); is Double -> numToString(v); is String -> v.trim(); else -> "" }
 
         // categorias
         var cats = Categories(AppState.DEFAULT_EXPENSE, AppState.DEFAULT_INCOME)
         obj(r["cats"])?.let { c ->
             for (k in Kind.entries) {
                 val list = c[k.json] as? List<*> ?: continue
+                if (list.size > MAX_CATEGORIES_PER_KIND) throw BackupException("Muitas categorias no backup")
                 val seen = HashSet<String>(); val out = ArrayList<String>()
                 for (x in list) { val n = str(x, 40); if (n.isNotEmpty() && seen.add(n.lowercase())) out.add(n) }
                 if (out.isNotEmpty()) cats = cats.with(k, out)
@@ -95,7 +114,9 @@ object Backup {
 
         // contas
         val accounts = ArrayList<Account>()
-        (r["accounts"] as? List<*>)?.forEach { x ->
+        val rawAccounts = r["accounts"] as? List<*> ?: emptyList<Any?>()
+        if (rawAccounts.size > MAX_ACCOUNTS) throw BackupException("Muitas contas no backup")
+        rawAccounts.forEach { x ->
             val a = obj(x)
             if (a == null || str(a["name"], 40).isEmpty()) { d = d.copy(accounts = d.accounts + 1); return@forEach }
             val id = idFor(a["id"]); rawId(a["id"]).takeIf { it.isNotEmpty() }?.let { accMap.putIfAbsent(it, id) }
@@ -108,7 +129,9 @@ object Backup {
 
         // cartões
         val cards = ArrayList<Card>()
-        (r["cards"] as? List<*>)?.forEach { x ->
+        val rawCards = r["cards"] as? List<*> ?: emptyList<Any?>()
+        if (rawCards.size > MAX_CARDS) throw BackupException("Muitos cartões no backup")
+        rawCards.forEach { x ->
             val c = obj(x)
             if (c == null || str(c["name"], 40).isEmpty()) { d = d.copy(cards = d.cards + 1); return@forEach }
             val id = idFor(c["id"]); rawId(c["id"]).takeIf { it.isNotEmpty() }?.let { cardMap.putIfAbsent(it, id) }
@@ -119,7 +142,9 @@ object Backup {
 
         // recorrências
         val recurring = ArrayList<Recurring>()
-        (r["recurring"] as? List<*>)?.forEach { x ->
+        val rawRecurring = r["recurring"] as? List<*> ?: emptyList<Any?>()
+        if (rawRecurring.size > MAX_RECURRING) throw BackupException("Muitas recorrências no backup")
+        rawRecurring.forEach { x ->
             val o = obj(x); val kind = Kind.of(o?.get("kind")); val value = cents(o?.get("value"))
             if (o == null || kind == null || value <= 0 || str(o["desc"]).isEmpty()) { d = d.copy(recurring = d.recurring + 1); return@forEach }
             recurring.add(Recurring(
@@ -132,6 +157,7 @@ object Backup {
         }
 
         // lançamentos
+        if (rawTxs.size > MAX_TRANSACTIONS) throw BackupException("Muitos lançamentos no backup")
         val txs = ArrayList<Tx>()
         for (x in rawTxs) {
             val o = obj(x); val kind = Kind.of(o?.get("kind")); val value = cents(o?.get("value")); val date = parseDate(o?.get("date"))
@@ -150,12 +176,16 @@ object Backup {
                 accountId = accOf(o["accountId"]), cardId = cardId, cardPayment = cardPayment,
                 recurringId = safeId(o["recurringId"]), groupId = safeId(o["groupId"]),
                 parcelN = if (okParcel) pN else 0, parcelTotal = if (okParcel) pTotal else 0,
+                // Backups antigos não têm settledAt: assumimos a data já registrada como realizada.
+                settledAt = if (o["paid"] != false && cardId.isEmpty() && cardPayment.isEmpty()) parseDate(o["settledAt"]) ?: date else null,
             ))
         }
 
         // metas
         val goals = ArrayList<Goal>()
-        (r["goals"] as? List<*>)?.forEach { x ->
+        val rawGoals = r["goals"] as? List<*> ?: emptyList<Any?>()
+        if (rawGoals.size > MAX_GOALS) throw BackupException("Muitas metas no backup")
+        rawGoals.forEach { x ->
             val g = obj(x); val target = cents(g?.get("target"))
             if (g == null || str(g["name"], 60).isEmpty() || target <= 0) { d = d.copy(goals = d.goals + 1); return@forEach }
             goals.add(Goal(idFor(g["id"]), str(g["name"], 60), target, maxOf(0, cents(g["saved"])), parseDate(g["deadline"]), maxOf(0, cents(g["monthly"]))))
@@ -165,11 +195,13 @@ object Backup {
         val limits = LinkedHashMap<String, Cents>()
         obj(r["limits"])?.forEach { (k, v) -> val c = k.trim().take(40); val n = cents(v); if (c.isNotEmpty() && n > 0) limits[c] = n }
 
-        val autoLock = num(r["autoLock"])?.roundToInt()?.takeIf { it in AppState.AUTOLOCK_OPTIONS } ?: 0
+        val autoLock = intIn(r["autoLock"], 0, 30, 0).takeIf { it in AppState.AUTOLOCK_OPTIONS } ?: 0
+        val state = AppState(txs, goals, accounts, cards, recurring, cats, limits, r["privacy"] == true, autoLock, ThemeId.of(r["theme"]))
+        if (!state.hasSafeMoneyTotals()) throw BackupException("O total dos valores excede o limite seguro")
         return Normalized(
-            AppState(txs, goals, accounts, cards, recurring, cats, limits, r["privacy"] == true, autoLock, ThemeId.of(r["theme"])),
+            state,
             d,
-            num(r["backupVersion"])?.roundToInt(),
+            num(r["backupVersion"])?.takeIf { it >= 0 && it <= Int.MAX_VALUE.toDouble() }?.roundToInt(),
         )
     }
 
@@ -188,6 +220,7 @@ object Backup {
                 if (t.recurringId.isNotEmpty()) put("recurringId", t.recurringId)
                 if (t.groupId.isNotEmpty()) put("groupId", t.groupId)
                 if (t.parcelTotal > 0) put("parcel", linkedMapOf("n" to t.parcelN, "total" to t.parcelTotal))
+                if (t.settledAt != null) put("settledAt", t.settledAt.toString())
             }
         }
         m["goals"] = s.goals.map { linkedMapOf("id" to it.id, "name" to it.name, "target" to Money.toReaisJson(it.target), "saved" to Money.toReaisJson(it.saved), "deadline" to (it.deadline?.toString() ?: ""), "monthly" to Money.toReaisJson(it.monthly)) }

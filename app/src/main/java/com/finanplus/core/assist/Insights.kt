@@ -72,7 +72,7 @@ object Insights {
 
     private fun expenses(s: AppState) = s.txs.filter { it.kind == Kind.EXPENSE && it.isFlow }
     private fun sum(l: List<Tx>): Cents = l.fold(0L) { a, t -> a + t.value }
-    private fun inMonthUntil(t: Tx, ym: YearMonth, lastDay: Int) = t.date.ym() == ym && t.date.dayOfMonth <= lastDay
+    private fun inMonthUntil(t: Tx, ym: YearMonth, lastDay: Int) = t.accountingDate.ym() == ym && t.accountingDate.dayOfMonth <= lastDay
     private fun isFixed(t: Tx) = t.recurringId.isNotEmpty() || t.groupId.isNotEmpty()
 
     // ------------------------------------------------------------------ resumo do mês
@@ -128,8 +128,8 @@ object Insights {
             lines.add(lateLine)
         }
         if (day <= 7) {
-            val pe = sum(exp.filter { it.paid && it.date.ym() == prev })
-            val pi = sum(s.txs.filter { it.kind == Kind.INCOME && it.paid && it.date.ym() == prev })
+            val pe = sum(exp.filter { it.paid && it.accountingDate.ym() == prev })
+            val pi = sum(s.txs.filter { it.kind == Kind.INCOME && it.paid && it.accountingDate.ym() == prev })
             if (pe > 0 || pi > 0) lines.add("Fechamento de ${Br.month(prev)}: receitas ${money(pi)}, despesas ${money(pe)}, saldo ${money(pi - pe)}.")
         }
         return MonthReport(
@@ -159,18 +159,18 @@ object Insights {
     /** Mesma descrição + mesmo valor + mesma data, nos últimos 60 dias, sem ser parcela/recorrência. */
     fun duplicates(s: AppState, today: LocalDate, money: MoneyFmt): List<Insight> {
         val since = today.minusDays(DUP_DAYS)
-        return expenses(s).filter { !it.date.isBefore(since) && !isFixed(it) }
-            .groupBy { Triple(it.date, it.value, Text.key(it.desc)) }
+        return expenses(s).filter { !it.accountingDate.isBefore(since) && !isFixed(it) }
+            .groupBy { Triple(it.accountingDate, it.value, Text.key(it.desc)) }
             .filter { (k, l) -> k.third.isNotEmpty() && l.size >= 2 }
             .entries.sortedByDescending { it.key.first }.take(3)
             .map { (k, l) ->
                 val t = l[0]
                 Insight(
                     "dup:${k.first}:${k.second}:${k.third}", InsightType.DUPLICATE, "Possível lançamento duplicado",
-                    "“${t.desc}” aparece ${l.size} vezes em ${Br.dayMonth(t.date)} com o mesmo valor (${money(t.value)}). Se foi lançado em dobro, exclua a cópia.",
+                    "“${t.desc}” aparece ${l.size} vezes em ${Br.dayMonth(t.accountingDate)} com o mesmo valor (${money(t.value)}). Se foi lançado em dobro, exclua a cópia.",
                     "Regra: mesma descrição, mesmo valor e mesma data, nos últimos $DUP_DAYS dias, sem ser parcela nem recorrência. " +
                         "Se forem compras diferentes de verdade, dispense este aviso.",
-                    10, query = t.desc, from = t.date, to = t.date,
+                    10, query = t.desc, from = t.accountingDate, to = t.accountingDate,
                 )
             }
     }
@@ -184,11 +184,11 @@ object Insights {
         val cur = today.ym()
         val window = cur.minusMonths(5)
         val out = ArrayList<Monthly>()
-        val groups = expenses(s).filter { it.groupId.isEmpty() && !it.date.ym().isBefore(window) && !it.date.ym().isAfter(cur) }
+        val groups = expenses(s).filter { it.groupId.isEmpty() && !it.accountingDate.ym().isBefore(window) && !it.accountingDate.ym().isAfter(cur) }
             .groupBy { Text.key(Categorizer.clean(it.desc)) }
         for ((key, list) in groups) {
             if (key.isEmpty()) continue
-            val byM = list.groupBy { it.date.ym() }
+            val byM = list.groupBy { it.accountingDate.ym() }
             if (byM.values.any { it.size > 1 }) continue // várias vezes no mesmo mês: não é mensalidade
             val months = byM.keys.sorted()
             // sequência de meses seguidos que termina no mês atual ou no anterior
@@ -245,9 +245,9 @@ object Insights {
      */
     fun project(list: List<Tx>, today: LocalDate, minCount: Int = PACE_MIN_COUNT): Projection {
         val ym = today.ym(); val day = today.dayOfMonth; val len = ym.lengthOfMonth()
-        val month = list.filter { it.date.ym() == ym }
+        val month = list.filter { it.accountingDate.ym() == ym }
         val committed = sum(month.filter { isFixed(it) || !it.paid })
-        val vars = month.filter { !isFixed(it) && it.paid && it.date.dayOfMonth <= day }
+        val vars = month.filter { !isFixed(it) && it.paid && it.accountingDate.dayOfMonth <= day }
         val variable = sum(vars)
         val biggest = vars.maxOfOrNull { it.value } ?: 0L
         val oneOff = if (variable > 0 && biggest > variable * ONE_OFF_SHARE) biggest else 0L
@@ -269,7 +269,7 @@ object Insights {
         val exp = expenses(s)
         return s.limits.mapNotNull { (cat, lim) ->
             val l = exp.filter { it.category == cat }
-            val used = sum(l.filter { it.date.ym() == ym })
+            val used = sum(l.filter { it.accountingDate.ym() == ym })
             if (used >= lim) return@mapNotNull null // já ultrapassado: o Início já mostra
             val p = project(l, today, PACE_MIN_COUNT_CAT)
             if (!p.enough || p.projected <= lim || p.projected - lim < 10_00) return@mapNotNull null
@@ -288,7 +288,7 @@ object Insights {
     fun overIncome(s: AppState, today: LocalDate, money: MoneyFmt): Insight? {
         val ym = today.ym(); val day = today.dayOfMonth; val len = ym.lengthOfMonth()
         if (day < PACE_MIN_DAY || day >= len) return null
-        val income = sum(s.txs.filter { it.kind == Kind.INCOME && it.date.ym() == ym }) // inclui receitas previstas
+        val income = sum(s.txs.filter { it.kind == Kind.INCOME && it.accountingDate.ym() == ym }) // inclui receitas previstas
         if (income <= 0) return null
         val p = project(expenses(s), today, PACE_MIN_COUNT)
         if (!p.enough || p.projected <= income) return null
@@ -305,9 +305,9 @@ object Insights {
         val ym = today.ym()
         val exp = expenses(s).filter { it.paid }
         val months = (1..3).map { ym.minusMonths(it.toLong()) }
-        return exp.filter { it.date.ym() == ym && !it.date.isAfter(today) }.groupBy { it.category }.mapNotNull { (cat, curList) ->
+        return exp.filter { it.accountingDate.ym() == ym && !it.accountingDate.isAfter(today) }.groupBy { it.category }.mapNotNull { (cat, curList) ->
             val cur = sum(curList)
-            val hist = months.map { m -> sum(exp.filter { it.category == cat && it.date.ym() == m }) }
+            val hist = months.map { m -> sum(exp.filter { it.category == cat && it.accountingDate.ym() == m }) }
             if (hist.count { it > 0 } < 2) return@mapNotNull null
             val avg = hist.sum() / 3
             if (avg <= 0 || cur < avg * SPIKE_RATIO || cur - avg < SPIKE_MIN_DIFF) return@mapNotNull null
@@ -325,7 +325,7 @@ object Insights {
 
     fun smallSpends(s: AppState, today: LocalDate, money: MoneyFmt): Insight? {
         val ym = today.ym()
-        val month = expenses(s).filter { it.paid && it.date.ym() == ym && !it.date.isAfter(today) }
+        val month = expenses(s).filter { it.paid && it.accountingDate.ym() == ym && !it.accountingDate.isAfter(today) }
         val small = month.filter { it.value <= SMALL_VALUE }
         if (small.size < SMALL_MIN_COUNT) return null
         val total = sum(small); val all = sum(month)

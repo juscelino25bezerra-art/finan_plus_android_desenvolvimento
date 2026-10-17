@@ -28,6 +28,8 @@ sealed class LoadProblem {
     data class Unreadable(val copied: Boolean) : LoadProblem()
     /** erro do Keystore talvez passageiro: o arquivo está intacto e nada é gravado até o usuário decidir */
     data class KeystoreError(val detail: String) : LoadProblem()
+    /** Erro de leitura local diferente de falha de chave. O arquivo não deve ser substituído sem decisão. */
+    data class StorageError(val detail: String) : LoadProblem()
     /** decifrou, mas o conteúdo era inválido; [raw] pode ser salvo pelo usuário */
     data class Invalid(val raw: String) : LoadProblem()
     data class Dropped(val count: Int) : LoadProblem()
@@ -45,9 +47,13 @@ object Repo {
     private val writeLock = Mutex()
     @Volatile private var lastWritten: AppState? = null
     @Volatile private var saveBlocked = false
+    @Volatile private var initializing = false
 
     private val _state = MutableStateFlow(AppState())
     val state: StateFlow<AppState> = _state
+
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading
 
     private val _problem = MutableStateFlow<LoadProblem?>(null)
     val problem: StateFlow<LoadProblem?> = _problem
@@ -64,42 +70,63 @@ object Repo {
 
     @Synchronized
     fun init(context: Context) {
-        if (ready) return
+        if (ready || initializing) return
+        initializing = true
         app = context.applicationContext
         store = SecureStore(app)
-        load()
-        ready = true
-        runRecurring()
+        scope.launch {
+            try {
+                val valid = load()
+                if (valid) {
+                    DevicePrefs.get(app).migrate(_state.value.autoLock)
+                    ready = true
+                    runRecurring()
+                }
+            } catch (e: Exception) {
+                saveBlocked = true
+                _problem.value = LoadProblem.StorageError(e.message ?: e.javaClass.simpleName)
+                _saveError.value = BLOCKED_MSG
+            } finally {
+                _loading.value = false
+                initializing = false
+            }
+        }
     }
 
-    private fun load() {
-        when (val r = store.read()) {
-            is SecureStore.ReadResult.Empty -> { saveBlocked = false; _state.value = AppState() }
+    private fun load(): Boolean {
+        val valid = when (val r = store.read()) {
+            is SecureStore.ReadResult.Empty -> { saveBlocked = false; _state.value = AppState(); true }
             is SecureStore.ReadResult.Ok -> try {
                 val n = Backup.parse(r.json)
                 saveBlocked = false
                 _state.value = n.state
                 lastWritten = n.state
                 if (n.dropped.total > 0) _problem.value = LoadProblem.Dropped(n.dropped.total)
+                true
             } catch (e: BackupException) {
-                // conteúdo inválido: guarda cópia (cifrada) antes de qualquer gravação; sem cópia, não grava
-                saveBlocked = store.keepEncryptedCopy() == null
+                // Conteúdo inválido: preserva uma cópia cifrada e não grava nada até a escolha explícita.
+                runCatching { store.keepEncryptedCopy() }
+                saveBlocked = true
                 _problem.value = LoadProblem.Invalid(r.json)
                 _state.value = AppState()
+                false
             }
             is SecureStore.ReadResult.Unreadable -> {
                 // nunca grava por cima até o usuário escolher "começar do zero" (com ou sem cópia guardada)
                 saveBlocked = true
                 _problem.value = LoadProblem.Unreadable(copied = r.copy != null)
                 _state.value = AppState()
+                false
             }
             is SecureStore.ReadResult.KeystoreError -> {
                 saveBlocked = true
                 _problem.value = LoadProblem.KeystoreError(r.message)
                 _state.value = AppState()
+                false
             }
         }
         _saveError.value = if (saveBlocked) BLOCKED_MSG else null
+        return valid
     }
 
     /** "Tentar de novo" após [LoadProblem.KeystoreError]: relê o arquivo (que não foi tocado). */
@@ -110,13 +137,28 @@ object Repo {
         saveBlocked = true
         _problem.value = null
         lastWritten = null
-        load()
-        runRecurring()
-        return _problem.value == null
+        return try {
+            val valid = load()
+            if (valid) {
+                DevicePrefs.get(app).migrate(_state.value.autoLock)
+                ready = true
+            }
+            if (valid) runRecurring()
+            valid
+        } catch (e: Exception) {
+            saveBlocked = true
+            _problem.value = LoadProblem.StorageError(e.message ?: e.javaClass.simpleName)
+            _saveError.value = BLOCKED_MSG
+            false
+        } finally {
+            _loading.value = false
+            initializing = false
+        }
     }
 
     /** Gera lançamentos de recorrências pendentes até hoje. */
     fun runRecurring(today: LocalDate = LocalDate.now()): Int {
+        if (!ready) return 0
         var added = 0
         _state.update { s -> val (n, c) = Finance.generateRecurring(s, today); added = c; n }
         if (added > 0) persist()
@@ -126,9 +168,9 @@ object Repo {
     /** Só para as capturas de tela da documentação (testes): mostra um estado sem gravar nada. */
     internal fun showForScreenshots(s: AppState) { _state.value = s }
 
-    fun update(f: (AppState) -> AppState) { _state.update(f); persist() }
+    fun update(f: (AppState) -> AppState) { if (!ready) return; _state.update(f); persist() }
 
-    fun replace(s: AppState) { _state.value = s; persist() }
+    fun replace(s: AppState) { if (!ready) return; _state.value = s; persist() }
 
     /** Aplica o resultado de uma operação; retorna o erro (para exibir) ou null. */
     fun commit(o: Outcome): Outcome.Err? = when (o) {
@@ -144,8 +186,11 @@ object Repo {
      * (ou não pôde ser copiado, e o usuário confirmou que aceita perdê-lo). Libera a gravação.
      */
     fun startFresh() {
+        // Guarda os bytes cifrados existentes antes de autorizar qualquer gravação sobre eles.
+        runCatching { store.keepEncryptedCopy() }
         _problem.value = null
         saveBlocked = false
+        ready = true
         _saveError.value = null
         persist()
     }

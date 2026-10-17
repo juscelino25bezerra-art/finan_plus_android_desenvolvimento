@@ -62,7 +62,7 @@ object MonthCalendar {
     /** Dias do mês [ym] que têm algo (os demais não aparecem no mapa). */
     fun build(s: AppState, ym: YearMonth, today: LocalDate): Map<LocalDate, CalDay> {
         // recorrências previstas entram nos meses que ainda não chegaram (não são gravadas; ver Projection)
-        val txsByDay = (s.txs.filter { it.date.ym() == ym } + Projection.between(s, ym.atDay(1), ym.atEndOfMonth(), today)).groupBy { it.date }
+        val txsByDay = (s.txs.filter { it.accountingDate.ym() == ym } + Projection.between(s, ym.atDay(1), ym.atEndOfMonth(), today)).groupBy { it.accountingDate }
         val invByDay = invoicesDue(s, ym, today).groupBy { it.due }
         return (txsByDay.keys + invByDay.keys).sorted().associateWith { day ->
             val txs = (txsByDay[day] ?: emptyList()).sortedWith(compareBy<Tx> { it.kind != Kind.INCOME }.thenBy { it.isCard }.thenBy { it.id })

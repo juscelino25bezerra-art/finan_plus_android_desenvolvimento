@@ -50,9 +50,13 @@ data class Tx(
     val groupId: String = "",
     val parcelN: Int = 0,
     val parcelTotal: Int = 0,
+    /** Data em que foi efetivamente pago/recebido; [date] continua sendo a data prevista. */
+    val settledAt: LocalDate? = null,
 ) {
     val isFlow get() = cardPayment.isEmpty()
     val isCard get() = cardId.isNotEmpty()
+    /** Data usada para relatórios e histórico: realização para pagos, vencimento para pendentes. */
+    val accountingDate: LocalDate get() = if (paid && isFlow && !isCard) settledAt ?: date else date
 }
 
 data class Account(val id: String, val name: String, val initial: Cents)
@@ -105,6 +109,22 @@ data class AppState(
 ) {
     fun account(id: String) = accounts.firstOrNull { it.id == id }
     fun card(id: String) = cards.firstOrNull { it.id == id }
+
+    /** Mantém todas as somas de centavos dentro do intervalo seguro de Long. */
+    fun hasSafeMoneyTotals(): Boolean {
+        // A shared cap keeps all integer-cent totals exact in both Kotlin Long and the LAN PWA's JS Number.
+        val cap = java.math.BigInteger("9007199254740991") // Number.MAX_SAFE_INTEGER
+        var total = java.math.BigInteger.ZERO
+        fun add(value: Cents): Boolean {
+            val n = java.math.BigInteger.valueOf(value).abs()
+            if (n > java.math.BigInteger.valueOf(Money.MAX_ABS)) return false
+            total = total.add(n)
+            return total <= cap
+        }
+        return txs.all { add(it.value) } && accounts.all { add(it.initial) } && cards.all { add(it.limit) } &&
+            goals.all { add(it.target) && add(it.saved) && add(it.monthly) } &&
+            recurring.all { add(it.value) } && limits.values.all(::add)
+    }
 
     companion object {
         const val MAIN_ACCOUNT = "main"

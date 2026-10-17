@@ -159,7 +159,7 @@ object Ask {
     fun answer(question: String, s: AppState, today: LocalDate, money: MoneyFmt): Answer {
         val p = parse(question, s, today)
         fun base(k: Kind?) = s.txs.filter { t ->
-            t.isFlow && (k == null || t.kind == k) && !t.date.isBefore(p.period.from) && !t.date.isAfter(p.period.to) &&
+            t.isFlow && (k == null || t.kind == k) && !t.accountingDate.isBefore(p.period.from) && !t.accountingDate.isAfter(p.period.to) &&
                 (p.category == null || t.category == p.category) &&
                 (p.words.isEmpty() || Text.fold(t.desc + " " + t.category).let { d -> p.words.all { w -> " $d ".contains(" $w") } })
         }
@@ -187,7 +187,7 @@ object Ask {
             Intent.MAX -> {
                 val top = done.sortedByDescending { it.value }.take(3)
                 if (top.isEmpty()) "Não encontrei $what realizadas$scope."
-                else "O maior foi “${top[0].desc}”: ${money(top[0].value)} em ${Br.date(top[0].date)} (${top[0].category})." +
+                else "O maior foi “${top[0].desc}”: ${money(top[0].value)} em ${Br.date(top[0].accountingDate)} (${top[0].category})." +
                     (if (top.size > 1) " Depois: " + top.drop(1).joinToString("; ") { "“${it.desc}” ${money(it.value)}" } + "." else "")
             }
             Intent.AVERAGE -> {

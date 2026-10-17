@@ -201,11 +201,13 @@
       recurringId: o.recurringId ?? "",
       groupId: o.groupId ?? "",
       parcelN: o.parcelN ?? 0,
-      parcelTotal: o.parcelTotal ?? 0
+      parcelTotal: o.parcelTotal ?? 0,
+      settledAt: o.settledAt ?? null
     };
   }
   var isFlow = (t) => !t.cardPayment;
   var isCard = (t) => !!t.cardId;
+  var accountingDate = (t) => t.paid && isFlow(t) && !isCard(t) ? t.settledAt || t.date : t.date;
   function newState(over2 = {}) {
     return {
       txs: [],
@@ -353,17 +355,17 @@
       const r = list.filter((t) => isFlow(t) && t.paid);
       return { income: sumOf(r.filter((t) => t.kind === "income")), expense: sumOf(r.filter((t) => t.kind === "expense")) };
     },
-    monthFlow: (s, ym) => Finance.flow(s.txs.filter((t) => ymOf(t.date) === ym)),
+    monthFlow: (s, ym) => Finance.flow(s.txs.filter((t) => ymOf(accountingDate(t)) === ym)),
     /** despesas do mês por categoria, incluindo pendentes (para limites) */
     budgetUsage(s, ym) {
       const m2 = /* @__PURE__ */ new Map();
-      for (const t of s.txs) if (t.kind === "expense" && isFlow(t) && ymOf(t.date) === ym) m2.set(t.category, (m2.get(t.category) || 0) + t.value);
+      for (const t of s.txs) if (t.kind === "expense" && isFlow(t) && ymOf(accountingDate(t)) === ym) m2.set(t.category, (m2.get(t.category) || 0) + t.value);
       return m2;
     },
     /** despesas realizadas por categoria no período, decrescente */
     categoryTotals(s, from, to) {
       const m2 = /* @__PURE__ */ new Map();
-      for (const t of s.txs) if (t.kind === "expense" && t.paid && isFlow(t) && (!from || t.date >= from) && (!to || t.date <= to)) m2.set(t.category, (m2.get(t.category) || 0) + t.value);
+      for (const t of s.txs) if (t.kind === "expense" && t.paid && isFlow(t) && (!from || accountingDate(t) >= from) && (!to || accountingDate(t) <= to)) m2.set(t.category, (m2.get(t.category) || 0) + t.value);
       return [...m2.entries()].sort((a, b) => b[1] - a[1]);
     },
     lastMonths: (s, today2, n = 6) => Array.from({ length: n }, (_, i) => {
@@ -402,8 +404,8 @@
     },
     build(s) {
       const head = ["data", "tipo", "categoria", "descricao", "valor", "situacao", "conta", "cartao"];
-      const rows = [...s.txs].sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0).map((t) => [
-        Csv.cell(t.date),
+      const rows = [...s.txs].sort((a, b) => accountingDate(a) < accountingDate(b) ? -1 : accountingDate(a) > accountingDate(b) ? 1 : 0).map((t) => [
+        Csv.cell(accountingDate(t)),
         Csv.cell(t.kind === "income" ? "receita" : "despesa"),
         Csv.cell(t.category),
         Csv.cell(t.desc),
@@ -442,12 +444,12 @@
       if (editId != null) {
         const t = s.txs.find((x) => x.id === editId);
         if (!t) return err("Lançamento não encontrado.");
-        const upd = t.cardPayment ? { ...t, desc, value, category, date: d.date, accountId, paid: true } : { ...t, kind: d.kind, desc, value, category, date: d.date, paid, accountId, cardId };
+        const upd = t.cardPayment ? { ...t, desc, value, category, date: d.date, accountId, paid: true } : { ...t, kind: d.kind, desc, value, category, date: d.date, paid, accountId, cardId, settledAt: paid && !isC ? t.paid && isFlow(t) && !isCard(t) ? t.settledAt || t.date : todayStr() : null };
         return ok({ ...s, txs: s.txs.map((x) => x.id === editId ? upd : x) });
       }
       const n = Math.min(60, Math.max(1, d.reps || 1));
       if (n > 1 && d.recurring) return err("Escolha parcelas ou repetição mensal, não os dois.", "Revise o lançamento");
-      const base2 = tx({ id: newId(), kind: d.kind, value, date: d.date, desc, category, paid, accountId, cardId });
+      const base2 = tx({ id: newId(), kind: d.kind, value, date: d.date, desc, category, paid, accountId, cardId, settledAt: paid && !isC ? todayStr() : null });
       let added;
       if (n > 1) {
         const values = d.repsMode === "EACH" ? Array(n).fill(value) : Finance.splitInstallments(value, n);
@@ -459,6 +461,7 @@
           value: v,
           date: plusMonths(d.date, i),
           paid: isC || i === 0 && !!d.paid,
+          settledAt: !isC && i === 0 && d.paid ? todayStr() : null,
           desc: `${desc} (${i + 1}/${n})`,
           groupId: group,
           parcelN: i + 1,
@@ -481,7 +484,7 @@
     /** Compra no cartão e pagamento de fatura não alternam pago/pendente: desmarcar um pagamento de fatura reabria
      *  a fatura e deixava o pagamento pendente, descontando o mesmo valor duas vezes (igual ao app Android 1.1.1). */
     canTogglePaid: (t) => !isCard(t) && isFlow(t) && !isProjected(t),
-    togglePaid: (s, id) => ({ ...s, txs: s.txs.map((x) => x.id === id && Ops.canTogglePaid(x) ? { ...x, paid: !x.paid } : x) }),
+    togglePaid: (s, id) => ({ ...s, txs: s.txs.map((x) => x.id !== id || !Ops.canTogglePaid(x) ? x : x.paid ? { ...x, paid: false, settledAt: null } : { ...x, paid: true, settledAt: todayStr() }) }),
     saveGoal(s, id, name, target, move, deadline, monthly) {
       const n = clean(name, 60), t = Money.parse(target), m2 = blank(monthly) ? 0 : Money.parse(monthly);
       if (!n) return err("Informe o nome da meta.");
@@ -619,7 +622,7 @@
     },
     categoryUseCount: (s, kind, name) => s.txs.filter((t) => t.kind === kind && t.category === name).length
   };
-  var BACKUP_VERSION = 5;
+  var BACKUP_VERSION = 6;
   var BACKUP_MAX_BYTES = 30 * 1024 * 1024;
   var ID_RE = /^[A-Za-z0-9_.-]{1,48}$/;
   var YM_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -676,6 +679,7 @@
     if (isObj(raw.cats)) for (const k of ["income", "expense"]) {
       const list = raw.cats[k];
       if (!Array.isArray(list)) continue;
+      if (list.length > 500) throw new BackupError("Muitas categorias no backup");
       const seen = /* @__PURE__ */ new Set(), out = [];
       for (const x of list) {
         const n = str(x, 40);
@@ -687,6 +691,7 @@
       if (out.length) cats[k] = out;
     }
     const accounts = [];
+    if (Array.isArray(raw.accounts) && raw.accounts.length > 100) throw new BackupError("Muitas contas no backup");
     if (Array.isArray(raw.accounts)) for (const x of raw.accounts) {
       if (!isObj(x) || !str(x.name, 40)) {
         d.accounts++;
@@ -704,6 +709,7 @@
       return accIds.has(s) ? s : firstAcc;
     };
     const cards = [];
+    if (Array.isArray(raw.cards) && raw.cards.length > 100) throw new BackupError("Muitos cartões no backup");
     if (Array.isArray(raw.cards)) for (const x of raw.cards) {
       if (!isObj(x) || !str(x.name, 40)) {
         d.cards++;
@@ -718,6 +724,7 @@
     };
     const kindOf = (v) => v === "income" || v === "expense" ? v : null;
     const recurring = [];
+    if (Array.isArray(raw.recurring) && raw.recurring.length > 1e3) throw new BackupError("Muitas recorrências no backup");
     if (Array.isArray(raw.recurring)) for (const o of raw.recurring) {
       const kind = isObj(o) ? kindOf(o.kind) : null, value = isObj(o) ? cents(o.value) : 0;
       if (!isObj(o) || !kind || value <= 0 || !str(o.desc)) {
@@ -739,6 +746,7 @@
       });
     }
     const txs = [];
+    if (raw.txs.length > 5e4) throw new BackupError("Muitos lançamentos no backup");
     for (const o of raw.txs) {
       const kind = isObj(o) ? kindOf(o.kind) : null, value = isObj(o) ? cents(o.value) : 0, date = isObj(o) ? parseDate(o.date) : null;
       if (!isObj(o) || !kind || value <= 0 || !date) {
@@ -761,6 +769,7 @@
         accountId: accOf(o.accountId),
         cardId,
         cardPayment,
+        settledAt: o.paid !== false && !cardId && !cardPayment ? parseDate(o.settledAt) || date : null,
         recurringId: safeId(o.recurringId),
         groupId: safeId(o.groupId),
         parcelN: okP ? pN : 0,
@@ -768,6 +777,7 @@
       }));
     }
     const goals = [];
+    if (Array.isArray(raw.goals) && raw.goals.length > 1e3) throw new BackupError("Muitas metas no backup");
     if (Array.isArray(raw.goals)) for (const g of raw.goals) {
       const target = isObj(g) ? cents(g.target) : 0;
       if (!isObj(g) || !str(g.name, 60) || target <= 0) {
@@ -783,6 +793,14 @@
     }
     const al = num(raw.autoLock), autoLock = al != null && AUTOLOCK_OPTIONS.includes(Math.round(al)) ? Math.round(al) : 0;
     const state = { txs, goals, accounts, cards, recurring, cats, limits, privacy: raw.privacy === true, autoLock, theme: themeOf(raw.theme) };
+    let moneyTotal = 0;
+    for (const value of [
+      ...txs.map((t) => t.value), ...accounts.map((a) => a.initial), ...cards.map((c) => c.limit),
+      ...goals.flatMap((g) => [g.target, g.saved, g.monthly]), ...recurring.map((r) => r.value), ...limits.values()
+    ]) {
+      if (!Number.isSafeInteger(value) || (moneyTotal += Math.abs(value)) > Number.MAX_SAFE_INTEGER)
+        throw new BackupError("O total dos valores excede o limite seguro");
+    }
     return { state, dropped: d, droppedTotal: d.txs + d.goals + d.accounts + d.cards + d.recurring };
   }
   function parseBackup(text) {
@@ -816,6 +834,7 @@
     const o = {
       txs: s.txs.map((t) => {
         const x = { id: t.id, kind: t.kind, value: R(t.value), date: t.date, desc: t.desc, category: t.category, paid: t.paid, accountId: t.accountId, cardId: t.cardId };
+        if (t.settledAt) x.settledAt = t.settledAt;
         if (t.cardPayment) x.cardPayment = t.cardPayment;
         if (t.recurringId) x.recurringId = t.recurringId;
         if (t.groupId) x.groupId = t.groupId;
@@ -882,7 +901,7 @@
         if (!byDay.has(d)) byDay.set(d, { date: d, txs: [], invoices: [] });
         return byDay.get(d);
       };
-      for (const t of s.txs) if (ymOf(t.date) === ym) get(t.date).txs.push(t);
+      for (const t of s.txs) if (ymOf(accountingDate(t)) === ym) get(accountingDate(t)).txs.push(t);
       for (const t of Projection.between(s, ymFirst(ym), ymLast(ym), today2)) get(t.date).txs.push(t);
       for (const i of MonthCalendar.invoicesDue(s, ym, today2)) get(i.due).invoices.push(i);
       const days = /* @__PURE__ */ new Map();
@@ -1292,7 +1311,7 @@
   var PRICE_UP_RATIO = 1.05;
   var DUP_DAYS = 60;
   var expenses = (s) => s.txs.filter((t) => t.kind === "expense" && isFlow(t));
-  var inMonthUntil = (t, ym, lastDay) => ymOf(t.date) === ym && dom(t.date) <= lastDay;
+  var inMonthUntil = (t, ym, lastDay) => ymOf(accountingDate(t)) === ym && dom(accountingDate(t)) <= lastDay;
   var isFixed = (t) => !!t.recurringId || !!t.groupId;
   var insight = (id, type, title, text, why2, priority, extra = {}) => ({ id, type, title, text, why: why2, priority, query: null, from: null, to: null, ...extra });
   var Insights = {
@@ -1331,8 +1350,8 @@
       const late = exp.filter((t) => !t.paid && !isCard(t) && t.date < today2);
       if (late.length) lines.push(hl.late = `${plural(late.length, "conta está", "contas estão")} em atraso (${money3(sum(late))}).`);
       if (day <= 7) {
-        const pe = sum(exp.filter((t) => t.paid && ymOf(t.date) === prev));
-        const pi = sum(s.txs.filter((t) => t.kind === "income" && t.paid && ymOf(t.date) === prev));
+        const pe = sum(exp.filter((t) => t.paid && ymOf(accountingDate(t)) === prev));
+        const pi = sum(s.txs.filter((t) => t.kind === "income" && t.paid && ymOf(accountingDate(t)) === prev));
         if (pe > 0 || pi > 0) lines.push(`Fechamento de ${brMonth(prev)}: receitas ${money3(pi)}, despesas ${money3(pe)}, saldo ${money3(pi - pe)}.`);
       }
       return {
@@ -1358,7 +1377,7 @@
     /** mesma descrição + mesmo valor + mesma data, nos últimos 60 dias, sem ser parcela/recorrência */
     duplicates(s, today2, money3) {
       const since = addDays(today2, -DUP_DAYS);
-      const g = groupBy(expenses(s).filter((t) => t.date >= since && !isFixed(t)), (t) => `${t.date}${t.value}${Text.key(t.desc)}`);
+      const g = groupBy(expenses(s).filter((t) => accountingDate(t) >= since && !isFixed(t)), (t) => `${accountingDate(t)}${t.value}${Text.key(t.desc)}`);
       return [...g].filter(([k, l]) => k.split("")[2] && l.length >= 2).map((e, i) => [e, i]).sort((a, b) => a[0][1][0].date < b[0][1][0].date ? 1 : a[0][1][0].date > b[0][1][0].date ? -1 : a[1] - b[1]).slice(0, 3).map(([[k, l]]) => {
         const t = l[0], [date, value, key] = k.split("");
         return insight(
@@ -1375,10 +1394,10 @@
     /** gasto que se repete uma vez por mês, com valor parecido, em ≥ 3 meses seguidos até o mês atual ou o anterior */
     recurringExpenses(s, today2) {
       const cur = ymOf(today2), window2 = cur - 5, out = [];
-      const groups = groupBy(expenses(s).filter((t) => !t.groupId && ymOf(t.date) >= window2 && ymOf(t.date) <= cur), (t) => Text.key(cleanParcel(t.desc)));
+      const groups = groupBy(expenses(s).filter((t) => !t.groupId && ymOf(accountingDate(t)) >= window2 && ymOf(accountingDate(t)) <= cur), (t) => Text.key(cleanParcel(t.desc)));
       for (const [key, list] of groups) {
         if (!key) continue;
-        const byM = groupBy(list, (t) => ymOf(t.date));
+        const byM = groupBy(list, (t) => ymOf(accountingDate(t)));
         if ([...byM.values()].some((l) => l.length > 1)) continue;
         const months = [...byM.keys()].sort((a, b) => a - b), end = months.at(-1);
         if (end !== cur && end !== cur - 1) continue;
@@ -1433,9 +1452,9 @@
      */
     project(list, today2, minCount = PACE_MIN_COUNT) {
       const ym = ymOf(today2), day = dom(today2), len = ymLen(ym);
-      const month = list.filter((t) => ymOf(t.date) === ym);
+      const month = list.filter((t) => ymOf(accountingDate(t)) === ym);
       const committed = sum(month.filter((t) => isFixed(t) || !t.paid));
-      const vars = month.filter((t) => !isFixed(t) && t.paid && dom(t.date) <= day);
+      const vars = month.filter((t) => !isFixed(t) && t.paid && dom(accountingDate(t)) <= day);
       const variable = sum(vars), biggest = vars.reduce((m2, t) => Math.max(m2, t.value), 0);
       const oneOff = variable > 0 && biggest > variable * ONE_OFF_SHARE ? biggest : 0;
       return {
@@ -1457,7 +1476,7 @@
       const exp = expenses(s), out = [];
       for (const [cat, lim] of s.limits) {
         const l = exp.filter((t) => t.category === cat);
-        const used = sum(l.filter((t) => ymOf(t.date) === ym));
+        const used = sum(l.filter((t) => ymOf(accountingDate(t)) === ym));
         if (used >= lim) continue;
         const p = Insights.project(l, today2, PACE_MIN_COUNT_CAT);
         if (!p.enough || p.projected <= lim || p.projected - lim < 1e3) continue;
@@ -1477,7 +1496,7 @@
     overIncome(s, today2, money3) {
       const ym = ymOf(today2), day = dom(today2), len = ymLen(ym);
       if (day < PACE_MIN_DAY || day >= len) return null;
-      const income = sum(s.txs.filter((t) => t.kind === "income" && ymOf(t.date) === ym));
+      const income = sum(s.txs.filter((t) => t.kind === "income" && ymOf(accountingDate(t)) === ym));
       if (income <= 0) return null;
       const p = Insights.project(expenses(s), today2, PACE_MIN_COUNT);
       if (!p.enough || p.projected <= income) return null;
@@ -1493,9 +1512,9 @@
     },
     spikes(s, today2, money3) {
       const ym = ymOf(today2), exp = expenses(s).filter((t) => t.paid), months = [ym - 1, ym - 2, ym - 3], out = [];
-      for (const [cat, curList] of groupBy(exp.filter((t) => ymOf(t.date) === ym && t.date <= today2), (t) => t.category)) {
+      for (const [cat, curList] of groupBy(exp.filter((t) => ymOf(accountingDate(t)) === ym && accountingDate(t) <= today2), (t) => t.category)) {
         const cur = sum(curList);
-        const hist = months.map((m2) => sum(exp.filter((t) => t.category === cat && ymOf(t.date) === m2)));
+        const hist = months.map((m2) => sum(exp.filter((t) => t.category === cat && ymOf(accountingDate(t)) === m2)));
         if (hist.filter((v) => v > 0).length < 2) continue;
         const avg = Math.trunc((hist[0] + hist[1] + hist[2]) / 3);
         if (avg <= 0 || cur < avg * SPIKE_RATIO || cur - avg < SPIKE_MIN_DIFF) continue;
@@ -1514,7 +1533,7 @@
     },
     smallSpends(s, today2, money3) {
       const ym = ymOf(today2);
-      const month = expenses(s).filter((t) => t.paid && ymOf(t.date) === ym && t.date <= today2);
+      const month = expenses(s).filter((t) => t.paid && ymOf(accountingDate(t)) === ym && accountingDate(t) <= today2);
       const small = month.filter((t) => t.value <= SMALL_VALUE);
       if (small.length < SMALL_MIN_COUNT) return null;
       const total = sum(small), all = sum(month);
@@ -1645,7 +1664,7 @@
     },
     answer(question, s, today2, money3 = Money.format) {
       const p = Ask.parse(question, s, today2);
-      const all = s.txs.filter((t) => isFlow(t) && (p.kind == null || t.kind === p.kind) && t.date >= p.period.from && t.date <= p.period.to && (p.category == null || t.category === p.category) && (!p.words.length || ((d) => p.words.every((w) => ` ${d} `.includes(` ${w}`)))(Text.fold(t.desc + " " + t.category))));
+      const all = s.txs.filter((t) => isFlow(t) && (p.kind == null || t.kind === p.kind) && accountingDate(t) >= p.period.from && accountingDate(t) <= p.period.to && (p.category == null || t.category === p.category) && (!p.words.length || ((d) => p.words.every((w) => ` ${d} `.includes(` ${w}`)))(Text.fold(t.desc + " " + t.category))));
       const done = all.filter((t) => t.paid), pending2 = all.filter((t) => !t.paid);
       const what = p.kind === "income" ? "receitas" : p.kind === "expense" ? "despesas" : "receitas e despesas";
       const filter = [p.category != null ? `categoria ${p.category}` : null, p.words.length ? `descrição com “${p.words.join(" ")}”` : null].filter(Boolean);
@@ -1663,7 +1682,7 @@
           break;
         case "MAX": {
           const top = done.map((t, i) => [t, i]).sort((a, b) => b[0].value - a[0].value || a[1] - b[1]).slice(0, 3).map((x) => x[0]);
-          text = !top.length ? `Não encontrei ${what} realizadas${scope}.` : `O maior foi “${top[0].desc}”: ${money3(top[0].value)} em ${brDate(top[0].date)} (${top[0].category}).` + (top.length > 1 ? " Depois: " + top.slice(1).map((t) => `“${t.desc}” ${money3(t.value)}`).join("; ") + "." : "");
+          text = !top.length ? `Não encontrei ${what} realizadas${scope}.` : `O maior foi “${top[0].desc}”: ${money3(top[0].value)} em ${brDate(accountingDate(top[0]))} (${top[0].category}).` + (top.length > 1 ? " Depois: " + top.slice(1).map((t) => `“${t.desc}” ${money3(t.value)}`).join("; ") + "." : "");
           break;
         }
         case "AVERAGE": {
@@ -3385,7 +3404,7 @@ Public License instead of this License.  But first, please read
   function buildReport(s, from, to, today2) {
     if (to < from) throw new Error("período inválido");
     const days = dayNum(to) - dayNum(from) + 1;
-    const inRange = (t, a, b) => t.date >= a && t.date <= b;
+    const inRange = (t, a, b) => accountingDate(t) >= a && accountingDate(t) <= b;
     const period2 = s.txs.filter((t) => inRange(t, from, to));
     const flows = period2.filter(isFlow), done = flows.filter((t) => t.paid);
     const inc = done.filter((t) => t.kind === "income"), exp = done.filter((t) => t.kind === "expense");
@@ -3421,7 +3440,7 @@ Public License instead of this License.  But first, please read
     };
     const months = [];
     for (let m2 = ymOf(from); m2 <= ymOf(to); m2++) {
-      const l = done.filter((t) => ymOf(t.date) === m2);
+      const l = done.filter((t) => ymOf(accountingDate(t)) === m2);
       const income2 = sum2(l.filter((t) => t.kind === "income")), expense2 = sum2(l.filter((t) => t.kind === "expense"));
       months.push({ ym: m2, income: income2, expense: expense2, balance: income2 - expense2 });
     }
@@ -3906,7 +3925,7 @@ Public License instead of this License.  But first, please read
       rowBreak(pen, 18, cols2, 3);
       const base2 = pen.y + 11;
       let x = M + 6;
-      pen.text(brDate(t.date), x, base2, 8.5, MUTED);
+      pen.text(brDate(accountingDate(t)), x, base2, 8.5, MUTED);
       x += cols2[0][1];
       pen.text(t.desc, x, base2, 9, INK, { maxW: cols2[1][1] - 8 });
       x += cols2[1][1];
@@ -3952,7 +3971,7 @@ Public License instead of this License.  But first, please read
       let x = M + 6;
       const where = isCard(t) ? "Cartão " + (card(s, t.cardId)?.name ?? "") : account(s, t.accountId)?.name ?? "";
       const status = payment ? "Pag. fatura" : isCard(t) ? "Cartão" : t.paid ? t.kind === "income" ? "Recebido" : "Pago" : t.kind === "income" ? "A receber" : "A pagar";
-      pen.text(brDate(t.date), x, base2, 8, MUTED);
+      pen.text(brDate(accountingDate(t)), x, base2, 8, MUTED);
       x += cols2[0][1];
       pen.text(t.desc, x, base2, 8.5, payment ? MUTED : INK, { maxW: cols2[1][1] - 8 });
       x += cols2[1][1];
@@ -4923,7 +4942,7 @@ ${bad} item(ns) inválido(s) será(ão) ignorado(s).` : "") + "\nSubstituir os d
   function filteredTxs() {
     const f = ctx.moves, q = Text.fold(f.q);
     const projected = f.to ? Projection.between(ctx.state, f.from || ctx.today, f.to, ctx.today) : [];
-    return [...ctx.state.txs, ...projected].filter((t) => (!f.from || t.date >= f.from) && (!f.to || t.date <= f.to) && (!f.kind || t.kind === f.kind) && (!f.st || (f.st === "paid" ? t.paid : !t.paid)) && (!q || Text.fold(t.desc + " " + t.category).includes(q))).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    return [...ctx.state.txs, ...projected].filter((t) => (!f.from || accountingDate(t) >= f.from) && (!f.to || accountingDate(t) <= f.to) && (!f.kind || t.kind === f.kind) && (!f.st || (f.st === "paid" ? t.paid : !t.paid)) && (!q || Text.fold(t.desc + " " + t.category).includes(q))).sort((a, b) => accountingDate(a) < accountingDate(b) ? 1 : accountingDate(a) > accountingDate(b) ? -1 : 0);
   }
   function viewSwitch() {
     const v = ctx.movesView;
@@ -4984,16 +5003,16 @@ ${bad} item(ns) inválido(s) será(ão) ignorado(s).` : "") + "\nSubstituir os d
     const where = cardT ? `Cartão ${card(s, t.cardId)?.name ?? ""}` : account(s, t.accountId)?.name ?? "";
     const late = !t.paid && !cardT && t.date < ctx.today;
     const status = prev ? "Previsto · recorrência" : payment ? "Pagamento de fatura" : cardT ? "" : t.paid ? "" : late ? '<span class="red">Em atraso</span>' : t.kind === "income" ? "A receber" : "A pagar";
-    const meta = [esc(t.category), esc(where), o.noDate ? "" : brDate(t.date), status].filter(Boolean).join(" · ");
+    const meta = [esc(t.category), esc(where), o.noDate ? "" : brDate(accountingDate(t)), status].filter(Boolean).join(" · ");
     const toggle = prev ? `<span class="chk card" title="Previsto: o lançamento é criado quando o mês chegar">${icon("repeat", 16)}</span>` : cardT ? `<span class="chk card" title="Compra no cartão">${icon("credit-card", 16)}</span>` : payment ? `<span class="chk on" title="Pagamento de fatura">${icon("check", 16)}</span>` : `<button type="button" class="chk${t.paid ? " on" : ""}" data-act="toggle-paid" data-id="${attr(t.id)}" aria-pressed="${t.paid}" aria-label="${t.paid ? t.kind === "income" ? "Recebido" : "Pago" : t.kind === "income" ? "Marcar como recebido" : "Marcar como pago"}: ${attr(t.desc)}">${icon("check", 16)}</button>`;
-    return `<div class="tx ${t.kind}${t.paid ? "" : " pending"}${payment ? " payment" : ""}${prev ? " projected" : ""}" data-act="${prev ? "edit-recurring" : "edit-tx"}" data-id="${attr(prev ? t.recurringId : t.id)}" role="button" tabindex="0" aria-label="${attr(t.desc)}, ${prev ? "previsto, " : ""}${t.kind === "income" ? "receita" : "despesa"} de ${attr(money(t.value))} em ${brDate(t.date)}">
+    return `<div class="tx ${t.kind}${t.paid ? "" : " pending"}${payment ? " payment" : ""}${prev ? " projected" : ""}" data-act="${prev ? "edit-recurring" : "edit-tx"}" data-id="${attr(prev ? t.recurringId : t.id)}" role="button" tabindex="0" aria-label="${attr(t.desc)}, ${prev ? "previsto, " : ""}${t.kind === "income" ? "receita" : "despesa"} de ${attr(money(t.value))} em ${brDate(accountingDate(t))}">
     ${glyph(t.category)}<span class="meta"><b>${esc(t.desc)}</b><small>${meta}</small></span>
     <span class="amount">${t.kind === "income" ? "+" : "−"}${money(t.value)}</span>${toggle}</div>`;
   }
   function reportsView() {
     movesDefaults();
     const s = ctx.state, f = ctx.moves, today2 = ctx.today;
-    const inRange = s.txs.filter((t) => (!f.from || t.date >= f.from) && (!f.to || t.date <= f.to));
+    const inRange = s.txs.filter((t) => (!f.from || accountingDate(t) >= f.from) && (!f.to || accountingDate(t) <= f.to));
     const fl = Finance.flow(inRange);
     const head = `<div class="pageTitle reportsHead"><h2 id="reportsTitle">Relatórios</h2>${btn("PDF", { act: "pdf", cls: "pill", icon: "receipt-long", iconSize: 18, label: "Exportar relatório em PDF" })}</div>
     ${periodBar()}<p class="muted small reportsNote">Só valores realizados (pagos ou recebidos). O período é o mesmo da aba Lançamentos.</p>`;
@@ -5007,7 +5026,7 @@ ${bad} item(ns) inválido(s) será(ão) ignorado(s).` : "") + "\nSubstituir os d
       ${btn("Ver no calendário", { act: "reports-calendar", cls: "link", icon: "calendar-month", iconSize: 18 })}</section>`;
     } else {
       const c = PeriodCompare.of(f.from, f.to, today2);
-      const prev = c ? Finance.flow(s.txs.filter((t) => t.date >= c.from && t.date <= c.to)) : null;
+      const prev = c ? Finance.flow(s.txs.filter((t) => accountingDate(t) >= c.from && accountingDate(t) <= c.to)) : null;
       const chg2 = (cur, old) => hidden() ? "Variação oculta" : c ? PeriodCompare.text(cur, old, c) : "";
       const box = (l, ic, v, cls, ch) => `<div class="glass"><small>${icon(ic, 14)}${l}</small><b class="${cls}">${money(v)}</b>${ch ? `<small class="chg">${esc(ch)}</small>` : ""}</div>`;
       summary = `<section class="reportSum" aria-label="Resumo do período">${box("Receitas", "arrow-upward", fl.income, "green", chg2(fl.income, prev?.income))}${box("Despesas", "arrow-downward", fl.expense, "red", chg2(fl.expense, prev?.expense))}</section>`;

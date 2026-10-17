@@ -79,7 +79,7 @@ object Reports {
     /** gráfico mensal mostra no máximo os últimos 24 meses do período */
     const val MAX_CHART_MONTHS = 24
 
-    private fun inRange(t: Tx, from: LocalDate, to: LocalDate) = !t.date.isBefore(from) && !t.date.isAfter(to)
+    private fun inRange(t: Tx, from: LocalDate, to: LocalDate) = !t.accountingDate.isBefore(from) && !t.accountingDate.isAfter(to)
     private fun sum(l: List<Tx>): Cents = l.fold(0L) { a, t -> a + t.value }
 
     fun build(s: AppState, from: LocalDate, to: LocalDate, today: LocalDate): Report {
@@ -118,7 +118,7 @@ object Reports {
         var m = from.ym()
         while (!m.isAfter(to.ym())) {
             val mm = m
-            val l = done.filter { it.date.ym() == mm }
+            val l = done.filter { it.accountingDate.ym() == mm }
             months += MonthRow(mm, sum(l.filter { it.kind == Kind.INCOME }), sum(l.filter { it.kind == Kind.EXPENSE }))
             m = m.plusMonths(1)
         }
@@ -134,8 +134,8 @@ object Reports {
             expenseByCategory = byCategory(exp, s.limits),
             incomeByCategory = byCategory(inc, emptyMap()),
             months = months,
-            topExpenses = exp.sortedWith(compareByDescending<Tx> { it.value }.thenBy { it.date }).take(TOP),
-            txs = period.sortedWith(compareBy<Tx>({ it.date }, { it.kind != Kind.INCOME }, { it.desc })),
+            topExpenses = exp.sortedWith(compareByDescending<Tx> { it.value }.thenBy { it.accountingDate }).take(TOP),
+            txs = period.sortedWith(compareBy<Tx>({ it.accountingDate }, { it.kind != Kind.INCOME }, { it.desc })),
             accounts = s.accounts.map { it.name to Finance.accountBalance(s, it) },
             goals = s.goals.map { GoalRow(it.name, it.saved, it.target, it.deadline) },
         )

@@ -55,8 +55,6 @@ import com.finanplus.core.Csv
 import com.finanplus.core.Finance
 import com.finanplus.core.Kind
 import com.finanplus.core.Money
-import com.finanplus.core.Ops
-import com.finanplus.core.Outcome
 import com.finanplus.core.ThemeId
 import com.finanplus.data.DevicePrefs
 import com.finanplus.data.DeviceSettings
@@ -67,7 +65,6 @@ import com.finanplus.security.Pin
 import com.finanplus.ui.LocalNav
 import com.finanplus.ui.Sheet
 import com.finanplus.ui.components.Eyebrow
-import com.finanplus.ui.components.Field
 import com.finanplus.ui.components.Glass
 import com.finanplus.ui.components.LocalDialogs
 import com.finanplus.ui.components.ManageItem
@@ -98,7 +95,6 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
     val ctx = LocalContext.current
     val prefs = DevicePrefs.get(ctx)
     val scope = rememberCoroutineScope()
-    val today = com.finanplus.ui.components.LocalToday.current
 
     // ---------- arquivos (Storage Access Framework: o usuário escolhe onde salvar) ----------
     // Grava com "wt" (trunca: sobrescrever um arquivo maior não deixa sobra no fim) e sempre avisa o resultado.
@@ -286,24 +282,6 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
         }
 
         item {
-            Collapsible("Contas e cartões", "${s.accounts.size} conta(s) · ${s.cards.size} cartão(ões)") {
-                s.accounts.forEach { a ->
-                    ManageItem(a.name, "Saldo ${if (s.privacy) "R$ ••••" else Money.format(Finance.accountBalance(s, a))}") { Pill("Editar") { nav.open(Sheet.AccountEdit(a.id)) } }
-                }
-                s.cards.forEach { c ->
-                    val st = Finance.cardStatus(s, c, today)
-                    val v = if (s.privacy) "R$ ••••" else Money.format(c.limit)
-                    val u = if (s.privacy) "R$ ••••" else Money.format(st.used)
-                    ManageItem("Cartão ${c.name}", "Limite $v · usado $u · fecha dia ${c.close} · vence dia ${c.due}") { Pill("Editar") { nav.open(Sheet.CardEdit(c.id)) } }
-                }
-                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill("Conta", Modifier.weight(1f), icon = com.finanplus.ui.components.Ico.ADD) { nav.open(Sheet.AccountEdit()) }
-                    Pill("Cartão", Modifier.weight(1f), icon = com.finanplus.ui.components.Ico.ADD) { nav.open(Sheet.CardEdit()) }
-                }
-            }
-        }
-
-        item {
             Collapsible("Recorrências", if (s.recurring.isEmpty()) "Nenhuma recorrência cadastrada" else "${s.recurring.size} recorrência(s) cadastrada(s)") {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Pill("Nova", icon = com.finanplus.ui.components.Ico.ADD) { nav.open(Sheet.RecurringEdit()) } }
                 if (s.recurring.isEmpty()) Text("Você também pode marcar “Repetir mensalmente” ao criar um lançamento.", style = MaterialTheme.typography.bodySmall, color = p.muted)
@@ -312,54 +290,6 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                     val v = if (s.privacy) "R$ ••••" else Money.format(r.value)
                     ManageItem(r.desc, "${if (r.kind == Kind.INCOME) "Receita" else "Despesa"} · $v · dia ${r.day} · ${r.category} · $where${if (r.active) "" else " · pausada"}") {
                         Pill("Editar") { nav.open(Sheet.RecurringEdit(r.id)) }
-                    }
-                }
-            }
-        }
-
-        item {
-            Collapsible("Limites mensais", if (s.limits.isEmpty()) "Nenhum limite definido" else "${s.limits.size} limite(s) definido(s)") {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Pill("Adicionar", icon = com.finanplus.ui.components.Ico.ADD) { nav.open(Sheet.LimitEdit()) } }
-                s.limits.forEach { (c, v) ->
-                    ManageItem(c, "${if (s.privacy) "R$ ••••" else Money.format(v)} por mês") { Pill("Editar") { nav.open(Sheet.LimitEdit(c)) } }
-                }
-            }
-        }
-
-        item {
-            var newCat by rememberSaveable { mutableStateOf("") }
-            var newKind by remember { mutableStateOf(Kind.EXPENSE) }
-            Collapsible("Categorias", "${s.cats.expense.size + s.cats.income.size} categorias cadastradas") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Field("Nova categoria", newCat, { newCat = it }, Modifier.weight(1.3f), maxLength = 40)
-                    SelectField("Tipo", listOf(Kind.EXPENSE to "Despesa", Kind.INCOME to "Receita"), newKind, { newKind = it }, Modifier.weight(1f))
-                }
-                PrimaryButton("Adicionar categoria") {
-                    when (val o = Ops.addCategory(Repo.state.value, newKind, newCat)) {
-                        is Outcome.Err -> dialogs.notice(o.title, o.message)
-                        is Outcome.Ok -> { Repo.replace(o.state); newCat = "" }
-                    }
-                }
-                listOf(Kind.EXPENSE to "Despesas", Kind.INCOME to "Receitas").forEach { (k, label) ->
-                    Eyebrow(label, Modifier.padding(top = 14.dp, bottom = 4.dp))
-                    s.cats.of(k).forEach { c ->
-                        ManageItem(c, if (k == Kind.EXPENSE) "Despesa" else "Receita") {
-                            Pill("Renomear") {
-                                dialogs.input("Renomear categoria", "Lançamentos, recorrências e limites de “$c” passam a usar o novo nome.", "Novo nome", c) { n ->
-                                    Repo.commit(Ops.renameCategory(Repo.state.value, k, c, n))?.let { dialogs.notice(it.title, it.message) }
-                                }
-                            }
-                            Pill("Excluir", danger = true) {
-                                when (val chk = Ops.checkDeleteCategory(Repo.state.value, k, c)) {
-                                    is Outcome.Err -> dialogs.notice(chk.title, chk.message)
-                                    is Outcome.Ok -> {
-                                        val used = Ops.categoryUseCount(Repo.state.value, k, c)
-                                        val msg = if (used > 0) "Excluir “$c” da lista de categorias? $used lançamento(s) antigo(s) continuará(ão) com essa categoria no histórico." else "Excluir a categoria “$c”?"
-                                        dialogs.confirm("Excluir categoria", msg, ok = "Excluir", danger = true) { Repo.replace(Ops.deleteCategory(Repo.state.value, k, c)) }
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -405,25 +335,40 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
     }
 }
 
-/** Cartão de Ajustes que abre e fecha com o botão +/− (todas as seções usam). */
+/** Linha compacta de Ajustes que abre e fecha com uma seta de navegação. */
 @Composable
 private fun Collapsible(title: String, summary: String, content: @Composable ColumnScope.() -> Unit) {
     var open by rememberSaveable(title) { mutableStateOf(false) }
     val p = Fin.c
-    Glass(Modifier.padding(bottom = 14.dp), radius = 25.dp, padding = 0.dp) {
+    val icon = when (title) {
+        "Aparência" -> com.finanplus.ui.components.Ico.SETTINGS
+        "Privacidade e segurança" -> com.finanplus.ui.components.Ico.SHIELD
+        "Notificações e widget" -> com.finanplus.ui.components.Ico.WARNING
+        "Assistente" -> com.finanplus.ui.components.Ico.ASSIST
+        "Recorrências" -> com.finanplus.ui.components.Ico.REPEAT
+        "Acesso pela rede" -> com.finanplus.ui.components.Ico.MOVES
+        "Dados" -> com.finanplus.ui.components.Ico.WALLET
+        else -> com.finanplus.ui.components.Ico.NEXT
+    }
+    Glass(Modifier.padding(bottom = 8.dp), radius = 19.dp, padding = 0.dp) {
         Row(
-            Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }.semantics { stateDescription = if (open) "expandido" else "recolhido" }.padding(17.dp),
+            Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }
+                .semantics { stateDescription = if (open) "expandido" else "recolhido" }
+                .padding(horizontal = 13.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted)
+            com.finanplus.ui.components.IconTile(icon, p.accent, p.accent2, size = 38.dp, iconSize = 20.dp)
+            Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() }, maxLines = 1)
+                Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2)
             }
-            Box(Modifier.size(38.dp).clip(CircleShape).background(p.accent2), contentAlignment = Alignment.Center) {
-                com.finanplus.ui.components.AppIcon(if (open) com.finanplus.ui.components.Ico.REMOVE else com.finanplus.ui.components.Ico.ADD, p.text, size = 22.dp)
-            }
+            com.finanplus.ui.components.AppIcon(
+                if (open) com.finanplus.ui.components.Ico.DROPDOWN else com.finanplus.ui.components.Ico.NEXT,
+                p.muted,
+                size = 20.dp,
+            )
         }
-        if (open) Column(Modifier.padding(start = 17.dp, end = 17.dp, bottom = 17.dp), content = content)
+        if (open) Column(Modifier.padding(start = 13.dp, end = 13.dp, bottom = 13.dp), content = content)
     }
 }
 

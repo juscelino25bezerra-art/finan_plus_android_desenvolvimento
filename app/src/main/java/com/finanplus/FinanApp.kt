@@ -18,7 +18,6 @@ class FinanApp : Application() {
         AppLock.init(this)
         Repo.init(this)
         val prefs = DevicePrefs.get(this)
-        prefs.migrate(Repo.state.value.autoLock)
         if (prefs.value.lockEnabled) AppLock.lockNow() // processo novo com PIN/digital: começa bloqueado
         Reminders.createChannel(this)
         Reminders.schedule(this)

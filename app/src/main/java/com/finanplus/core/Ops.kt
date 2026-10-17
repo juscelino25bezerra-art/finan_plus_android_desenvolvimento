@@ -12,7 +12,8 @@ sealed class Outcome {
 }
 
 private fun err(msg: String, title: String = "Revise os dados") = Outcome.Err(title, msg)
-private fun ok(s: AppState) = Outcome.Ok(s)
+private fun ok(s: AppState): Outcome = if (s.hasSafeMoneyTotals()) Outcome.Ok(s)
+else err("O total dos valores excede o limite seguro. Reduza algum valor antes de salvar.", "Limite financeiro excedido")
 private fun sameName(a: String, b: String) = a.lowercase() == b.lowercase()
 
 enum class RepsMode { TOTAL, EACH }
@@ -35,7 +36,7 @@ data class TxDraft(
 /** Todas as alterações de dados passam por aqui, com as mesmas validações do PWA. */
 object Ops {
     // ---------------- lançamentos ----------------
-    fun saveTx(s: AppState, editId: String?, d: TxDraft): Outcome {
+    fun saveTx(s: AppState, editId: String?, d: TxDraft, today: LocalDate = LocalDate.now()): Outcome {
         val desc = d.desc.trim().take(TX_DESC_MAX)
         val value = Money.parse(d.value)
         val card = d.kind == Kind.EXPENSE && d.cardId.isNotEmpty()
@@ -52,20 +53,25 @@ object Ops {
             val t = s.txs.firstOrNull { it.id == editId } ?: return err("Lançamento não encontrado.")
             val upd = if (t.cardPayment.isNotEmpty())
                 t.copy(desc = desc, value = value, category = category, date = date, accountId = accountId, paid = true)
-            else t.copy(kind = d.kind, desc = desc, value = value, category = category, date = date, paid = paid, accountId = accountId, cardId = cardId)
+            else t.copy(
+                kind = d.kind, desc = desc, value = value, category = category, date = date, paid = paid,
+                accountId = accountId, cardId = cardId,
+                settledAt = if (!paid || card) null else if (t.paid && t.isFlow && !t.isCard) t.settledAt ?: t.date else today,
+            )
             return ok(s.copy(txs = s.txs.map { if (it.id == editId) upd else it }))
         }
 
         val n = d.reps.coerceIn(1, 60)
         if (n > 1 && d.recurring) return err("Escolha parcelas ou repetição mensal, não os dois.", "Revise o lançamento")
-        val base = Tx(Ids.new(), d.kind, value, date, desc, category, paid, accountId, cardId)
+        val base = Tx(Ids.new(), d.kind, value, date, desc, category, paid, accountId, cardId, settledAt = if (paid && !card) today else null)
         val added = if (n > 1) {
             val values = if (d.repsMode == RepsMode.EACH) List(n) { value } else Finance.splitInstallments(value, n)
             if (values.any { it <= 0 }) return err("O valor é pequeno demais para tantas parcelas.", "Valor inválido")
             val group = Ids.new()
             values.mapIndexed { i, v ->
                 base.copy(id = Ids.new(), value = v, date = date.plusMonthsClamped(i.toLong()), paid = card || (i == 0 && d.paid),
-                    desc = parcelDesc(desc, i + 1, n), groupId = group, parcelN = i + 1, parcelTotal = n)
+                    desc = parcelDesc(desc, i + 1, n), groupId = group, parcelN = i + 1, parcelTotal = n,
+                    settledAt = if (!card && i == 0 && d.paid) today else null)
             }
         } else listOf(base)
         var rec = s.recurring
@@ -99,8 +105,12 @@ object Ops {
      *  reabria a fatura e deixava o pagamento pendente, descontando o mesmo valor duas vezes. */
     fun canTogglePaid(t: Tx) = !t.isCard && t.isFlow && !t.isProjected
 
-    fun togglePaid(s: AppState, id: String): AppState =
-        s.copy(txs = s.txs.map { if (it.id == id && canTogglePaid(it)) it.copy(paid = !it.paid) else it })
+    fun togglePaid(s: AppState, id: String, today: LocalDate = LocalDate.now()): AppState =
+        s.copy(txs = s.txs.map {
+            if (it.id != id || !canTogglePaid(it)) it
+            else if (it.paid) it.copy(paid = false, settledAt = null)
+            else it.copy(paid = true, settledAt = today)
+        })
 
     // ---------------- metas ----------------
     fun saveGoal(s: AppState, id: String?, name: String, target: String, move: String, deadline: LocalDate?, monthly: String): Outcome {
@@ -112,7 +122,9 @@ object Ops {
         if (m == null || m < 0) return err("Contribuição mensal inválida.")
         val mv = if (move.isBlank()) 0L else Money.parse(move) ?: return err("Valor a guardar inválido.")
         if (id == null) return ok(s.copy(goals = s.goals + Goal(Ids.new(), n, t, 0, deadline, m)))
-        return ok(s.copy(goals = s.goals.map { if (it.id == id) it.copy(name = n, target = t, deadline = deadline, monthly = m, saved = maxOf(0L, it.saved + mv)) else it }))
+        val updated = try { Math.addExact(s.goals.firstOrNull { it.id == id }?.saved ?: 0L, mv).coerceAtLeast(0L) }
+        catch (_: ArithmeticException) { return err("O valor guardado excede o limite seguro.", "Limite financeiro excedido") }
+        return ok(s.copy(goals = s.goals.map { if (it.id == id) it.copy(name = n, target = t, deadline = deadline, monthly = m, saved = updated) else it }))
     }
 
     fun deleteGoal(s: AppState, id: String) = s.copy(goals = s.goals.filterNot { it.id == id })

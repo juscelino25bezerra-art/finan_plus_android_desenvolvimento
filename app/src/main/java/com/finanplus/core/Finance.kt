@@ -122,7 +122,9 @@ object Finance {
             }
             if (last == r.last) r else r.copy(last = last)
         }
-        return if (newTxs.isEmpty() && recs == s.recurring) s to 0 else s.copy(txs = s.txs + newTxs, recurring = recs) to newTxs.size
+        if (newTxs.isEmpty() && recs == s.recurring) return s to 0
+        val next = s.copy(txs = s.txs + newTxs, recurring = recs)
+        return if (next.hasSafeMoneyTotals()) next to newTxs.size else s to 0
     }
 
     // ---------------- parcelas ----------------
@@ -156,16 +158,16 @@ object Finance {
     // ---------------- resumos ----------------
     fun flow(list: List<Tx>): Flow { val r = list.filter { it.isFlow && it.paid }; return Flow(r.totalOf(Kind.INCOME), r.totalOf(Kind.EXPENSE)) }
 
-    fun monthFlow(s: AppState, ym: YearMonth): Flow = flow(s.txs.filter { it.date.ym() == ym })
+    fun monthFlow(s: AppState, ym: YearMonth): Flow = flow(s.txs.filter { it.accountingDate.ym() == ym })
 
     /** Despesas do mês por categoria, incluindo pendentes (para limites). */
     fun budgetUsage(s: AppState, ym: YearMonth): Map<String, Cents> = s.txs
-        .filter { it.kind == Kind.EXPENSE && it.isFlow && it.date.ym() == ym }
+        .filter { it.kind == Kind.EXPENSE && it.isFlow && it.accountingDate.ym() == ym }
         .groupBy { it.category }.mapValues { (_, l) -> l.totalOf() }
 
     /** Despesas realizadas por categoria no período, em ordem decrescente. */
     fun categoryTotals(s: AppState, from: LocalDate?, to: LocalDate?): List<Pair<String, Cents>> = s.txs
-        .filter { it.kind == Kind.EXPENSE && it.paid && it.isFlow && (from == null || !it.date.isBefore(from)) && (to == null || !it.date.isAfter(to)) }
+        .filter { it.kind == Kind.EXPENSE && it.paid && it.isFlow && (from == null || !it.accountingDate.isBefore(from)) && (to == null || !it.accountingDate.isAfter(to)) }
         .groupBy { it.category }.map { (k, l) -> k to l.totalOf() }.sortedByDescending { it.second }
 
     fun lastMonths(s: AppState, today: LocalDate, n: Int = 6): List<Pair<YearMonth, Flow>> =
@@ -209,9 +211,9 @@ object Csv {
 
     fun build(s: AppState): String {
         val head = listOf("data", "tipo", "categoria", "descricao", "valor", "situacao", "conta", "cartao")
-        val rows = s.txs.sortedBy { it.date }.map { t ->
+        val rows = s.txs.sortedBy { it.accountingDate }.map { t ->
             listOf(
-                cell(t.date), cell(if (t.kind == Kind.INCOME) "receita" else "despesa"), cell(t.category), cell(t.desc),
+                cell(t.accountingDate), cell(if (t.kind == Kind.INCOME) "receita" else "despesa"), cell(t.category), cell(t.desc),
                 cell(Money.input(t.value)), cell(if (t.paid) "realizado" else "pendente"),
                 cell(if (t.isCard) "" else s.account(t.accountId)?.name ?: ""),
                 cell(s.card(t.cardId.ifEmpty { t.cardPayment })?.name ?: ""),

@@ -12,6 +12,7 @@ import java.time.YearMonth
 import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -45,6 +46,37 @@ class RegressionTest {
         assertFalse(Ops.togglePaid(s.copy(txs = listOf(normal)), "n").txs[0].paid)
     }
 
+    @Test fun marcarLancamentoFuturoComoPagoRegistraHojeSemApagarVencimento() {
+        val due = d("2026-10-30")
+        val today = d("2026-10-17")
+        val tx = Tx("salary", Kind.INCOME, 200_000, due, "Salário", "Salário", false, "main")
+        val paid = Ops.togglePaid(AppState(txs = listOf(tx)), tx.id, today).txs.single()
+        assertTrue(paid.paid)
+        assertEquals(due, paid.date)
+        assertEquals(today, paid.accountingDate)
+        assertEquals(200_000L, Finance.monthFlow(AppState(txs = listOf(paid)), today.ym()).income)
+        val pending = Ops.togglePaid(AppState(txs = listOf(paid)), tx.id, today).txs.single()
+        assertFalse(pending.paid)
+        assertNull(pending.settledAt)
+        assertEquals(due, pending.accountingDate)
+    }
+
+    @Test fun backupMantemDataEfetivaEContinuaLendoFormatoAntigo() {
+        val today = d("2026-10-17")
+        val tx = Tx("salary", Kind.INCOME, 200_000, d("2026-10-30"), "Salário", "Salário", true, "main", settledAt = today)
+        val roundTrip = Backup.parse(Backup.toJson(AppState(txs = listOf(tx)))).state.txs.single()
+        assertEquals(today, roundTrip.settledAt)
+        val old = Backup.parse("""{"txs":[{"id":"old","kind":"income","value":2000,"date":"2026-10-30","paid":true}]}""").state.txs.single()
+        assertEquals(old.date, old.accountingDate)
+    }
+
+    @Test fun importacaoRecusaSomaQueExcedeLimiteSeguro() {
+        val entries = (0..2305).joinToString(",") { i ->
+            """{"id":"t$i","kind":"income","value":9999999999999.99,"date":"2026-10-01","paid":true}"""
+        }
+        assertFailsWith<BackupException> { Backup.parse("""{"txs":[$entries]}""") }
+    }
+
     @Test fun backupRecusaValoresGigantesEBooleanos() {
         val json = """{"txs":[{"id":"a","kind":"income","value":1e300,"date":"2026-10-01"},
             {"id":"b","kind":"expense","value":true,"date":"2026-10-01"},
@@ -59,8 +91,8 @@ class RegressionTest {
     }
 
     @Test fun backupComBomEVersaoNova() {
-        val n = Backup.parse("﻿{\"txs\":[],\"backupVersion\":6}")
-        assertEquals(6, n.version); assertTrue(n.newer)
+        val n = Backup.parse("﻿{\"txs\":[],\"backupVersion\":7}")
+        assertEquals(7, n.version); assertTrue(n.newer)
         assertFalse(Backup.parse(Backup.toJson(AppState())).newer)
     }
 

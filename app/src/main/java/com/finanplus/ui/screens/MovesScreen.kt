@@ -81,12 +81,12 @@ fun MovesScreen(s: AppState) {
         (s.txs + projected).filter {
             f.inRange(it) && (f.paid == null || it.paid == f.paid) && (f.kind == null || it.kind == f.kind) &&
                 (q.isEmpty() || (folded[it.id] ?: com.finanplus.core.assist.Text.fold(it.desc + " " + it.category)).contains(q))
-        }.sortedWith(compareByDescending<com.finanplus.core.Tx> { it.date }.thenByDescending { it.id })
+        }.sortedWith(compareByDescending<com.finanplus.core.Tx> { it.accountingDate }.thenByDescending { it.id })
     }
     val flow = androidx.compose.runtime.remember(list) { Finance.flow(list) }
     val pending = androidx.compose.runtime.remember(list) { com.finanplus.core.Period.pending(list) }
     // lista agrupada por dia (a ordem do mapa segue a lista: mais recentes primeiro)
-    val groups = androidx.compose.runtime.remember(list) { list.groupBy { it.date } }
+    val groups = androidx.compose.runtime.remember(list) { list.groupBy { it.accountingDate } }
     val calendar = nav.movesView == com.finanplus.ui.MovesView.CALENDAR
     val today = com.finanplus.ui.components.LocalToday.current
     // calendário: dias do mês mostrado (calculado só nessa visão)
@@ -112,8 +112,8 @@ fun MovesScreen(s: AppState) {
             }
         }
         groups.forEach { (date, txs) ->
-            item(key = "dia-$date") { DayGroupHeader(date, com.finanplus.core.Period.cashNet(txs), txs.any { !it.isCard }, today, hide) }
-            items(txs, key = { it.id }) { t ->
+            item(key = "header:$date") { DayGroupHeader(date, com.finanplus.core.Period.cashNet(txs), txs.any { !it.isCard }, today, hide) }
+            items(txs, key = { "tx:${it.id}" }) { t ->
                 TxRow(t, s, onToggle = { Repo.update { Ops.togglePaid(it, t.id) } }, onOpen = { nav.open(Sheet.TxEdit(t.kind, t.id)) })
             }
         }
@@ -197,8 +197,12 @@ private fun PeriodSummary(flow: com.finanplus.core.Flow, pending: com.finanplus.
             SummaryCol("Saldo", flow.balance, if (flow.balance < 0) p.red else p.text, "previsto", forecast, if (forecast < 0) p.red else p.accent, Modifier.weight(1f),
                 showSub = pending.toReceive > 0 || pending.toPay > 0)
         }
-        if (flow.income > 0 && !hide) Text(
-            "As despesas são ${"%.1f".format(BR, flow.expense * 100.0 / flow.income)}% das receitas do período.",
+        if ((flow.income > 0 || flow.expense > 0) && !hide) Text(
+            when {
+                flow.income == flow.expense -> "Neste período, você gastou o mesmo valor que recebeu."
+                flow.expense > flow.income -> "Você gastou ${Money.format(flow.expense - flow.income)} a mais do que recebeu."
+                else -> "Depois das despesas, sobraram ${Money.format(flow.income - flow.expense)}."
+            },
             style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 10.dp),
         )
     }
@@ -250,7 +254,7 @@ fun MovesFiltersSheet(s: AppState, close: () -> Unit) {
     Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
         Pill("Este mês", Modifier.weight(1f)) { f.thisMonth() }
         Pill("30 dias", Modifier.weight(1f)) { val t = LocalDate.now(); f.to = t; f.from = t.minusDays(29) }
-        Pill("Tudo", Modifier.weight(1f)) { val ds = s.txs.map { it.date }; f.from = ds.minOrNull(); f.to = ds.maxOrNull() }
+        Pill("Tudo", Modifier.weight(1f)) { val ds = s.txs.map { it.accountingDate }; f.from = ds.minOrNull(); f.to = ds.maxOrNull() }
     }
     SelectField(
         "Situação", listOf<Pair<Boolean?, String>>(null to "Todos", true to "Realizados", false to "Pendentes"), f.paid, { f.paid = it },

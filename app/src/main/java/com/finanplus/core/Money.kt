@@ -35,6 +35,13 @@ object Money {
         return fromReais(d)
     }
 
+    /** Conversão exata de decimal JSON/texto para centavos. */
+    fun fromReaisOrNull(decimal: String): Cents? = try {
+        val cents = java.math.BigDecimal(decimal).movePointRight(2)
+            .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact()
+        cents.takeIf { abs(it) <= MAX_ABS }
+    } catch (_: ArithmeticException) { null } catch (_: NumberFormatException) { null }
+
     /** Centavos → texto numérico em reais para o JSON ("12.5" → "12.50"). */
     fun toReaisJson(c: Cents): Json.Raw {
         val a = abs(c)

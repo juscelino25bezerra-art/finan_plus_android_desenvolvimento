@@ -66,7 +66,7 @@ class Categorizer private constructor(
                 val k = toks.distinct().joinToString(" ")
                 val m = exact.getOrPut(k) { HashMap() }
                 val prev = m[t.category]
-                m[t.category] = Pair((prev?.first ?: 0) + 1, maxOf(prev?.second ?: Long.MIN_VALUE, t.date.toEpochDay()))
+                m[t.category] = Pair((prev?.first ?: 0) + 1, maxOf(prev?.second ?: Long.MIN_VALUE, t.accountingDate.toEpochDay()))
                 catDocs[t.category] = (catDocs[t.category] ?: 0) + 1
                 catWords[t.category] = (catWords[t.category] ?: 0) + toks.size
                 for (w in toks.distinct()) { val wm = wordDocs.getOrPut(w) { HashMap() }; wm[t.category] = (wm[t.category] ?: 0) + 1 }

@@ -57,8 +57,8 @@ fun ReportExportSheet(s: AppState, initialFrom: LocalDate?, initialTo: LocalDate
     val scope = rememberCoroutineScope()
     val today = LocalToday.current
     val hide = LocalPrivacy.current
-    val first = remember(s.txs) { s.txs.minOfOrNull { it.date } }
-    val last = remember(s.txs) { s.txs.maxOfOrNull { it.date } }
+    val first = remember(s.txs) { s.txs.minOfOrNull { it.accountingDate } }
+    val last = remember(s.txs) { s.txs.maxOfOrNull { it.accountingDate } }
     val month = Reports.preset("mes", today, first, last)
     var from by remember { mutableStateOf<LocalDate?>(initialFrom ?: month.first) }
     var to by remember { mutableStateOf<LocalDate?>(initialTo ?: month.second) }
