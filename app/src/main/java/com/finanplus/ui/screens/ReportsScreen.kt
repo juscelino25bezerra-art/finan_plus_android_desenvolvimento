@@ -84,6 +84,9 @@ fun ReportsScreen(s: AppState) {
                 }
             }
         }
+        item {
+            Text("Entenda para onde vai seu dinheiro", style = MaterialTheme.typography.bodyMedium, color = p.muted, modifier = Modifier.padding(bottom = 12.dp))
+        }
         item { PeriodBar(nav, today) }
         item {
             Text(
