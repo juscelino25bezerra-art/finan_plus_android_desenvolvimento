@@ -5,6 +5,8 @@ package com.finanplus.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -181,11 +183,10 @@ private fun SearchBar(value: String, onChange: (String) -> Unit) {
  * Filtros de um toque: Todos, Receitas, Despesas, Pendentes.
  * Receitas/Despesas e Pendentes combinam (ex.: despesas pendentes). "Realizados" fica no botão de ajuste.
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun FilterChips(nav: com.finanplus.ui.Nav) {
     val f = nav.filters
-    androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
         Pill("Todos", selected = f.kind == null && f.paid == null) { f.kind = null; f.paid = null }
         Pill("Receitas", selected = f.kind == Kind.INCOME) { f.kind = if (f.kind == Kind.INCOME) null else Kind.INCOME }
         Pill("Despesas", selected = f.kind == Kind.EXPENSE) { f.kind = if (f.kind == Kind.EXPENSE) null else Kind.EXPENSE }
