@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -67,7 +69,7 @@ fun PageTitle(eyebrow: String, title: String, subtitle: String) {
 }
 
 @Composable
-fun MovesScreen(s: AppState) {
+fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState()) {
     val nav = LocalNav.current
     val f = nav.filters
     val p = Fin.c
@@ -94,7 +96,7 @@ fun MovesScreen(s: AppState) {
     // calendário: dias do mês mostrado (calculado só nessa visão)
     val days = if (calendar) androidx.compose.runtime.remember(s, nav.calMonth, today) { com.finanplus.core.MonthCalendar.build(s, nav.calMonth, today) } else emptyMap()
 
-    LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+    LazyColumn(state = listState, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
         item { Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }) }
         item { MovesViewSwitch(nav) }
         if (calendar) {
