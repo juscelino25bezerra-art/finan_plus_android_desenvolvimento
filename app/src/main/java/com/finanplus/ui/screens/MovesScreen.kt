@@ -47,6 +47,8 @@ import com.finanplus.ui.components.DateField
 import com.finanplus.ui.components.Eyebrow
 import com.finanplus.ui.components.Field
 import com.finanplus.ui.components.Glass
+import com.finanplus.ui.components.V2PageHeading
+import com.finanplus.ui.components.V2Card
 import com.finanplus.ui.components.LocalPrivacy
 import com.finanplus.ui.components.MoneyText
 import com.finanplus.ui.components.Pill
@@ -93,7 +95,7 @@ fun MovesScreen(s: AppState) {
     val days = if (calendar) androidx.compose.runtime.remember(s, nav.calMonth, today) { com.finanplus.core.MonthCalendar.build(s, nav.calMonth, today) } else emptyMap()
 
     LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        item { Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }) }
+        item { V2PageHeading("Lançamentos", "Suas entradas, despesas e pagamentos em um só lugar") }
         item { MovesViewSwitch(nav) }
         if (calendar) {
             calendarItems(s, nav, days, today, hide)
@@ -105,10 +107,9 @@ fun MovesScreen(s: AppState) {
         item { FilterChips(nav) }
         item { PeriodSummary(flow, pending, hide) }
         if (list.isEmpty()) item {
-            Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 24.dp) {
-                Text("Nenhum lançamento neste período", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("Troque o mês, ajuste os filtros ou adicione uma movimentação no +.", color = p.muted, style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp))
+            V2Card(Modifier.padding(top = 14.dp)) {
+                Text(if (s.txs.isEmpty()) "Seu histórico começa aqui" else "Nenhum resultado encontrado", fontWeight = FontWeight.Bold)
+                Text(if (s.txs.isEmpty()) "Adicione sua primeira receita ou despesa pelo botão central." else "Altere o período ou os filtros para encontrar lançamentos.", color = p.muted, style = MaterialTheme.typography.bodySmall)
             }
         }
         groups.forEach { (date, txs) ->
