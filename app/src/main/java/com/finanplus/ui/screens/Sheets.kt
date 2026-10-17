@@ -114,7 +114,7 @@ fun SheetHost(s: AppState, sheet: Sheet, onClose: () -> Unit) {
 private fun Header(title: String, subtitle: String) {
     Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
     if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Fin.c.muted)
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(16.dp))
 }
 
 @Composable
@@ -190,7 +190,7 @@ private fun TxEditor(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
     else Segmented(listOf(Kind.EXPENSE to "Despesa", Kind.INCOME to "Receita"), kind) { k ->
         if (k != kind) { kind = k; if (category !in s.cats.of(k)) category = s.cats.of(k)[0] }
     }
-    MoneyField("Valor (R$)", value, { value = it })
+    MoneyField(if (kind == Kind.INCOME) "Valor recebido (R$)" else "Valor da despesa (R$)", value, { value = it })
     Field("Descrição", desc, { desc = it }, placeholder = if (kind == Kind.INCOME) "Ex.: Salário ou trabalho extra" else "Ex.: Mercado")
     // assistente: sugere a categoria pela descrição (lançamento novo, ou quando a descrição foi alterada)
     if (!isPayment) CategoryHint(s, kind, desc, category, enabled = tx == null || desc != tx.desc) { category = it }
