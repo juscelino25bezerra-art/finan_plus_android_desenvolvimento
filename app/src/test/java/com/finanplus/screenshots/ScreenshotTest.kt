@@ -10,6 +10,8 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -62,14 +64,18 @@ class ScreenshotTest {
         Repo.showForScreenshots(demo.copy(theme = ThemeId.LIGHT))
         ActivityScenario.launch(MainActivity::class.java).use {
             shot("inicio")
+            compose.onNode(hasContentDescription("Adicionar movimentação pelo cabeçalho")).assertExists()
+            compose.onNode(hasContentDescription("Adicionar movimentação")).assertDoesNotExist()
             tab("Lançamentos"); shot("lancamentos")
+            compose.onNode(hasContentDescription("Adicionar movimentação pelo cabeçalho")).assertExists()
+            compose.onNode(hasContentDescription("Adicionar movimentação")).assertDoesNotExist()
             tab("Calendário"); shot("calendario")
             tab("Lista")
             tab("Meu dinheiro"); shot("contas")
             tab("Resumo"); shot("relatorios")
             tab("Ajustes"); shot("ajustes")
             tab("Início")
-            compose.onNode(hasContentDescription("Adicionar movimentação")).performClick()
+            compose.onNode(hasContentDescription("Adicionar movimentação pelo cabeçalho")).performClick()
             shot("adicionar-opcoes")
             compose.onNode(hasText("Despesa")).performClick()
             shot("novo-lancamento")

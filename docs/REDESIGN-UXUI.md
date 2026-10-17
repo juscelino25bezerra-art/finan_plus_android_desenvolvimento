@@ -22,3 +22,10 @@ Registro das rodadas de ajustes feitas no repositório de desenvolvimento e mesc
 ## Ajuste final
 
 - A seção de gerenciamento de categorias começa minimizada; sua lista e formulário só aparecem após tocar em **Maximizar**. O estado segue reversível pela ação **Minimizar**.
+
+## Ajustes incrementais de UX/UI
+
+- O FAB de Início e Lançamentos é ocultado quando sua área vertical cruza conteúdo visível na lista ou no calendário. Nessa situação, um botão de adicionar com alvo de 48 dp aparece no cabeçalho e abre o mesmo seletor de movimentações.
+- O Dashboard não desenha mais ondas decorativas ao lado do saldo e não repete a decomposição do saldo previsto quando os cards seguintes já mostram valores pendentes.
+- O resumo mensal de Lançamentos mantém receitas, despesas, resultado e pendências, sem a frase que repetia o resultado em texto.
+- O teste de captura valida que o atalho acessível no cabeçalho está disponível e o FAB não ocupa a área de itens visíveis em Início e Lançamentos.

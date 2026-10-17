@@ -103,6 +103,7 @@ import com.finanplus.ui.screens.SheetHost
 import com.finanplus.ui.theme.Fin
 import com.finanplus.ui.theme.FinanTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.LocalDate
 
 enum class Tab(val label: String, val icon: com.finanplus.ui.components.Ico) {
@@ -155,6 +156,8 @@ enum class MovesView { LIST, CALENDAR }
 class Nav {
     var tab by mutableStateOf(Tab.HOME)
     var sheet by mutableStateOf<Sheet?>(null)
+    /** O FAB cede lugar quando sua faixa vertical cruza conteúdo rolável. */
+    var addFabVisible by mutableStateOf(true)
     val filters = Filters()
     /** Lançamentos: lista ou calendário */
     var movesView by mutableStateOf(MovesView.LIST)
@@ -197,6 +200,27 @@ fun bottomSpace(): Dp {
 
 @Composable
 fun screenPadding() = PaddingValues(start = 18.dp, end = 18.dp, top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp, bottom = bottomSpace())
+
+/** Mantém o FAB fora de itens visíveis; o atalho no cabeçalho continua disponível. */
+@Composable
+fun ObserveFabOcclusion(state: androidx.compose.foundation.lazy.LazyListState, tab: Tab) {
+    val nav = LocalNav.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val navInset = WindowInsets.navigationBars.getBottom(density)
+    LaunchedEffect(state, tab, nav, density, navInset) {
+        androidx.compose.runtime.snapshotFlow {
+            val layout = state.layoutInfo
+            val viewportBottom = layout.viewportSize.height
+            val fabTop = viewportBottom - navInset - with(density) { 172.dp.roundToPx() }
+            val fabBottom = viewportBottom - navInset - with(density) { 116.dp.roundToPx() }
+            layout.visibleItemsInfo.any { item ->
+                item.offset < fabBottom && item.offset + item.size > fabTop
+            }
+        }.distinctUntilChanged().collect { overlaps ->
+            if (nav.tab == tab) nav.addFabVisible = !overlaps
+        }
+    }
+}
 
 @Composable
 fun FinanRoot(activity: MainActivity) {
@@ -309,7 +333,7 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             // Faixa atrás da barra de status: o conteúdo rolado não fica sob os ícones do sistema.
             Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(Fin.c.bg))
             BottomNav(nav, shownTab, Modifier.align(Alignment.BottomCenter))
-            if (shownTab == Tab.HOME || shownTab == Tab.MOVES) AddTransactionFab(
+            if ((shownTab == Tab.HOME || shownTab == Tab.MOVES) && nav.addFabVisible) AddTransactionFab(
                 nav, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 18.dp, bottom = 116.dp),
             )
             SnackbarHost(

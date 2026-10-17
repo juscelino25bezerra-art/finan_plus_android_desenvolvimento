@@ -17,13 +17,12 @@ import com.finanplus.ui.components.IconTile
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +45,7 @@ import com.finanplus.core.Finance
 import com.finanplus.core.Kind
 import com.finanplus.core.ym
 import com.finanplus.ui.LocalNav
+import com.finanplus.ui.ObserveFabOcclusion
 import com.finanplus.ui.Sheet
 import com.finanplus.ui.Tab
 import com.finanplus.ui.components.Bar
@@ -72,6 +72,8 @@ fun YearMonth.label(): String = format(DateTimeFormatter.ofPattern("MMM 'de' yyy
 @Composable
 fun HomeScreen(s: AppState) {
     val nav = LocalNav.current
+    val listState = rememberLazyListState()
+    ObserveFabOcclusion(listState, Tab.HOME)
     val p = Fin.c
     val hide = LocalPrivacy.current
     val today = com.finanplus.ui.components.LocalToday.current
@@ -93,7 +95,7 @@ fun HomeScreen(s: AppState) {
         }
     }
 
-    LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+    LazyColumn(state = listState, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
         // topo: nome e data; a engrenagem saiu (a aba Ajustes faz o mesmo)
         item {
             Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.Bottom) {
@@ -115,13 +117,20 @@ fun HomeScreen(s: AppState) {
                     Spacer(Modifier.width(5.dp))
                     Text(if (hide) "Mostrar valores" else "Ocultar valores", color = if (hide) p.green else p.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
+                if (!nav.addFabVisible) Box(
+                    Modifier.padding(start = 6.dp).size(48.dp).clip(CircleShape).background(p.accent)
+                        .clickable(role = Role.Button, onClickLabel = "Adicionar movimentação") { nav.open(Sheet.AddChoice) }
+                        .semantics { contentDescription = "Adicionar movimentação pelo cabeçalho" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    com.finanplus.ui.components.AppIcon(Ico.ADD, p.onAccent, size = 22.dp)
+                }
             }
         }
         item {
             Glass(radius = 30.dp, padding = 16.dp) {
-                // saldo atual em destaque; as ondas ficam junto ao rótulo, sem passar pelo valor
+                // saldo atual em destaque, sem elementos decorativos ao lado do valor
                 Box(Modifier.fillMaxWidth()) {
-                    BalanceWaves(Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = 2.dp).width(120.dp).height(50.dp))
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconTile(Ico.WALLET, p.accent, p.accent2, size = 44.dp, iconSize = 22.dp)
@@ -165,14 +174,6 @@ fun HomeScreen(s: AppState) {
                             }
                         }
                     }
-                }
-                // como o previsto foi calculado (só quando a conta fecha com os números da tela)
-                if (!hide && (pending.toReceive > 0 || pending.toPay > 0) && balance + pending.toReceive - pending.toPay == future) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Hoje ${com.finanplus.core.Money.format(balance)} + ${com.finanplus.core.Money.format(pending.toReceive)} a receber − ${com.finanplus.core.Money.format(pending.toPay)} a pagar",
-                        style = MaterialTheme.typography.labelSmall, color = p.muted, modifier = Modifier.padding(horizontal = 4.dp),
-                    )
                 }
                 // uso das receitas: só quando já entrou alguma receita no mês
                 if (flow.income > 0) {
@@ -290,42 +291,6 @@ private fun NextPaymentCard(due: com.finanplus.core.Reminder?, onOpen: () -> Uni
             MoneyText(due.amount, color = p.red, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
         }
         Text("Ver pagamento  ›", color = p.accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 52.dp, top = 8.dp))
-    }
-}
-
-/**
- * Ondas ao lado do saldo. São só decoração (não representam dados), por isso ficam suaves
- * e não têm ponto, eixo nem valor. Mesmas curvas do conceito (viewBox 230×120).
- */
-@Composable
-private fun BalanceWaves(modifier: Modifier) {
-    val accent = Fin.c.accent
-    val dark = Fin.c.dark
-    androidx.compose.foundation.Canvas(modifier.clearAndSetSemantics { }) {
-        val sx = size.width / 230f
-        val sy = size.height / 120f
-        fun main() = androidx.compose.ui.graphics.Path().apply {
-            moveTo(0f, 78f * sy)
-            cubicTo(30f * sx, 70f * sy, 45f * sx, 40f * sy, 75f * sx, 46f * sy)
-            cubicTo(105f * sx, 52f * sy, 112f * sx, 92f * sy, 142f * sx, 88f * sy)
-            cubicTo(170f * sx, 84f * sy, 178f * sx, 50f * sy, 200f * sx, 44f * sy)
-            cubicTo(214f * sx, 40f * sy, 222f * sx, 48f * sy, 230f * sx, 54f * sy)
-        }
-        // preenchimento em degradê embaixo da curva principal
-        val fill = main().apply { lineTo(size.width, size.height); lineTo(0f, size.height); close() }
-        drawPath(fill, androidx.compose.ui.graphics.Brush.verticalGradient(listOf(accent.copy(alpha = if (dark) 0.16f else 0.20f), accent.copy(alpha = 0f))))
-        // onda de fundo, mais fina
-        val back = androidx.compose.ui.graphics.Path().apply {
-            moveTo(0f, 92f * sy)
-            cubicTo(35f * sx, 86f * sy, 55f * sx, 66f * sy, 85f * sx, 70f * sy)
-            cubicTo(115f * sx, 74f * sy, 125f * sx, 100f * sy, 155f * sx, 98f * sy)
-            cubicTo(185f * sx, 96f * sy, 195f * sx, 74f * sy, 230f * sx, 72f * sy)
-        }
-        drawPath(back, accent.copy(alpha = 0.22f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx()))
-        drawPath(
-            main(), accent.copy(alpha = 0.55f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round),
-        )
     }
 }
 
