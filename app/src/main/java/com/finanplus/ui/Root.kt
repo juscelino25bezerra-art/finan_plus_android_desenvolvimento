@@ -302,10 +302,10 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
 private fun BottomNav(nav: Nav, shown: Tab, modifier: Modifier) {
     val p = Fin.c
     Row(
-        modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 12.dp).widthIn(max = 536.dp).fillMaxWidth()
+        modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp).widthIn(max = 536.dp).fillMaxWidth()
             // sem recorte (clip): o botão + sobe um pouco acima da barra e não pode ser cortado
-            .shadow(16.dp, RoundedCornerShape(28.dp), clip = false)
-            .background(p.surface.compositeOver(p.bg), RoundedCornerShape(28.dp)).border(1.dp, p.border, RoundedCornerShape(28.dp))
+            .shadow(12.dp, RoundedCornerShape(26.dp), clip = false)
+            .background(p.surface.compositeOver(p.bg), RoundedCornerShape(26.dp)).border(1.dp, p.border, RoundedCornerShape(26.dp))
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -320,7 +320,7 @@ private fun BottomNav(nav: Nav, shown: Tab, modifier: Modifier) {
             verticalArrangement = Arrangement.Center,
         ) {
             Box(
-                Modifier.size(44.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(p.accent),
+                Modifier.size(46.dp).shadow(6.dp, CircleShape).clip(CircleShape).background(p.accent),
                 contentAlignment = Alignment.Center,
             ) { com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.ADD, p.onAccent, size = 26.dp) }
             Text("Adicionar", fontSize = 10.sp, color = p.accent, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -364,7 +364,7 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
     }
     val where = if (t.isCard) "Cartão " + (s.card(t.cardId)?.name ?: "") else s.account(t.accountId)?.name ?: "Conta"
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(20.dp)).background(p.surface).border(1.dp, p.border, RoundedCornerShape(20.dp)),
+        Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(RoundedCornerShape(18.dp)).background(p.surface).border(1.dp, p.border, RoundedCornerShape(18.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
