@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -70,7 +72,7 @@ fun fullDate(d: LocalDate): String =
 fun YearMonth.label(): String = format(DateTimeFormatter.ofPattern("MMM 'de' yyyy", BR))
 
 @Composable
-fun HomeScreen(s: AppState) {
+fun HomeScreen(s: AppState, listState: LazyListState = rememberLazyListState()) {
     val nav = LocalNav.current
     val p = Fin.c
     val hide = LocalPrivacy.current
@@ -93,7 +95,7 @@ fun HomeScreen(s: AppState) {
         }
     }
 
-    LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+    LazyColumn(state = listState, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
         // topo: nome e data; a engrenagem saiu (a aba Ajustes faz o mesmo)
         item {
             Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.Bottom) {
