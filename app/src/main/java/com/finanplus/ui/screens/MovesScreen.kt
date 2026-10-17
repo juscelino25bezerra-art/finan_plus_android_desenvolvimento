@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import com.finanplus.core.Ops
 import com.finanplus.core.totalOf
 import com.finanplus.data.Repo
 import com.finanplus.ui.LocalNav
+import com.finanplus.ui.ObserveFabOcclusion
 import com.finanplus.ui.Sheet
 import com.finanplus.ui.TxRow
 import com.finanplus.ui.components.Bar
@@ -67,6 +69,8 @@ fun PageTitle(eyebrow: String, title: String, subtitle: String) {
 @Composable
 fun MovesScreen(s: AppState) {
     val nav = LocalNav.current
+    val listState = rememberLazyListState()
+    ObserveFabOcclusion(listState, com.finanplus.ui.Tab.MOVES)
     val f = nav.filters
     val p = Fin.c
     val hide = LocalPrivacy.current
@@ -92,8 +96,18 @@ fun MovesScreen(s: AppState) {
     // calendário: dias do mês mostrado (calculado só nessa visão)
     val days = if (calendar) androidx.compose.runtime.remember(s, nav.calMonth, today) { com.finanplus.core.MonthCalendar.build(s, nav.calMonth, today) } else emptyMap()
 
-    LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        item { Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }) }
+    LazyColumn(state = listState, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+        item {
+            Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Lançamentos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f).semantics { heading() })
+                if (!nav.addFabVisible) androidx.compose.foundation.layout.Box(
+                    Modifier.size(48.dp).clip(CircleShape).background(p.accent)
+                        .clickable(role = Role.Button, onClickLabel = "Adicionar movimentação") { nav.open(Sheet.AddChoice) }
+                        .semantics { contentDescription = "Adicionar movimentação pelo cabeçalho" },
+                    contentAlignment = Alignment.Center,
+                ) { com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.ADD, p.onAccent, size = 22.dp) }
+            }
+        }
         item { MovesViewSwitch(nav) }
         if (calendar) {
             calendarItems(s, nav, days, today, hide)
@@ -205,14 +219,6 @@ private fun PeriodSummary(flow: com.finanplus.core.Flow, pending: com.finanplus.
             SummaryCol("Saldo", flow.balance, if (flow.balance < 0) p.red else p.text, "previsto", forecast, if (forecast < 0) p.red else p.accent, Modifier.weight(1f),
                 showSub = pending.toReceive > 0 || pending.toPay > 0)
         }
-        if ((flow.income > 0 || flow.expense > 0) && !hide) Text(
-            when {
-                flow.income == flow.expense -> "Neste período, você gastou o mesmo valor que recebeu."
-                flow.expense > flow.income -> "Você gastou ${Money.format(flow.expense - flow.income)} a mais do que recebeu."
-                else -> "Depois das despesas, sobraram ${Money.format(flow.income - flow.expense)}."
-            },
-            style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 10.dp),
-        )
     }
 }
 
