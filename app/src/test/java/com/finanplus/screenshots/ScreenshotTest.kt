@@ -10,8 +10,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -23,6 +21,7 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -64,11 +63,11 @@ class ScreenshotTest {
         Repo.showForScreenshots(demo.copy(theme = ThemeId.LIGHT))
         ActivityScenario.launch(MainActivity::class.java).use {
             shot("inicio")
-            compose.onNode(hasContentDescription("Adicionar movimentação pelo cabeçalho")).assertExists()
-            compose.onNode(hasContentDescription("Adicionar movimentação")).assertDoesNotExist()
+            assertEquals(1, compose.onAllNodes(hasContentDescription("Adicionar movimentação pelo cabeçalho")).fetchSemanticsNodes().size)
+            assertEquals(0, compose.onAllNodes(hasContentDescription("Adicionar movimentação")).fetchSemanticsNodes().size)
             tab("Lançamentos"); shot("lancamentos")
-            compose.onNode(hasContentDescription("Adicionar movimentação pelo cabeçalho")).assertExists()
-            compose.onNode(hasContentDescription("Adicionar movimentação")).assertDoesNotExist()
+            assertEquals(1, compose.onAllNodes(hasContentDescription("Adicionar movimentação pelo cabeçalho")).fetchSemanticsNodes().size)
+            assertEquals(0, compose.onAllNodes(hasContentDescription("Adicionar movimentação")).fetchSemanticsNodes().size)
             tab("Calendário"); shot("calendario")
             tab("Lista")
             tab("Meu dinheiro"); shot("contas")
