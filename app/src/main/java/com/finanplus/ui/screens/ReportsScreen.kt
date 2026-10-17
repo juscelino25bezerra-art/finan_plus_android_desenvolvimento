@@ -94,7 +94,7 @@ fun ReportsScreen(s: AppState) {
         if (flow.income == 0L && flow.expense == 0L) item {
             // nada realizado: em vez de zeros, mostra o que está pendente e leva ao calendário
             val pend = remember(inRange) { Period.pending(inRange) }
-            Glass(Modifier.fillMaxWidth().padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
+            Glass(Modifier.fillMaxWidth().padding(top = 10.dp), radius = 22.dp, padding = 14.dp) {
                 val name = Period.fullMonth(f.from, f.to)?.let { com.finanplus.core.MonthCalendar.monthName(it) } ?: "este período"
                 Text("Nada realizado em $name ainda", fontWeight = FontWeight.Bold)
                 if (pend.toReceive > 0 || pend.toPay > 0) {
@@ -144,7 +144,7 @@ fun ReportsScreen(s: AppState) {
         }
         item { WhatIfCard { nav.open(Sheet.Simulator()) } }
         item {
-            Glass(Modifier.padding(top = 10.dp), radius = 25.dp) {
+            Glass(Modifier.padding(top = 10.dp), radius = 22.dp) {
                 Column2("Despesas", "Por categoria")
                 val cats = Finance.categoryTotals(s, f.from, f.to)
                 val total = cats.sumOf { it.second }
@@ -165,7 +165,7 @@ fun ReportsScreen(s: AppState) {
         }
         item {
             val months = Finance.lastMonths(s, today)
-            Glass(Modifier.padding(top = 10.dp), radius = 25.dp) {
+            Glass(Modifier.padding(top = 10.dp), radius = 22.dp) {
                 Column2("Evolução", "Últimos 6 meses")
                 if (months.all { it.second.income == 0L && it.second.expense == 0L }) {
                     Text("Aparece quando houver pelo menos um mês com valores realizados.", style = MaterialTheme.typography.bodySmall, color = p.muted)
