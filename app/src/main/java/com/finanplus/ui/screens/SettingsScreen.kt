@@ -157,7 +157,7 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
     }
 
     LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        item { PageTitle("Configurações", "Ajustes", "Tudo fica salvo e criptografado neste aparelho.") }
+        item { PageTitle("Preferências e organização", "Ajustes", "Personalize o Finan+ e gerencie seus dados com segurança.") }
 
         item {
             Collapsible("Aparência", "Tema: ${s.theme.label}") {
@@ -286,7 +286,7 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
         }
 
         item {
-            Collapsible("Contas e cartões", "${s.accounts.size} conta(s) · ${s.cards.size} cartão(ões)") {
+            Collapsible("Contas e cartões", "${s.accounts.size} conta(s) · ${s.cards.size} cartão(ões) · toque para gerenciar") {
                 s.accounts.forEach { a ->
                     ManageItem(a.name, "Saldo ${if (s.privacy) "R$ ••••" else Money.format(Finance.accountBalance(s, a))}") { Pill("Editar") { nav.open(Sheet.AccountEdit(a.id)) } }
                 }
@@ -426,11 +426,11 @@ private fun Collapsible(title: String, summary: String, content: @Composable Col
     Glass(Modifier.padding(bottom = 8.dp), radius = 18.dp, padding = 0.dp) {
         Row(
             Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }
-                .semantics { stateDescription = if (open) "expandido" else "recolhido" }
-                .padding(horizontal = 13.dp, vertical = 12.dp),
+                .semantics { stateDescription = if (open) "expandido" else "recolhido"; contentDescription = "$title, $summary" }
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            com.finanplus.ui.components.IconTile(icon, p.accent, p.accent2, size = 38.dp, iconSize = 20.dp)
+            com.finanplus.ui.components.IconTile(icon, p.accent, p.accent2, size = 42.dp, iconSize = 20.dp)
             Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() }, maxLines = 1)
                 Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2)
