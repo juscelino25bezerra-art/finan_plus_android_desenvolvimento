@@ -121,7 +121,6 @@ fun HomeScreen(s: AppState) {
             Glass(radius = 30.dp, padding = 16.dp) {
                 // saldo atual em destaque; as ondas ficam junto ao rótulo, sem passar pelo valor
                 Box(Modifier.fillMaxWidth()) {
-                    BalanceWaves(Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = 2.dp).width(120.dp).height(50.dp))
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconTile(Ico.WALLET, p.accent, p.accent2, size = 44.dp, iconSize = 22.dp)
@@ -150,7 +149,7 @@ fun HomeScreen(s: AppState) {
                             style = MaterialTheme.typography.labelSmall, color = p.muted, maxLines = 2,
                         )
                         // comparação com o fim do mês anterior; no primeiro mês não há com o que comparar
-                        if (!hide) {
+                        if (!hide && prevEnd != null) {
                             Spacer(Modifier.height(6.dp))
                             val (chipText, chipColor) = when {
                                 prevEnd == null -> "1º mês · sem comparação" to p.muted
