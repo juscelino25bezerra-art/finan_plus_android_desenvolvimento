@@ -56,6 +56,7 @@ import com.finanplus.ui.components.Eyebrow
 import com.finanplus.ui.components.Glass
 import com.finanplus.ui.components.LocalPrivacy
 import com.finanplus.ui.components.MoneyText
+import com.finanplus.ui.components.Pill
 import com.finanplus.ui.components.PrimaryButton
 import com.finanplus.ui.components.SectionHead
 import com.finanplus.ui.components.br
