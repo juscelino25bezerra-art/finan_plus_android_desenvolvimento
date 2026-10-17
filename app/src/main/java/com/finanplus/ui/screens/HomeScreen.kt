@@ -198,8 +198,13 @@ fun HomeScreen(s: AppState) {
             }
         }
         item {
-            PrimaryButton("＋  Adicionar lançamento", Modifier.padding(top = 12.dp)) {
-                nav.open(Sheet.TxEdit(Kind.EXPENSE))
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Pill("＋ Receita", Modifier.weight(1f), selected = true, icon = Ico.INCOME) {
+                    nav.open(Sheet.TxEdit(Kind.INCOME))
+                }
+                Pill("＋ Despesa", Modifier.weight(1f), icon = Ico.EXPENSE) {
+                    nav.open(Sheet.TxEdit(Kind.EXPENSE))
+                }
             }
         }
         item {
