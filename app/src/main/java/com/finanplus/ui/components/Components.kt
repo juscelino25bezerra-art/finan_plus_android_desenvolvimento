@@ -151,7 +151,7 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier) =
 
 @Composable
 fun SectionHead(eyebrow: String?, title: String, action: String? = null, actionIcon: Ico? = null, onAction: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
+    Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
         Column(Modifier.weight(1f)) {
             if (eyebrow != null) Eyebrow(eyebrow)
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
