@@ -106,9 +106,17 @@ fun MovesScreen(s: AppState) {
         item { PeriodSummary(flow, pending, hide) }
         if (list.isEmpty()) item {
             Glass(Modifier.fillMaxWidth().padding(top = 10.dp), radius = 22.dp) {
-                Text("Nenhum lançamento neste período", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("Troque o mês, ajuste os filtros ou adicione uma movimentação no +.", color = p.muted, style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp))
+                Text(if (s.txs.isEmpty()) "Comece sua vida financeira" else "Nenhum resultado para estes filtros", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text(if (s.txs.isEmpty()) "Registre sua primeira receita ou despesa para acompanhar seu dinheiro." else "Experimente outro período ou limpe a pesquisa e os filtros.", color = p.muted, style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 6.dp))
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Pill(if (s.txs.isEmpty()) "＋ Receita" else "Limpar filtros", Modifier.weight(1f), selected = true) {
+                        if (s.txs.isEmpty()) nav.open(Sheet.TxEdit(Kind.INCOME)) else {
+                            f.query = ""; f.kind = null; f.paid = null; f.thisMonth()
+                        }
+                    }
+                    if (s.txs.isEmpty()) Pill("＋ Despesa", Modifier.weight(1f)) { nav.open(Sheet.TxEdit(Kind.EXPENSE)) }
+                }
             }
         }
         groups.forEach { (date, txs) ->
