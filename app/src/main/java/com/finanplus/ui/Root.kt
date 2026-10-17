@@ -184,7 +184,7 @@ val LocalNav = staticCompositionLocalOf { Nav() }
 fun bottomSpace(): Dp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 110.dp
 
 @Composable
-fun screenPadding() = PaddingValues(start = 18.dp, end = 18.dp, top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp, bottom = bottomSpace())
+fun screenPadding() = PaddingValues(start = 16.dp, end = 16.dp, top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 12.dp, bottom = bottomSpace())
 
 @Composable
 fun FinanRoot(activity: MainActivity) {
