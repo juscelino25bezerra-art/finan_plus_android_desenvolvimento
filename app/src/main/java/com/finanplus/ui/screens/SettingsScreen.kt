@@ -423,7 +423,7 @@ private fun Collapsible(title: String, summary: String, content: @Composable Col
         "Dados" -> com.finanplus.ui.components.Ico.WALLET
         else -> com.finanplus.ui.components.Ico.NEXT
     }
-    Glass(Modifier.padding(bottom = 8.dp), radius = 19.dp, padding = 0.dp) {
+    Glass(Modifier.padding(bottom = 8.dp), radius = 18.dp, padding = 0.dp) {
         Row(
             Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }
                 .semantics { stateDescription = if (open) "expandido" else "recolhido" }
