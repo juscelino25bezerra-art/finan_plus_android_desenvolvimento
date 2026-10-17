@@ -175,7 +175,10 @@ private fun TxEditor(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
     val card = useCard && canCard
     val cats = s.cats.of(kind).let { if (category !in it) it + category else it }
 
-    Header(if (tx == null) "Novo lançamento" else "Editar lançamento", if (isPayment) "" else "Registre uma receita ou despesa")
+    Header(
+        if (tx != null) "Editar lançamento" else if (kind == Kind.INCOME) "Nova receita" else "Nova despesa",
+        if (isPayment) "" else if (kind == Kind.INCOME) "Registre uma entrada de dinheiro" else "Registre uma saída de dinheiro",
+    )
     if (tx == null && kind == Kind.EXPENSE) {
         val nav = com.finanplus.ui.LocalNav.current
         // atalho: preencher a partir de uma fatura em PDF, linha digitável do boleto ou Pix copia e cola (FATURAS.md)
@@ -188,7 +191,7 @@ private fun TxEditor(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
         if (k != kind) { kind = k; if (category !in s.cats.of(k)) category = s.cats.of(k)[0] }
     }
     MoneyField("Valor (R$)", value, { value = it })
-    Field("Descrição", desc, { desc = it }, placeholder = "Ex.: Mercado")
+    Field("Descrição", desc, { desc = it }, placeholder = if (kind == Kind.INCOME) "Ex.: Salário ou trabalho extra" else "Ex.: Mercado")
     // assistente: sugere a categoria pela descrição (lançamento novo, ou quando a descrição foi alterada)
     if (!isPayment) CategoryHint(s, kind, desc, category, enabled = tx == null || desc != tx.desc) { category = it }
     SelectField("Categoria", cats.map { it to it }, category, { category = it })
@@ -205,7 +208,7 @@ private fun TxEditor(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
         CheckRow("Repetir mensalmente", recurring) { recurring = it }
     }
     Spacer(Modifier.height(8.dp))
-    PrimaryButton("Salvar lançamento") {
+    PrimaryButton(if (tx != null) "Salvar alterações" else if (kind == Kind.INCOME) "Salvar receita" else "Salvar despesa") {
         val draft = TxDraft(kind, desc, value, category, date, paid, accountId, if (card) cardId else "", reps.toIntOrNull() ?: 1, repsMode, recurring)
         apply(Ops.saveTx(Repo.state.value, tx?.id, draft), dialogs, close)
     }
