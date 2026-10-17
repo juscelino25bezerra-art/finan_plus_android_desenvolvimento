@@ -5,6 +5,10 @@ package com.finanplus.ui
 
 import android.Manifest
 import android.os.Build
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -271,6 +276,8 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
     var reaskProblem by remember { mutableIntStateOf(0) }
     // Abas lado a lado: deslizar para o lado passa para a vizinha.
     // Os botões da barra inferior continuam funcionando; os dois caminhos mudam o mesmo nav.tab.
+    val homeListState = rememberLazyListState()
+    val movesListState = rememberLazyListState()
     val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = nav.tab.ordinal) { Tab.entries.size }
     // tocou num botão da barra (ou "Voltar" para o Início): leva o pager até a aba
     LaunchedEffect(nav.tab) { if (pager.currentPage != nav.tab.ordinal) pager.animateScrollToPage(nav.tab.ordinal) }
@@ -298,8 +305,8 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             ) { page ->
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     when (Tab.entries[page]) {
-                        Tab.HOME -> HomeScreen(s)
-                        Tab.MOVES -> MovesScreen(s)
+                        Tab.HOME -> HomeScreen(s, homeListState)
+                        Tab.MOVES -> MovesScreen(s, movesListState)
                         Tab.ACCOUNTS -> AccountsScreen(s)
                         Tab.REPORTS -> ReportsScreen(s)
                         Tab.PREFS -> SettingsScreen(s, dev, activity)
@@ -309,9 +316,20 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             // Faixa atrás da barra de status: o conteúdo rolado não fica sob os ícones do sistema.
             Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(Fin.c.bg))
             BottomNav(nav, shownTab, Modifier.align(Alignment.BottomCenter))
-            if (shownTab == Tab.HOME || shownTab == Tab.MOVES) AddTransactionFab(
-                nav, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 18.dp, bottom = 116.dp),
-            )
+            if (shownTab == Tab.HOME || shownTab == Tab.MOVES) {
+                // O FAB fica ancorado acima da navegação; só sua opacidade muda.
+                val listScrolling = if (shownTab == Tab.HOME) homeListState.isScrollInProgress else movesListState.isScrollInProgress
+                val showFab = !listScrolling && !pager.isScrollInProgress && nav.sheet == null
+                AnimatedVisibility(
+                    visible = showFab,
+                    modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 18.dp, bottom = 116.dp),
+                    enter = fadeIn(animationSpec = tween(150)),
+                    exit = fadeOut(animationSpec = tween(100)),
+                ) {
+                    // Durante o fade-out o botão já deixa de receber toques e foco acessível.
+                    AddTransactionFab(nav, enabled = showFab)
+                }
+            }
             SnackbarHost(
                 hostState = txSnackbarState,
                 modifier = Modifier.align(Alignment.BottomStart).navigationBarsPadding()
@@ -375,12 +393,14 @@ private fun NavItem(t: Tab, nav: Nav, shown: Tab, modifier: Modifier) {
 }
 
 @Composable
-private fun AddTransactionFab(nav: Nav, modifier: Modifier = Modifier) {
+private fun AddTransactionFab(nav: Nav, enabled: Boolean, modifier: Modifier = Modifier) {
     val p = Fin.c
+    val action = if (enabled) Modifier
+        .clickable(role = Role.Button, onClickLabel = "Adicionar movimentação") { nav.open(Sheet.AddChoice) }
+        .semantics { contentDescription = "Adicionar movimentação" }
+    else Modifier.clearAndSetSemantics {}
     Box(
-        modifier.size(56.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(p.accent)
-            .clickable(role = Role.Button, onClickLabel = "Adicionar movimentação") { nav.open(Sheet.AddChoice) }
-            .semantics { contentDescription = "Adicionar movimentação" },
+        modifier.size(56.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(p.accent).then(action),
         contentAlignment = Alignment.Center,
     ) {
         com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.ADD, p.onAccent, size = 26.dp)
