@@ -7,6 +7,11 @@
 - **Excluir** o lançamento desfaz o valor na meta; **excluir a meta** devolve à conta o que saiu dela pelo Finan+.
 - **Backup:** campo novo `goalId` nos lançamentos. Detalhes, regras e testes em [METAS.md](METAS.md).
 
+### Backup automático (em teste)
+
+- **Ajustes › Dados › Backup automático:** uma cópia por dia, criptografada com senha (AES-256-GCM, PBKDF2), numa pasta escolhida (celular, cartão SD, Google Drive, Syncthing, Nextcloud). Guarda as últimas 7 a 60 cópias, mostra a última cópia e avisa se falhar.
+- **Restaurar** abre também essas cópias (pede a senha). Formato e regras em [BACKUP-AUTOMATICO.md](BACKUP-AUTOMATICO.md).
+
 ### Radar e "Posso comprar?" (em teste)
 
 - **Radar:** saldo previsto dia a dia (30, 60 ou 90 dias) com gráfico, menor saldo, dias negativos e o que explica a queda. Usa os pendentes, as faturas e as recorrências que o saldo previsto já usava. Cartão novo no Início.
