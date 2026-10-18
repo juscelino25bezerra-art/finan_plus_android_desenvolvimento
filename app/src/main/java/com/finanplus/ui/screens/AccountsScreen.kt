@@ -151,7 +151,7 @@ fun AccountsScreen(s: AppState) {
 
         item {
             Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
-                AccountCardHeading(Ico.LIMIT, "Definir um limite mensal", "Defina um limite por categoria")
+                AccountCardHeading(Ico.LIMIT, "Limites mensais", "Defina um limite por categoria")
                 if (s.limits.isEmpty()) {
                     Pill("Criar meu primeiro limite", Modifier.fillMaxWidth().padding(top = 8.dp), icon = Ico.ADD) { nav.open(Sheet.LimitEdit()) }
                 } else {
@@ -228,7 +228,7 @@ fun AccountsScreen(s: AppState) {
                     onClick = { nav.open(Sheet.Simulator()) },
                     modifier = Modifier.padding(top = 6.dp),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, p.border),
+                    border = BorderStroke(1.dp, p.accent.copy(alpha = 0.65f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = p.accent),
                 ) {
                     Text("Abrir simulação", fontWeight = FontWeight.SemiBold)
