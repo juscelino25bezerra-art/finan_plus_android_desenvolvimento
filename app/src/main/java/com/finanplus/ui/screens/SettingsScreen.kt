@@ -219,6 +219,16 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
         item { SettingsGroupHeader("Planejamento e automação") }
 
         item {
+            Collapsible("Lançamentos", if (dev.accumulateBalance) "Saldo acumulado entre os meses" else "Cada mês com o seu saldo") {
+                SwitchRow(
+                    "Acumular saldo entre os meses",
+                    "Ligado, o saldo de cada mês em Lançamentos soma o saldo inicial das contas e o que sobrou dos meses anteriores. " +
+                        "Desligado, cada mês mostra só o que entrou e saiu nele.",
+                    dev.accumulateBalance,
+                ) { v -> prefs.update { it.copy(accumulateBalance = v) } }
+            }
+        }
+        item {
             Collapsible("Assistente", "${listOf(dev.assistCategory, dev.assistTips, dev.assistAsk).count { it }} de 3 funções ligadas") { AssistantSettings(s, dev) }
         }
 

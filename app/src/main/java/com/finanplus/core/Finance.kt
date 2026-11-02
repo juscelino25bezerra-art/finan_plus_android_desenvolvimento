@@ -98,6 +98,38 @@ object Finance {
         return c
     }
 
+    /**
+     * Saldo das contas ao fim do dia [until], só com o realizado: saldo inicial das contas + lançamentos
+     * pagos fora do cartão até essa data (mesma regra de [accountBalance], mas olhando só até [until]).
+     * É o saldo "acumulado" que a aba Lançamentos mostra quando a opção "Acumular saldo entre os meses" está ligada.
+     */
+    fun balanceAt(s: AppState, until: LocalDate): Cents {
+        val ids = s.accounts.mapTo(HashSet()) { it.id }
+        var c = s.accounts.fold(0L) { n, a -> n + a.initial }
+        for (t in s.txs) {
+            if (t.isCard || !t.paid || t.accountId !in ids || t.date.isAfter(until)) continue
+            c += if (t.kind == Kind.INCOME) t.value else -t.value
+        }
+        return c
+    }
+
+    /**
+     * Saldo previsto ao fim do dia [until], acumulado desde o saldo inicial: [balanceAt] + o que ainda está
+     * pendente fora do cartão até lá − faturas em aberto que vencem até lá + recorrências previstas
+     * (só se [withProjection]). Para datas de hoje em diante coincide com [futureBalance]
+     * (a diferença seria só um lançamento já pago com data depois de [until], que aqui fica de fora).
+     */
+    fun forecastAt(s: AppState, until: LocalDate, today: LocalDate, withProjection: Boolean = true): Cents {
+        var c = balanceAt(s, until)
+        for (t in s.txs) {
+            if (t.isCard || t.paid || t.date.isAfter(until)) continue
+            c += if (t.kind == Kind.INCOME) t.value else -t.value
+        }
+        for (card in s.cards) for (inv in cardStatus(s, card, today).invoices) if (inv.open > 0 && !inv.due.isAfter(until)) c -= inv.open
+        if (withProjection) for (t in Projection.between(s, today, until, today)) if (!t.isCard) c += if (t.kind == Kind.INCOME) t.value else -t.value
+        return c
+    }
+
     // ---------------- recorrências ----------------
     /**
      * Gera os lançamentos das recorrências até o mês de [today], recuperando meses em que o app

@@ -59,6 +59,7 @@ import com.finanplus.ui.components.SelectField
 import com.finanplus.ui.components.sensitive
 import com.finanplus.ui.screenPadding
 import com.finanplus.ui.theme.Fin
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
 
 @Composable
@@ -89,6 +90,19 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
     }
     val flow = androidx.compose.runtime.remember(list) { Finance.flow(list) }
     val pending = androidx.compose.runtime.remember(list) { com.finanplus.core.Period.pending(list) }
+    // opção "Acumular saldo entre os meses" (Ajustes › Lançamentos; desligada por padrão)
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val accumulate = com.finanplus.data.DevicePrefs.get(ctx).flow.collectAsStateWithLifecycle().value.accumulateBalance
+    // com filtro de tipo, situação ou busca o saldo acumulado não faria sentido: fica a visão do período
+    val filtered = f.kind != null || f.paid != null || q.isNotEmpty()
+    val accumulated = androidx.compose.runtime.remember(s, f.to, accumulate, filtered, today0) {
+        if (!accumulate || filtered) null
+        else {
+            // sem fim de período: até o último lançamento (ou hoje); sem recorrências previstas, como a lista
+            val until = f.to ?: maxOf(today0, s.txs.maxOfOrNull { it.date } ?: today0)
+            Accumulated(Finance.balanceAt(s, until), Finance.forecastAt(s, until, today0, withProjection = f.to != null))
+        }
+    }
     // lista agrupada por dia (a ordem do mapa segue a lista: mais recentes primeiro)
     val groups = androidx.compose.runtime.remember(list) { list.groupBy { it.date } }
     val calendar = nav.movesView == com.finanplus.ui.MovesView.CALENDAR
@@ -119,7 +133,7 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
         item { PeriodBar(nav, today) }
         item { SearchBar(f.query) { f.query = it } }
         item { FilterChips(nav) }
-        item { PeriodSummary(flow, pending, hide) }
+        item { PeriodSummary(flow, pending, hide, accumulated, accumulate && filtered) }
         if (list.isEmpty()) item {
             Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 24.dp) {
                 Text("Nenhum lançamento neste período", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -208,17 +222,25 @@ private fun FilterChips(nav: com.finanplus.ui.Nav) {
     }
 }
 
-/** Receitas, despesas e saldo do período (realizados) e, embaixo, o que está pendente. */
+/** Saldo das contas ao fim do período somando os meses anteriores: realizado e previsto. */
+private data class Accumulated(val balance: Long, val forecast: Long)
+
+/**
+ * Receitas, despesas e saldo do período (realizados) e, embaixo, o que está pendente.
+ * Com [acc] (opção "Acumular saldo entre os meses"), a coluna Saldo mostra o saldo das contas ao fim do
+ * período, com o saldo inicial e os meses anteriores; receitas e despesas continuam sendo só as do período.
+ */
 @Composable
-private fun PeriodSummary(flow: com.finanplus.core.Flow, pending: com.finanplus.core.Pending, hide: Boolean) {
+private fun PeriodSummary(flow: com.finanplus.core.Flow, pending: com.finanplus.core.Pending, hide: Boolean, acc: Accumulated? = null, accOffByFilter: Boolean = false) {
     val p = Fin.c
-    val forecast = flow.balance + pending.toReceive - pending.toPay
+    val balance = acc?.balance ?: flow.balance
+    val forecast = acc?.forecast ?: (flow.balance + pending.toReceive - pending.toPay)
     Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SummaryCol("Receitas", flow.income, p.green, "a receber", pending.toReceive, p.green, Modifier.weight(1f))
             SummaryCol("Despesas", flow.expense, p.red, "a pagar", pending.toPay, p.red, Modifier.weight(1f))
-            SummaryCol("Saldo", flow.balance, if (flow.balance < 0) p.red else p.text, "previsto", forecast, if (forecast < 0) p.red else p.accent, Modifier.weight(1f),
-                showSub = pending.toReceive > 0 || pending.toPay > 0)
+            SummaryCol("Saldo", balance, if (balance < 0) p.red else p.text, "previsto", forecast, if (forecast < 0) p.red else p.accent, Modifier.weight(1f),
+                showSub = if (acc != null) forecast != balance else pending.toReceive > 0 || pending.toPay > 0)
         }
         if ((flow.income > 0 || flow.expense > 0) && !hide) Text(
             when {
@@ -227,6 +249,11 @@ private fun PeriodSummary(flow: com.finanplus.core.Flow, pending: com.finanplus.
                 else -> "Depois das despesas, sobraram ${Money.format(flow.income - flow.expense)}."
             },
             style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 10.dp),
+        )
+        if (acc != null || accOffByFilter) Text(
+            if (acc != null) "Saldo acumulado: inclui o saldo das contas que vem dos meses anteriores."
+            else "Com filtro, o saldo mostra só este período (sem acumular).",
+            style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 6.dp),
         )
     }
 }

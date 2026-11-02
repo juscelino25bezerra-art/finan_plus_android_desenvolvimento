@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Configurações que pertencem a ESTE aparelho e nunca vão para o backup:
- * PIN, biometria, bloqueio automático, notificações, widget, bloqueio de capturas de tela e opções do assistente.
+ * PIN, biometria, bloqueio automático, notificações, widget, bloqueio de capturas de tela, opções do assistente
+ * e como a aba Lançamentos mostra o saldo dos meses.
  * O PIN é guardado só como hash PBKDF2 com sal.
  */
 data class DeviceSettings(
@@ -34,6 +35,11 @@ data class DeviceSettings(
     val assistAsk: Boolean = true,
     /** dicas que o usuário dispensou (ids estáveis, ver core/assist/Insights.kt) */
     val dismissedTips: Set<String> = emptySet(),
+    /**
+     * Lançamentos: o saldo do período soma o saldo das contas que vem dos meses anteriores (saldo inicial incluído).
+     * Desligado por padrão: cada mês mostra só o que entrou e saiu nele (visão isolada).
+     */
+    val accumulateBalance: Boolean = false,
 ) {
     val hasPin get() = pinHash.isNotEmpty()
     /** O app pede desbloqueio se houver PIN, digital, ou os dois. */
@@ -57,6 +63,7 @@ class DevicePrefs private constructor(context: Context) {
         assistTips = sp.getBoolean("assistTips", true),
         assistAsk = sp.getBoolean("assistAsk", true),
         dismissedTips = sp.getStringSet("dismissedTips", emptySet())?.toSet() ?: emptySet(),
+        accumulateBalance = sp.getBoolean("accumulateBalance", false),
     )
 
     fun update(f: (DeviceSettings) -> DeviceSettings) {
@@ -66,6 +73,7 @@ class DevicePrefs private constructor(context: Context) {
             putBoolean("widgetValues", n.widgetValues); putBoolean("secureScreen", n.secureScreen); putInt("autoLock", n.autoLock)
             remove("materialIcons") // preferência da fase de teste dos ícones, não é mais usada
             putBoolean("assistCategory", n.assistCategory); putBoolean("assistTips", n.assistTips); putBoolean("assistAsk", n.assistAsk)
+            putBoolean("accumulateBalance", n.accumulateBalance)
             // guarda só as últimas 200 dicas dispensadas (os ids incluem o mês, então as antigas deixam de importar)
             putStringSet("dismissedTips", HashSet(n.dismissedTips.toList().takeLast(200)))
         }
