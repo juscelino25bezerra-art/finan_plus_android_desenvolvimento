@@ -487,7 +487,10 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
                 Text("${t.category} · $where", style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$status · $dateLabel", style = MaterialTheme.typography.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            MoneyText(t.value, prefix = if (t.kind == Kind.EXPENSE) "− " else "+ ", color = if (t.isGoal) p.accent else if (t.kind == Kind.EXPENSE) p.red else p.green,
+            // reserva para meta: sem sinal e na cor primária (o dinheiro continua seu, separado na meta);
+            // retirada da meta: volta para a conta, então "+" em verde, como uma entrada
+            MoneyText(t.value, prefix = when { t.isGoal && t.kind == Kind.EXPENSE -> ""; t.kind == Kind.EXPENSE -> "− "; else -> "+ " },
+                color = when { t.isGoal && t.kind == Kind.EXPENSE -> p.accent; t.kind == Kind.EXPENSE -> p.red; else -> p.green },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold))
         }
         // compra no cartão e pagamento de fatura não alternam pago/pendente (ver Ops.canTogglePaid)

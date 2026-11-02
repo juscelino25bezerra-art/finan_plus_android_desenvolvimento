@@ -60,6 +60,10 @@ import com.finanplus.ui.components.sensitive
 import com.finanplus.ui.screenPadding
 import com.finanplus.ui.theme.Fin
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import java.time.LocalDate
 
 @Composable
@@ -106,6 +110,9 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
     // lista agrupada por dia (a ordem do mapa segue a lista: mais recentes primeiro)
     val groups = androidx.compose.runtime.remember(list) { list.groupBy { it.date } }
     val calendar = nav.movesView == com.finanplus.ui.MovesView.CALENDAR
+    // busca recolhível: o texto fica nos filtros (vale ao trocar de mês); aberta, "Voltar" só recolhe o campo
+    var searchOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = searchOpen && !calendar) { searchOpen = false }
     val today = com.finanplus.ui.components.LocalToday.current
     // calendário: dias do mês mostrado (calculado só nessa visão)
     val days = if (calendar) androidx.compose.runtime.remember(s, nav.calMonth, today) { com.finanplus.core.MonthCalendar.build(s, nav.calMonth, today) } else emptyMap()
@@ -122,7 +129,18 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f).semantics { heading() },
                 )
+                // busca só na lista (o calendário mostra o mês inteiro)
+                if (!calendar) SearchToggle(searchOpen, active = f.query.isNotEmpty()) { searchOpen = !searchOpen }
                 MovesViewSwitch(nav)
+            }
+        }
+        if (!calendar) item(key = "moves-search") {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = searchOpen,
+                enter = androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(160)) + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(160)),
+                exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(140)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)),
+            ) {
+                SearchField(f.query, { f.query = it }) { f.query = ""; searchOpen = false }
             }
         }
         if (calendar) {
@@ -131,10 +149,15 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
         }
         // período: ‹ mês › e, ao lado, período livre e situação
         item { PeriodBar(nav, today) }
-        item { SearchBar(f.query) { f.query = it } }
         item { FilterChips(nav) }
         item { PeriodSummary(flow, pending, hide, accumulated, accumulate && filtered) }
-        if (list.isEmpty()) item {
+        if (list.isEmpty() && q.isNotEmpty()) item {
+            Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 24.dp) {
+                Text(androidx.compose.ui.res.stringResource(com.finanplus.R.string.moves_search_empty), fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text(androidx.compose.ui.res.stringResource(com.finanplus.R.string.moves_search_empty_hint), color = p.muted, style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+        } else if (list.isEmpty()) item {
             Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 24.dp) {
                 Text("Nenhum lançamento neste período", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text("Troque o mês ou ajuste os filtros. Você também pode começar por aqui:", color = p.muted, style = MaterialTheme.typography.bodySmall,
@@ -150,7 +173,7 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
             }
         }
         groups.forEach { (date, txs) ->
-            item(key = "dia-$date") { DayGroupHeader(date, com.finanplus.core.Period.cashNet(txs), txs.any { !it.isCard }, today, hide) }
+            item(key = "dia-$date") { DayGroupHeader(date, com.finanplus.core.Period.dayTotal(txs), today, hide) }
             items(txs, key = { it.id }) { t ->
                 TxRow(t, s, onToggle = { Repo.update { Ops.togglePaid(it, t.id) } }, onOpen = { nav.open(Sheet.TxEdit(t.kind, t.id)) })
             }
@@ -193,12 +216,40 @@ private fun RoundButton(icon: com.finanplus.ui.components.Ico, bg: androidx.comp
 
 /** Busca compacta, com lupa. */
 @Composable
-private fun SearchBar(value: String, onChange: (String) -> Unit) {
+private fun SearchToggle(open: Boolean, active: Boolean, onClick: () -> Unit) {
     val p = Fin.c
+    // destacado com a busca aberta ou com texto buscado (a lista está filtrada mesmo com o campo recolhido)
+    val on = open || active
+    val label = androidx.compose.ui.res.stringResource(com.finanplus.R.string.moves_search_open)
+    androidx.compose.foundation.layout.Box(
+        Modifier.size(48.dp).clip(CircleShape).background(if (on) p.accent else p.accent2)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label; stateDescription = if (open) "aberta" else if (active) "filtrando" else "fechada" },
+        contentAlignment = Alignment.Center,
+    ) { com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.SEARCH, if (on) p.onAccent else p.accent, size = 21.dp) }
+}
+
+/** Campo da busca: aparece abaixo do cabeçalho com foco e teclado; "X" limpa e recolhe. */
+@Composable
+private fun SearchField(value: String, onChange: (String) -> Unit, onClose: () -> Unit) {
+    val p = Fin.c
+    val focus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    androidx.compose.runtime.LaunchedEffect(Unit) { focus.requestFocus(); keyboard?.show() }
     androidx.compose.material3.OutlinedTextField(
-        value, { onChange(it.take(60)) }, Modifier.fillMaxWidth().padding(top = 4.dp),
-        placeholder = { Text("Buscar descrição ou categoria") }, singleLine = true,
+        value, { onChange(it.take(60)) }, Modifier.fillMaxWidth().padding(bottom = 6.dp).focusRequester(focus),
+        placeholder = { Text(androidx.compose.ui.res.stringResource(com.finanplus.R.string.moves_search_placeholder)) }, singleLine = true,
         leadingIcon = { com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.SEARCH, p.muted, size = 20.dp) },
+        trailingIcon = {
+            val clear = androidx.compose.ui.res.stringResource(com.finanplus.R.string.moves_search_clear)
+            androidx.compose.foundation.layout.Box(
+                Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button) { keyboard?.hide(); onClose() }
+                    .semantics { contentDescription = clear },
+                contentAlignment = Alignment.Center,
+            ) { com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.CLOSE, p.muted, size = 20.dp) }
+        },
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { keyboard?.hide() }),
         shape = RoundedCornerShape(18.dp),
         colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
             focusedBorderColor = p.accent, unfocusedBorderColor = p.border,
@@ -276,17 +327,35 @@ private fun SummaryCol(
 
 /** Cabeçalho de cada dia na lista: "Quinta, 15 de outubro" e o saldo do dia (mesma regra do calendário). */
 @Composable
-private fun DayGroupHeader(date: LocalDate, net: Long, hasCash: Boolean, today: LocalDate, hide: Boolean) {
+private fun DayGroupHeader(date: LocalDate, total: com.finanplus.core.DayTotal, today: LocalDate, hide: Boolean) {
     val p = Fin.c
     Row(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             (if (date == today) "Hoje · " else "") + com.finanplus.core.MonthCalendar.dayTitle(date, today),
             Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
         )
-        if (hasCash && !hide) Text(
-            (if (net > 0) "+ " else if (net < 0) "− " else "") + Money.format(kotlin.math.abs(net)),
-            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (net < 0) p.red else p.green,
-        )
+        if (!hide) androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.End) {
+            // total do dia: só receitas e despesas (verde entrou, vermelho saiu); reservas para meta na linha de baixo
+            val net = total.net
+            if (total.hasFlow) Text(
+                (if (net > 0) "+ " else if (net < 0) "− " else "") + Money.format(kotlin.math.abs(net)),
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (net < 0) p.red else p.green,
+            )
+            if (total.goals != 0L) Row(verticalAlignment = Alignment.CenterVertically) {
+                // guardado: cor primária (continua seu, separado na meta); retirado: verde (voltou para a conta)
+                val color = if (total.goals > 0) p.accent else p.green
+                com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.GOAL, color, size = 14.dp)
+                Text(
+                    androidx.compose.ui.res.stringResource(
+                        if (total.goals > 0) com.finanplus.R.string.day_goals_saved else com.finanplus.R.string.day_goals_withdrawn,
+                        Money.format(kotlin.math.abs(total.goals)),
+                    ),
+                    Modifier.padding(start = 4.dp),
+                    style = if (total.hasFlow) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold, color = color,
+                )
+            }
+        }
     }
 }
 
