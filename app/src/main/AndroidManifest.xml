@@ -59,6 +59,18 @@
                 android:value="Servidor local na rede Wi-Fi para usar o Finan+ pelo navegador de outro aparelho, ligado e desligado pelo usuário." />
         </service>
 
+        <!-- Despesas compartilhadas: entrega a outro app (WhatsApp, visualizador) só o PDF gerado ou a cópia
+             do comprovante na pasta temporária cache/shared (esvaziada ao abrir a tela). Não exportado. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.arquivos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/shared_files" />
+        </provider>
+
         <receiver
             android:name=".widget.BalanceWidgetReceiver"
             android:exported="true"

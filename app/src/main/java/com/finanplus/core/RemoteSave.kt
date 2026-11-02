@@ -43,5 +43,12 @@ object RemoteSave {
         return Outcome.Ok(incoming.copy(txs = incoming.txs.map { keep[it.id] ?: it }))
     }
 
+    /**
+     * O Finan+ web não conhece as despesas compartilhadas: quando a gravação pela rede vem sem o campo
+     * "shared" ([hasField] = false), as do celular continuam como estão (senão seriam apagadas).
+     */
+    fun keepShared(current: AppState, incoming: AppState, hasField: Boolean): AppState =
+        if (hasField) incoming else incoming.copy(shared = current.shared)
+
     private const val TITLE = "Reserva para meta"
 }

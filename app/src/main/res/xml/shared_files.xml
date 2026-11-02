@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Únicos arquivos que o Finan+ entrega a outros apps: PDFs e cópias de comprovantes das despesas compartilhadas. -->
+<paths>
+    <cache-path name="compartilhar" path="shared/" />
+</paths>

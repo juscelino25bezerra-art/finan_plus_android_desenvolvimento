@@ -109,6 +109,8 @@ data class AppState(
     /** minutos em segundo plano até bloquear; 0 = desativado */
     val autoLock: Int = 0,
     val theme: ThemeId = ThemeId.AUTO,
+    /** despesas compartilhadas (core/Shared.kt): quem pagou, quem divide e quem já devolveu */
+    val shared: List<SharedExpense> = emptyList(),
 ) {
     fun account(id: String) = accounts.firstOrNull { it.id == id }
     fun card(id: String) = cards.firstOrNull { it.id == id }
@@ -139,6 +141,7 @@ data class AppState(
             grew(cards.size, next.cards.size, Limits.CARDS) -> "Limite de ${Limits.CARDS} cartões atingido."
             grew(recurring.size, next.recurring.size, Limits.RECURRING) -> "Limite de ${Limits.RECURRING} recorrências atingido."
             grew(goals.size, next.goals.size, Limits.GOALS) -> "Limite de ${Limits.GOALS} metas atingido."
+            grew(shared.size, next.shared.size, Limits.SHARED) -> "Limite de ${Limits.SHARED} despesas compartilhadas atingido."
             Kind.entries.any { grew(cats.of(it).size, next.cats.of(it).size, Limits.CATEGORIES_PER_KIND) } ->
                 "Limite de ${Limits.CATEGORIES_PER_KIND} categorias atingido."
             else -> null
@@ -153,6 +156,7 @@ data class AppState(
         const val CARDS = 100
         const val RECURRING = 1_000
         const val GOALS = 1_000
+        const val SHARED = 1_000
         const val CATEGORIES_PER_KIND = 500
     }
 

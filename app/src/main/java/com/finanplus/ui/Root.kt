@@ -138,6 +138,11 @@ sealed interface Sheet : java.io.Serializable {
      * [sharedUri] = PDF recebido por "Compartilhar → Finan+" (content://, só leitura)
      */
     data class BillImport(val cardId: String? = null, val sharedUri: String? = null) : Sheet
+    /** despesas compartilhadas: histórico, formulário ([id] null = nova), detalhe e pagamento de um participante */
+    data object SharedList : Sheet
+    data class SharedEdit(val id: String? = null) : Sheet
+    data class SharedDetail(val id: String) : Sheet
+    data class SharedPay(val expenseId: String, val personId: String) : Sheet
 }
 
 /** Filtros da aba Lançamentos (o período também vale para Relatórios). */

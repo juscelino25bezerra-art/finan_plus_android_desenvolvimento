@@ -54,6 +54,9 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0) {
     INCOME(R.drawable.ms_arrow_upward),
     EXPENSE(R.drawable.ms_arrow_downward),
     LIMIT(R.drawable.ms_track_changes),
+    GROUP(R.drawable.ms_group),
+    SHARE(R.drawable.ms_share),
+    ATTACH(R.drawable.ms_attach_file),
 
     // categorias
     FOOD(R.drawable.ms_shopping_cart),
