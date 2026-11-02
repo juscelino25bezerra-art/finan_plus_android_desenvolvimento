@@ -130,8 +130,10 @@ fun MovesViewSwitch(nav: Nav) {
                 label = "Ícone do seletor de visualização",
             )
             // Área de toque de 48 dp, com preenchimento visual de 44 dp.
+            // O recorte arredondado vem antes do selectable: sem ele, o efeito de toque aparecia como um quadrado.
             Box(
                 Modifier.size(48.dp)
+                    .clip(RoundedCornerShape(15.dp))
                     .selectable(selected = selected, role = Role.Tab) { nav.movesView = view }
                     .semantics { contentDescription = description },
                 contentAlignment = Alignment.Center,
