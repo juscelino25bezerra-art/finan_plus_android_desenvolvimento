@@ -1,20 +1,21 @@
 # Changelog
 
-## Em desenvolvimento
+## 1.8.0 — Despesas compartilhadas, saldo acumulado e efeito vidro (02/11/2026)
 
-### Efeito vidro (opcional)
+Mescla do trabalho feito no repositório de desenvolvimento ([finan_plus_android_desenvolvimento](https://github.com/juscelino25bezerra-art/finan_plus_android_desenvolvimento), PRs #21 a #25). `versionCode 17`.
 
-- **Ajustes › Aparência › Efeito vidro** (desligado por padrão; fica só neste aparelho, fora do backup). Ligado, os cartões de todas as telas ficam mais translúcidos, com uma borda clara em cima, sobre um fundo com brilhos suaves nas cores do tema. A barra inferior e a faixa da barra de status deixam os brilhos continuarem até as bordas.
-- Vale para **todos os temas**, sem excesso: nos escuros os brilhos e a translucidez são menores, para o texto continuar legível; nos temas OLED (preto puro) os brilhos ficam quase apagados.
-- Desligado, o visual é exatamente o de antes. Nenhuma biblioteca nova.
+### Destaques
 
-### Boas-vindas
+- **Despesas compartilhadas:** divida uma conta com amigos ou família, veja quem deve a quem, registre pagamentos parciais e envie o comprovante em PDF pelo WhatsApp.
+- **Saldo acumulado entre os meses (opcional):** em Lançamentos, cada mês pode mostrar o saldo que vem dos meses anteriores.
+- **Efeito vidro (opcional):** cartões translúcidos sobre brilhos suaves, em todas as telas e todos os temas.
 
-- A apresentação mostra as novidades: **saldo acumulado entre os meses** (página inicial), **despesas compartilhadas** (Planejamento) e o **efeito vidro** (página Privacidade). Quem já usa o app pode rever em Ajustes › Sobre › Ver apresentação.
+### Highlights (English)
 
-### Correções
-
-- **Lançamentos:** ao tocar nos botões Lista/Calendário no topo, o efeito de toque aparecia como um quadrado. Agora acompanha o formato arredondado do botão.
+- **Shared expenses:** split a bill with friends or family, see who owes whom, record partial payments and send a PDF statement via WhatsApp.
+- **Carry the balance over between months (optional):** in Transactions, each month can show the balance coming from previous months.
+- **Glass effect (optional):** translucent cards over soft glows, on every screen and every theme.
+- Plus an updated welcome tour and a fix for the List/Calendar switch. The app interface is in Brazilian Portuguese.
 
 ### Despesas compartilhadas
 
@@ -31,6 +32,25 @@
 - **Ajustes › Lançamentos › Acumular saldo entre os meses** (desligada por padrão; fica só neste aparelho, fora do backup). Ligada, a coluna **Saldo** do resumo em Lançamentos mostra o saldo das contas **ao fim do período**, somando o saldo inicial e o que sobrou dos meses anteriores, e o **previsto** soma as pendências, faturas e recorrências até lá. Receitas e despesas continuam sendo só as do período.
 - Desligada, tudo fica como antes: cada mês mostra só o que entrou e saiu nele (visão isolada).
 - Com filtro de tipo, situação ou busca, o saldo volta a ser só o do período (um aviso explica). Testes em `AccumulatedBalanceTest`.
+
+### Efeito vidro (opcional)
+
+- **Ajustes › Aparência › Efeito vidro** (desligado por padrão; fica só neste aparelho, fora do backup). Ligado, os cartões de todas as telas ficam mais translúcidos, com uma borda clara em cima, sobre um fundo com brilhos suaves nas cores do tema. A barra inferior e a faixa da barra de status deixam os brilhos continuarem até as bordas.
+- Vale para **todos os temas**, sem excesso: nos escuros os brilhos e a translucidez são menores, para o texto continuar legível; nos temas OLED (preto puro) os brilhos ficam quase apagados.
+- Desligado, o visual é exatamente o de antes. Nenhuma biblioteca nova.
+
+### Boas-vindas
+
+- A apresentação mostra as novidades: **saldo acumulado entre os meses** (página inicial), **despesas compartilhadas** (Planejamento) e o **efeito vidro** (página Privacidade). Quem já usa o app pode rever em Ajustes › Sobre › Ver apresentação.
+
+### Correções
+
+- **Lançamentos:** ao tocar nos botões Lista/Calendário no topo, o efeito de toque aparecia como um quadrado. Agora acompanha o formato arredondado do botão.
+
+### Finan+ web e Linux
+
+- As **despesas compartilhadas** são só do Android por enquanto. O Finan+ web e o Finan+ para Linux ignoram o campo `shared` ao restaurar um backup; se o backup for salvo de novo por eles, as despesas compartilhadas não vão junto. Restaure no Android a partir de um backup feito no próprio Android.
+- O **saldo acumulado** e o **efeito vidro** são opções do aparelho e não entram no backup.
 
 ## 1.7.0 — Reserva para metas, backup automático e boas-vindas (25/10/2026)
 
