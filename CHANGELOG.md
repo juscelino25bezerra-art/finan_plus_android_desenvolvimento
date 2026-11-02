@@ -1,5 +1,13 @@
 # Changelog
 
+## Em desenvolvimento
+
+### Acumular saldo entre os meses
+
+- **Ajustes › Lançamentos › Acumular saldo entre os meses** (desligada por padrão; fica só neste aparelho, fora do backup). Ligada, a coluna **Saldo** do resumo em Lançamentos mostra o saldo das contas **ao fim do período**, somando o saldo inicial e o que sobrou dos meses anteriores, e o **previsto** soma as pendências, faturas e recorrências até lá. Receitas e despesas continuam sendo só as do período.
+- Desligada, tudo fica como antes: cada mês mostra só o que entrou e saiu nele (visão isolada).
+- Com filtro de tipo, situação ou busca, o saldo volta a ser só o do período (um aviso explica). Testes em `AccumulatedBalanceTest`.
+
 ## 1.7.0 — Reserva para metas, backup automático e boas-vindas (25/10/2026)
 
 Mescla do trabalho feito no repositório de desenvolvimento ([finan_plus_android_desenvolvimento](https://github.com/juscelino25bezerra-art/finan_plus_android_desenvolvimento), PRs #11 a #20, sem o Radar, que continua em teste). `versionCode 16`.
