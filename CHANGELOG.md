@@ -5,10 +5,11 @@
 `versionCode 18`.
 
 - **Despesas compartilhadas › Compartilhar como imagem:** gera uma imagem bonita, na identidade do Finan+ (ícone e nome do app, fundo azul-claro com brilhos suaves, cartão com o total, quem pagou, recebido, pendente e quem deve e quanto), pronta para mandar no WhatsApp, Telegram ou e-mail. No rodapé, "Feito com Finan+" e o endereço do site. O PDF continua disponível ("Baixar PDF" e "PDF pelo WhatsApp").
+- **Meu dinheiro mais limpo:** as seções viram itens recolhíveis, como em Ajustes. Contas e cartões, Limites mensais, Metas e Categorias abrem e fecham com um toque (seta ao lado), e fechadas mostram um resumo: quantas contas e o saldo, limites estourados, quanto está guardado nas metas. Despesas compartilhadas e Simular meu dinheiro viram atalhos com seta, que abrem a tela deles. Contas e cartões começa aberta.
 - **Saldo acumulado no Resumo e no relatório em PDF:** com **Ajustes › Lançamentos › Acumular saldo entre os meses** ligada, o Resumo mostra o **saldo acumulado** do período e quanto veio dos meses anteriores. O PDF ganha os cartões **Saldo anterior** e **Saldo acumulado**, e a tabela mensal uma coluna **Acumulado**, com o saldo de cada mês levado para o seguinte. Desligada, nada muda. Testes em `AccumulatedReportTest`.
 - **Início:** com mais de um vencimento, os cartões de **Próximos vencimentos** ficavam colados um no outro. Agora têm espaço entre eles.
 
-**English:** shared expenses can now be shared as a branded image (Finan+ icon, total, who paid and who owes what). With *carry the balance over between months* turned on, the Summary and the PDF report now show the balance brought forward from previous months and the accumulated balance (including a per-month column in the PDF). Also fixes the spacing between the cards in *Upcoming bills* on the Home screen.
+**English:** a cleaner *My money* tab, with collapsible sections like in Settings. Shared expenses can now be shared as a branded image (Finan+ icon, total, who paid and who owes what). With *carry the balance over between months* turned on, the Summary and the PDF report now show the balance brought forward from previous months and the accumulated balance (including a per-month column in the PDF). Also fixes the spacing between the cards in *Upcoming bills* on the Home screen.
 
 ## 1.8.0 — Despesas compartilhadas, saldo acumulado e efeito vidro (02/11/2026)
 
