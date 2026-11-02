@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -128,8 +129,25 @@ fun AppBackground(content: @Composable () -> Unit) {
     val p = Fin.c
     Box(
         Modifier.fillMaxSize().background(p.bg).drawBehind {
-            if (p.glowA != p.bg) drawCircle(Brush.radialGradient(listOf(p.glowA, Color.Transparent), Offset(size.width * 0.9f, size.height * 0.05f), size.width * 0.7f), size.width * 0.7f, Offset(size.width * 0.9f, size.height * 0.05f))
-            if (p.glowB != p.bg) drawCircle(Brush.radialGradient(listOf(p.glowB, Color.Transparent), Offset(0f, size.height * 0.3f), size.width * 0.65f), size.width * 0.65f, Offset(0f, size.height * 0.3f))
+            if (p.glass) {
+                // efeito vidro: brilhos suaves nas cores do tema (já "desfocados": gradiente radial até transparente).
+                // Nos temas escuros ficam bem mais fracos; no preto puro (OLED), quase apagados.
+                val k = when { !p.dark -> 1f; p.bg.luminance() < 0.01f -> 0.35f; else -> 0.55f }
+                val violet = androidx.compose.ui.graphics.lerp(p.accent, p.red, 0.45f)
+                fun orb(c: Color, a: Float, fx: Float, fy: Float, fr: Float) {
+                    val center = Offset(size.width * fx, size.height * fy)
+                    val r = size.width * fr
+                    drawCircle(Brush.radialGradient(listOf(c.copy(alpha = a * k), Color.Transparent), center, r), r, center)
+                }
+                orb(p.accent, 0.32f, 0.95f, 0.04f, 0.75f)
+                orb(p.red, 0.13f, 0.0f, 0.24f, 0.65f)
+                orb(violet, 0.20f, 1.0f, 0.48f, 0.62f)
+                orb(p.green, 0.15f, 0.05f, 0.68f, 0.68f)
+                orb(p.accent, 0.24f, 0.9f, 0.95f, 0.7f)
+            } else {
+                if (p.glowA != p.bg) drawCircle(Brush.radialGradient(listOf(p.glowA, Color.Transparent), Offset(size.width * 0.9f, size.height * 0.05f), size.width * 0.7f), size.width * 0.7f, Offset(size.width * 0.9f, size.height * 0.05f))
+                if (p.glowB != p.bg) drawCircle(Brush.radialGradient(listOf(p.glowB, Color.Transparent), Offset(0f, size.height * 0.3f), size.width * 0.65f), size.width * 0.65f, Offset(0f, size.height * 0.3f))
+            }
             val spacing = 34.dp.toPx()
             val radius = 1.25.dp.toPx()
             val dotColor = p.text.copy(alpha = if (p.dark) 0.055f else 0.075f)
@@ -146,13 +164,18 @@ fun AppBackground(content: @Composable () -> Unit) {
     ) { content() }
 }
 
+/** Borda do cartão. Com o efeito vidro, mais clara em cima e mais fraca embaixo (reflexo da borda do vidro). */
+fun Modifier.glassBorder(p: com.finanplus.ui.theme.Palette, shape: androidx.compose.ui.graphics.Shape): Modifier =
+    if (p.glass) border(1.dp, Brush.verticalGradient(listOf(p.border, p.border.copy(alpha = p.border.alpha * 0.35f))), shape)
+    else border(1.dp, p.border, shape)
+
 /** Cartão translúcido ("Liquid Glass"). */
 @Composable
 fun Glass(modifier: Modifier = Modifier, radius: Dp = FinRadius.card, padding: Dp = FinSpace.lg, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val p = Fin.c
     val shape = RoundedCornerShape(radius)
     Column(
-        modifier.fillMaxWidth().clip(shape).background(p.surface, shape).border(1.dp, p.border, shape)
+        modifier.fillMaxWidth().clip(shape).background(p.surface, shape).glassBorder(p, shape)
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(padding),
         content = content,

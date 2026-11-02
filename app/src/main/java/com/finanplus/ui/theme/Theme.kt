@@ -41,6 +41,8 @@ data class Palette(
     val track: Color,
     val glowA: Color,
     val glowB: Color,
+    /** efeito vidro ligado (Ajustes › Aparência): cartões mais translúcidos sobre brilhos suaves no fundo */
+    val glass: Boolean = false,
 ) {
     val primaryPressed: Color get() = if (dark) accent.copy(alpha = 0.82f) else Color(0xFF304FA9)
     val successContainer: Color get() = if (dark) green.copy(alpha = 0.18f) else Color(0xFFEAF7F0)
@@ -82,6 +84,17 @@ private val GruvboxOled = Palette(true, Color(0xFF000000), Color(0xFF0D0D0C), Co
     Color(0xFF83A598), Color(0xFF17201F), Color(0xFF000000), Color(0xFFFB4934), Color(0xFFB8BB26), Color(0xFF282828), Color(0xFF000000), Color(0xFF000000))
 
 val LocalPalette = staticCompositionLocalOf { Light }
+
+/**
+ * Efeito vidro: a mesma paleta, com cartões mais translúcidos e borda clara (o brilho da borda do vidro).
+ * Vale para qualquer tema; nos escuros a translucidez é menor, para o texto continuar legível.
+ * O fundo ganha brilhos coloridos suaves (AppBackground), que aparecem desfocados através dos cartões.
+ */
+fun Palette.glassy(): Palette = if (glass) this else copy(
+    glass = true,
+    surface = if (dark) surface.compositeOver(bg).copy(alpha = 0.66f) else Color.White.copy(alpha = 0.52f),
+    border = if (dark) text.copy(alpha = 0.13f) else Color.White.copy(alpha = 0.85f),
+)
 
 object Fin { val c: Palette @Composable get() = LocalPalette.current }
 
@@ -130,8 +143,8 @@ private val typography = Typography().let { t ->
 }
 
 @Composable
-fun FinanTheme(theme: ThemeId, content: @Composable () -> Unit) {
-    val p = resolvePalette(theme)
+fun FinanTheme(theme: ThemeId, glass: Boolean = false, content: @Composable () -> Unit) {
+    val p = resolvePalette(theme).let { if (glass) it.glassy() else it }
     CompositionLocalProvider(LocalPalette provides p) {
         MaterialTheme(colorScheme = scheme(p), typography = typography) {
             CompositionLocalProvider(LocalContentColor provides p.text, content = content)

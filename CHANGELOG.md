@@ -2,6 +2,12 @@
 
 ## Em desenvolvimento
 
+### Efeito vidro (opcional)
+
+- **Ajustes › Aparência › Efeito vidro** (desligado por padrão; fica só neste aparelho, fora do backup). Ligado, os cartões de todas as telas ficam mais translúcidos, com uma borda clara em cima, sobre um fundo com brilhos suaves nas cores do tema. A barra inferior e a faixa da barra de status deixam os brilhos continuarem até as bordas.
+- Vale para **todos os temas**, sem excesso: nos escuros os brilhos e a translucidez são menores, para o texto continuar legível; nos temas OLED (preto puro) os brilhos ficam quase apagados.
+- Desligado, o visual é exatamente o de antes. Nenhuma biblioteca nova.
+
 ### Despesas compartilhadas
 
 - **Novo módulo** em **Meu dinheiro › Despesas compartilhadas** e no botão **+ › Despesa compartilhada**: nome, valor total, data, quem pagou, participantes pelo nome, observação e nota fiscal ou comprovante anexado (foto ou PDF, criptografado e só no aparelho).
