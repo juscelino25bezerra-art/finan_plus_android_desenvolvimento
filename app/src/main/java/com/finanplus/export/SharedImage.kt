@@ -85,7 +85,7 @@ object SharedImage {
         val headH = 570f + title.size * 70f
         val listH = st.people.size * ROW_H
         val cardH = headH + listH + CARD_PAD
-        val H = (cardTop + cardH + 260f).toInt()
+        val H = (cardTop + cardH + 340f).toInt()
 
         val bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
@@ -159,14 +159,14 @@ object SharedImage {
         font(40f, bold); c.drawText("Quem deve e quanto", x0, y - 16f, p)
         st.people.forEachIndexed { i, ps -> row(c, p, ps, i, x0, x1, y, bold, black, st.toReceive); y += ROW_H }
 
-        // ---- rodapé: marca
-        var fy = card.bottom + 96f
-        val small = 64f
-        drawIcon(ctx, c, RectF(W / 2f - 250f, fy - 46f, W / 2f - 250f + small, fy - 46f + small))
-        font(34f, bold); c.drawText("Feito com Finan+", W / 2f - 166f, fy - 4f, p)
-        font(26f, Typeface.DEFAULT, MUTED); c.drawText("Finanças pessoais livres e privadas", W / 2f - 166f, fy + 34f, p)
-        fy += 110f
-        font(28f, bold, ACCENT); p.textAlign = Paint.Align.CENTER; c.drawText(SITE, W / 2f, fy, p)
+        // ---- rodapé: marca, tudo centralizado (ícone, nome, frase e site, um embaixo do outro)
+        val cx = W / 2f
+        val small = 72f
+        val iconTop = card.bottom + 60f
+        drawIcon(ctx, c, RectF(cx - small / 2, iconTop, cx + small / 2, iconTop + small))
+        font(34f, bold); p.textAlign = Paint.Align.CENTER; c.drawText("Feito com Finan+", cx, iconTop + small + 50f, p)
+        font(26f, Typeface.DEFAULT, MUTED); p.textAlign = Paint.Align.CENTER; c.drawText("Finanças pessoais livres e privadas", cx, iconTop + small + 90f, p)
+        font(28f, bold, ACCENT); p.textAlign = Paint.Align.CENTER; c.drawText(SITE, cx, iconTop + small + 142f, p)
         return bmp
     }
 
