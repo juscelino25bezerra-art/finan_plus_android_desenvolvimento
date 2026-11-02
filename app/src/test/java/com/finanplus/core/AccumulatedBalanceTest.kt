@@ -56,3 +56,36 @@ class AccumulatedBalanceTest {
         assertEquals(Finance.currentBalance(base), Finance.balanceAt(base, today))
     }
 }
+
+/** Resumo e relatório em PDF com o saldo acumulado (opção ligada). */
+class AccumulatedReportTest {
+    private val today = LocalDate.parse("2026-11-02")
+    private fun d(s: String) = LocalDate.parse(s)
+    private val s = AppState(
+        accounts = listOf(Account("main", "Conta principal", 100000)),
+        txs = listOf(
+            Tx("a", Kind.INCOME, 300000, d("2026-10-05"), "Salário", "Salário", true, "main"),
+            Tx("b", Kind.EXPENSE, 120000, d("2026-10-10"), "Aluguel", "Moradia", true, "main"),
+            Tx("c", Kind.EXPENSE, 20000, d("2026-11-01"), "Luz", "Moradia", true, "main"),
+        ),
+    )
+
+    @Test fun desligadaNaoMudaORelatorio() {
+        val r = com.finanplus.core.report.Reports.build(s, d("2026-11-01"), d("2026-11-30"), today)
+        assertEquals(null, r.carried); assertEquals(null, r.accumulated)
+        assertEquals(null, r.months.single().accumulated)
+    }
+
+    @Test fun ligadaLevaOSaldoDeOutubroParaNovembro() {
+        val r = com.finanplus.core.report.Reports.build(s, d("2026-11-01"), d("2026-11-30"), today, accumulate = true)
+        // outubro terminou com 1.000 + 3.000 − 1.200 = 2.800; novembro ainda tirou 200
+        assertEquals(280000L, r.carried); assertEquals(260000L, r.accumulated)
+        assertEquals(-20000L, r.balance)
+    }
+
+    @Test fun tabelaMensalMostraOAcumuladoDeCadaMes() {
+        val r = com.finanplus.core.report.Reports.build(s, d("2026-09-01"), d("2026-11-30"), today, accumulate = true)
+        assertEquals(listOf(100000L, 280000L, 260000L), r.months.map { it.accumulated })
+        assertEquals(100000L, r.carried)
+    }
+}

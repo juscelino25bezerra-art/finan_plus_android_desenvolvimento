@@ -194,6 +194,22 @@ object PdfReport {
             pen.text(sub, x + 12, pen.y + 61, 7.5f, MUTED, maxW = w3 - 24)
         }
         pen.y += 82f
+        // saldo acumulado (opção ligada): o que vem dos meses anteriores e o saldo das contas ao fim do período
+        if (r.carried != null && r.accumulated != null) {
+            pen.need(70f)
+            val w2 = (CW - gap) / 2
+            listOf(
+                Triple("Saldo anterior (meses anteriores)", r.carried, "Saldo das contas em ${Br.date(r.from.minusDays(1))}, com o saldo inicial"),
+                Triple("Saldo acumulado", r.accumulated, "Saldo das contas em ${Br.date(r.to)}, somando os meses anteriores"),
+            ).forEachIndexed { i, (l, v, sub) ->
+                val x = M + i * (w2 + gap)
+                pen.rect(x, pen.y, w2, 58f, CARD, 12f)
+                pen.text(l, x + 12, pen.y + 18, 9f, MUTED, maxW = w2 - 24)
+                pen.text(money(v), x + 12, pen.y + 38, 14f, if (v < 0) RED else ACCENT, b = true, maxW = w2 - 24)
+                pen.text(sub, x + 12, pen.y + 51, 7.5f, MUTED, maxW = w2 - 24)
+            }
+            pen.y += 68f
+        }
         val w4 = (CW - 3 * gap) / 4
         val small = listOf(
             "A receber (pendente)" to money(r.pendingIncome),
@@ -341,7 +357,9 @@ object PdfReport {
     }
 
     private fun monthTable(pen: Pen, r: Report) {
-        val cols = listOf("Mês" to 160f, "Receitas" to 120f, "Despesas" to 120f, "Saldo" to (CW - 400f))
+        val acc = r.months.any { it.accumulated != null }
+        val cols = if (acc) listOf("Mês" to 130f, "Receitas" to 100f, "Despesas" to 100f, "Saldo" to 95f, "Acumulado" to (CW - 425f))
+        else listOf("Mês" to 160f, "Receitas" to 120f, "Despesas" to 120f, "Saldo" to (CW - 400f))
         tableHeader(pen, cols, 1)
         for (m in r.months) {
             if (pen.y + 18 > H - M - FOOTER) { pen.newPage(); tableHeader(pen, cols, 1) }
@@ -351,6 +369,7 @@ object PdfReport {
             pen.text(money(m.income), x + cols[1].second - 8, base, 9f, GREEN, align = Paint.Align.RIGHT); x += cols[1].second
             pen.text(money(m.expense), x + cols[2].second - 8, base, 9f, RED, align = Paint.Align.RIGHT); x += cols[2].second
             pen.text(money(m.balance), x + cols[3].second - 8, base, 9f, if (m.balance < 0) RED else INK, b = true, align = Paint.Align.RIGHT)
+            if (acc && m.accumulated != null) { x += cols[3].second; pen.text(money(m.accumulated), x + cols[4].second - 8, base, 9f, if (m.accumulated < 0) RED else ACCENT, b = true, align = Paint.Align.RIGHT) }
             pen.line(M, pen.y + 17, W - M, pen.y + 17)
             pen.y += 18f
         }

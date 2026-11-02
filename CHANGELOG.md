@@ -1,12 +1,13 @@
 # Changelog
 
-## 1.8.1 — Correção visual no Início (02/11/2026)
+## 1.8.1 — Saldo acumulado no Resumo e no PDF, e correção visual no Início (02/11/2026)
 
 `versionCode 18`.
 
+- **Saldo acumulado no Resumo e no relatório em PDF:** com **Ajustes › Lançamentos › Acumular saldo entre os meses** ligada, o Resumo mostra o **saldo acumulado** do período e quanto veio dos meses anteriores. O PDF ganha os cartões **Saldo anterior** e **Saldo acumulado**, e a tabela mensal uma coluna **Acumulado**, com o saldo de cada mês levado para o seguinte. Desligada, nada muda. Testes em `AccumulatedReportTest`.
 - **Início:** com mais de um vencimento, os cartões de **Próximos vencimentos** ficavam colados um no outro. Agora têm espaço entre eles.
 
-**English:** fixes the spacing between the cards in *Upcoming bills* on the Home screen.
+**English:** with *carry the balance over between months* turned on, the Summary and the PDF report now show the balance brought forward from previous months and the accumulated balance (including a per-month column in the PDF). Also fixes the spacing between the cards in *Upcoming bills* on the Home screen.
 
 ## 1.8.0 — Despesas compartilhadas, saldo acumulado e efeito vidro (02/11/2026)
 
