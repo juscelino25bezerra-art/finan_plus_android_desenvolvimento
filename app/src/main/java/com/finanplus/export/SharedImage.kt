@@ -15,6 +15,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.os.Build
 import com.finanplus.R
 import com.finanplus.core.Cents
 import com.finanplus.core.Money
@@ -32,6 +33,11 @@ import java.time.format.DateTimeFormatter
  * suaves, cartão branco com o total, quem pagou e quem deve e quanto, e o endereço do site no rodapé.
  *
  * Desenhado com o Canvas do Android (sem bibliotecas). A altura cresce com o número de participantes.
+ *
+ * Fonte: a mesma do app (a fonte padrão do sistema, `FontFamily.Default` no Compose), nos mesmos pesos
+ * dos títulos e textos (800 nos títulos, 700 nos destaques, 600 nos rótulos, 400 no texto).
+ * Cada texto e cada forma usa um Paint novo: reaproveitar um só deixava o alinhamento de um texto
+ * "vazar" para o seguinte (nomes e rodapé saíam alinhados à direita).
  */
 object SharedImage {
     private const val W = 1080
@@ -44,7 +50,6 @@ object SharedImage {
     private const val INK = 0xFF182238.toInt()
     private const val MUTED = 0xFF5B6579.toInt()
     private const val ACCENT = 0xFF3A5FC8.toInt()
-    private const val ACCENT2 = 0xFFDFE8FF.toInt()
     private const val GREEN = 0xFF1B7351.toInt()
     private const val RED = 0xFFB03A4F.toInt()
     private const val TRACK = 0xFFE3E9F5.toInt()
@@ -53,6 +58,28 @@ object SharedImage {
 
     private val DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     const val SITE = "finanplus-web.github.io"
+
+    private const val REGULAR = 400
+    private const val SEMIBOLD = 600
+    private const val BOLD = 700
+    private const val EXTRABOLD = 800
+
+    /** A fonte do app no peso pedido (Android 9+ tem pesos intermediários; antes, negrito ou normal). */
+    private fun face(weight: Int): Typeface =
+        if (Build.VERSION.SDK_INT >= 28) Typeface.create(Typeface.DEFAULT, weight, false)
+        else if (weight >= SEMIBOLD) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+
+    /** Paint novo para texto, sempre com alinhamento explícito. */
+    private fun text(size: Float, weight: Int, color: Int, align: Paint.Align = Paint.Align.LEFT) =
+        Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+            textSize = size; typeface = face(weight); this.color = color; textAlign = align
+        }
+
+    private fun fill(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color; style = Paint.Style.FILL }
+
+    private fun stroke(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color; style = Paint.Style.STROKE; strokeWidth = width }
+
+    private fun alpha(color: Int, a: Int) = Color.argb(a, Color.red(color), Color.green(color), Color.blue(color))
 
     /** PNG pronto para compartilhar. */
     fun png(ctx: Context, e: SharedExpense): ByteArray {
@@ -66,151 +93,145 @@ object SharedImage {
 
     fun render(ctx: Context, e: SharedExpense): Bitmap {
         val st = Shared.summary(e)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        val bold = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        val black = Typeface.create("sans-serif-black", Typeface.NORMAL)
-
-        fun font(size: Float, tf: Typeface = Typeface.DEFAULT, color: Int = INK) {
-            p.reset(); p.isAntiAlias = true; p.textSize = size; p.typeface = tf; p.color = color
-        }
         val cardW = W - 2 * PAD
         val inner = cardW - 2 * CARD_PAD
 
-        // título em até 2 linhas
-        font(60f, black)
-        val title = wrap(p, e.name, inner, 2)
+        // título em até 2 linhas, medido com o mesmo Paint que o desenha
+        val titlePaint = text(60f, EXTRABOLD, INK)
+        val title = wrap(titlePaint, e.name, inner, 2)
 
         val cardTop = 300f
         // alturas na mesma ordem em que o cartão é desenhado abaixo
         val headH = 570f + title.size * 70f
         val listH = st.people.size * ROW_H
         val cardH = headH + listH + CARD_PAD
-        val H = (cardTop + cardH + 340f).toInt()
+        val footerH = 340f
+        val h = (cardTop + cardH + footerH).toInt()
 
-        val bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+        val bmp = Bitmap.createBitmap(W, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
 
         // ---- fundo: azul-claro com brilhos suaves (o "liquid glass lite" do app)
         c.drawColor(BG)
-        fun glow(cx: Float, cy: Float, r: Float, color: Int, alpha: Int) {
-            p.reset(); p.isAntiAlias = true
-            p.shader = RadialGradient(cx, cy, r, intArrayOf(Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color)), Color.TRANSPARENT), null, Shader.TileMode.CLAMP)
+        fun glow(cx: Float, cy: Float, r: Float, color: Int, a: Int) {
+            val p = Paint(Paint.ANTI_ALIAS_FLAG)
+            p.shader = RadialGradient(cx, cy, r, intArrayOf(alpha(color, a), Color.TRANSPARENT), null, Shader.TileMode.CLAMP)
             c.drawCircle(cx, cy, r, p)
-            p.shader = null
         }
         glow(W * 0.95f, 40f, 700f, ACCENT, 90)
-        glow(0f, H * 0.35f, 620f, 0xFFC9BBFF.toInt(), 110)
-        glow(W * 0.9f, H * 0.75f, 600f, 0xFFA9E5CF.toInt(), 90)
-        glow(W * 0.1f, H.toFloat(), 560f, ACCENT, 60)
+        glow(0f, h * 0.35f, 620f, 0xFFC9BBFF.toInt(), 110)
+        glow(W * 0.9f, h * 0.75f, 600f, 0xFFA9E5CF.toInt(), 90)
+        glow(W * 0.1f, h.toFloat(), 560f, ACCENT, 60)
 
         // ---- topo: ícone do app + nome
         val iconSize = 136f
         drawIcon(ctx, c, RectF(PAD, 78f, PAD + iconSize, 78f + iconSize))
-        font(64f, black); c.drawText("Finan+", PAD + iconSize + 32f, 148f, p)
-        font(32f, Typeface.DEFAULT, MUTED); c.drawText("Despesa compartilhada", PAD + iconSize + 34f, 196f, p)
+        c.drawText("Finan+", PAD + iconSize + 32f, 150f, text(64f, EXTRABOLD, INK))
+        c.drawText("Despesa compartilhada", PAD + iconSize + 34f, 198f, text(32f, REGULAR, MUTED))
 
-        // ---- cartão branco translúcido
+        // ---- cartão branco
         val card = RectF(PAD, cardTop, PAD + cardW, cardTop + cardH)
-        p.reset(); p.isAntiAlias = true; p.color = Color.argb(40, 38, 62, 140)
-        c.drawRoundRect(RectF(card.left, card.top + 14f, card.right, card.bottom + 14f), 56f, 56f, p) // sombra suave
-        p.color = Color.argb(240, 255, 255, 255); c.drawRoundRect(card, 56f, 56f, p)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 3f; p.color = Color.WHITE; c.drawRoundRect(card, 56f, 56f, p); p.style = Paint.Style.FILL
+        c.drawRoundRect(RectF(card.left, card.top + 14f, card.right, card.bottom + 14f), 56f, 56f, fill(Color.argb(36, 38, 62, 140))) // sombra suave
+        c.drawRoundRect(card, 56f, 56f, fill(Color.argb(245, 255, 255, 255)))
+        c.drawRoundRect(card, 56f, 56f, stroke(Color.WHITE, 3f))
 
         val x0 = card.left + CARD_PAD
         val x1 = card.right - CARD_PAD
         var y = card.top + CARD_PAD + 20f
 
-        font(60f, black)
-        for (line in title) { y += 52f; c.drawText(line, x0, y, p); y += 18f }
+        for (line in title) { y += 52f; c.drawText(line, x0, y, titlePaint); y += 18f }
         y += 44f
-        font(32f, Typeface.DEFAULT, MUTED)
         val split = if (e.split == SplitMode.EQUAL) "dividida igualmente" else "valor de cada um"
-        c.drawText(fit(p, "${e.date.format(DMY)} · pago por ${e.payer?.name ?: "—"} · $split", inner), x0, y, p)
+        val meta = text(32f, REGULAR, MUTED)
+        c.drawText(fit(meta, "${e.date.format(DMY)} · pago por ${e.payer?.name ?: "—"} · $split", inner), x0, y, meta)
 
         // total
         y += 40f
-        font(30f, bold, MUTED); y += 34f; c.drawText("TOTAL", x0, y, p)
-        font(92f, black, ACCENT); y += 92f; c.drawText(Money.format(e.total), x0, y, p)
+        y += 34f; c.drawText("TOTAL", x0, y, text(28f, BOLD, MUTED).apply { letterSpacing = 0.06f })
+        y += 92f; c.drawText(Money.format(e.total), x0, y, text(92f, EXTRABOLD, ACCENT))
 
         // recebido / pendente / situação
         y += 40f
         val colW = inner / 3f
         fun stat(i: Int, label: String, value: String, color: Int, size: Float = 40f) {
             val x = x0 + i * colW
-            font(28f, Typeface.DEFAULT, MUTED); c.drawText(label, x, y + 30f, p)
-            font(size, bold, color); c.drawText(fit(p, value, colW - 8f), x, y + 82f, p)
+            c.drawText(label, x, y + 30f, text(28f, REGULAR, MUTED))
+            val v = text(size, BOLD, color)
+            c.drawText(fit(v, value, colW - 8f), x, y + 82f, v)
         }
         stat(0, "Recebido", Money.format(st.received), GREEN)
         stat(1, "Pendente", Money.format(st.pending), if (st.pending > 0) RED else GREEN)
         stat(2, "Situação", st.state.label, stateColor(st.state), 32f)
         y += 110f
-        // barra de progresso do que já voltou
-        val bar = RectF(x0, y, x1, y + 18f)
-        p.reset(); p.isAntiAlias = true; p.color = TRACK; c.drawRoundRect(bar, 9f, 9f, p)
+        // barra do que já voltou
+        c.drawRoundRect(RectF(x0, y, x1, y + 18f), 9f, 9f, fill(TRACK))
         if (st.toReceive > 0 && st.received > 0) {
-            p.color = GREEN
-            c.drawRoundRect(RectF(x0, y, x0 + (x1 - x0) * (st.received.toFloat() / st.toReceive).coerceIn(0f, 1f), y + 18f), 9f, 9f, p)
+            val f = (st.received.toFloat() / st.toReceive).coerceIn(0f, 1f)
+            c.drawRoundRect(RectF(x0, y, x0 + (x1 - x0) * f, y + 18f), 9f, 9f, fill(GREEN))
         }
         y += 18f + 46f
 
         // ---- quem deve e quanto
-        p.reset(); p.color = LINE; p.strokeWidth = 2f; c.drawLine(x0, y, x1, y, p)
+        c.drawLine(x0, y, x1, y, stroke(LINE, 2f))
         y += 70f
-        font(40f, bold); c.drawText("Quem deve e quanto", x0, y - 16f, p)
-        st.people.forEachIndexed { i, ps -> row(c, p, ps, i, x0, x1, y, bold, black, st.toReceive); y += ROW_H }
+        c.drawText("Quem deve e quanto", x0, y - 16f, text(40f, EXTRABOLD, INK))
+        st.people.forEachIndexed { i, ps -> row(c, ps, i, x0, x1, y, st.toReceive, last = i == st.people.lastIndex); y += ROW_H }
 
         // ---- rodapé: marca, tudo centralizado (ícone, nome, frase e site, um embaixo do outro)
         val cx = W / 2f
         val small = 72f
         val iconTop = card.bottom + 60f
         drawIcon(ctx, c, RectF(cx - small / 2, iconTop, cx + small / 2, iconTop + small))
-        font(34f, bold); p.textAlign = Paint.Align.CENTER; c.drawText("Feito com Finan+", cx, iconTop + small + 50f, p)
-        font(26f, Typeface.DEFAULT, MUTED); p.textAlign = Paint.Align.CENTER; c.drawText("Finanças pessoais livres e privadas", cx, iconTop + small + 90f, p)
-        font(28f, bold, ACCENT); p.textAlign = Paint.Align.CENTER; c.drawText(SITE, cx, iconTop + small + 142f, p)
+        c.drawText("Feito com Finan+", cx, iconTop + small + 50f, text(34f, EXTRABOLD, INK, Paint.Align.CENTER))
+        c.drawText("Finanças pessoais livres e privadas", cx, iconTop + small + 90f, text(26f, REGULAR, MUTED, Paint.Align.CENTER))
+        c.drawText(SITE, cx, iconTop + small + 142f, text(28f, BOLD, ACCENT, Paint.Align.CENTER))
         return bmp
     }
 
     /** Uma pessoa: inicial, nome, parte e quanto devolveu; à direita a situação e o que falta. [toReceive]: o que quem pagou recebe. */
-    private fun row(c: Canvas, p: Paint, ps: PersonStatus, i: Int, x0: Float, x1: Float, top: Float, bold: Typeface, black: Typeface, toReceive: Cents) {
+    private fun row(c: Canvas, ps: PersonStatus, i: Int, x0: Float, x1: Float, top: Float, toReceive: Cents, last: Boolean) {
         val cy = top + ROW_H / 2f
-        // avatar com a inicial
-        val color = AVATARS[i % AVATARS.size]
-        p.reset(); p.isAntiAlias = true; p.color = color; p.alpha = 40; c.drawCircle(x0 + 40f, cy, 40f, p)
-        p.alpha = 255; p.typeface = black; p.textSize = 36f; p.textAlign = Paint.Align.CENTER
-        c.drawText(ps.person.name.trim().take(1).uppercase(), x0 + 40f, cy + 13f, p)
+        val nameX = x0 + 104f
 
-        // situação à direita (pílula) e o que falta
+        // avatar: círculo claro com a inicial centralizada (vertical pela altura real da letra)
+        val color = AVATARS[i % AVATARS.size]
+        c.drawCircle(x0 + 40f, cy, 40f, fill(alpha(color, 40)))
+        val initial = ps.person.name.trim().take(1).uppercase().ifEmpty { "?" }
+        val ip = text(36f, EXTRABOLD, color, Paint.Align.CENTER)
+        val b = Rect().also { ip.getTextBounds(initial, 0, initial.length, it) }
+        c.drawText(initial, x0 + 40f, cy + b.height() / 2f, ip)
+
+        // situação (pílula) em cima e o valor embaixo, alinhados à direita
         val (label, fg) = when (ps.state) {
             PersonStatus.State.NONE -> "Pagou" to ACCENT
             PersonStatus.State.PAID -> "Quitado" to GREEN
             PersonStatus.State.PARTIAL -> "Pagou parte" to ACCENT
             PersonStatus.State.PENDING -> "Pendente" to RED
         }
-        p.reset(); p.isAntiAlias = true; p.typeface = bold; p.textSize = 26f
-        val pw = p.measureText(label) + 44f
-        val pill = RectF(x1 - pw, cy - 50f, x1, cy - 6f)
-        p.color = fg; p.alpha = 30; c.drawRoundRect(pill, 22f, 22f, p)
-        p.alpha = 255; p.textAlign = Paint.Align.CENTER; c.drawText(label, pill.centerX(), pill.centerY() + 9f, p)
+        val pillText = text(26f, BOLD, fg, Paint.Align.CENTER)
+        val pw = pillText.measureText(label) + 44f
+        val pill = RectF(x1 - pw, cy - 52f, x1, cy - 8f)
+        c.drawRoundRect(pill, 22f, 22f, fill(alpha(fg, 30)))
+        val pb = Rect().also { pillText.getTextBounds(label, 0, label.length, it) }
+        c.drawText(label, pill.centerX(), pill.centerY() + pb.height() / 2f, pillText)
+
         val amount = when {
             ps.isPayer -> "recebe ${Money.format(toReceive)}"
             ps.remaining > 0 -> "falta ${Money.format(ps.remaining)}"
             else -> Money.format(ps.owed)
         }
-        p.textAlign = Paint.Align.RIGHT; p.textSize = 32f; p.color = if (!ps.isPayer && ps.remaining > 0) RED else INK
-        c.drawText(amount, x1, cy + 38f, p)
-        val amountW = p.measureText(amount)
+        val ap = text(32f, BOLD, if (!ps.isPayer && ps.remaining > 0) RED else INK, Paint.Align.RIGHT)
+        c.drawText(amount, x1, cy + 36f, ap)
+        val amountW = ap.measureText(amount)
 
-        // nome e parte
-        val textMax = x1 - pw - 24f - (x0 + 104f)
-        p.reset(); p.isAntiAlias = true; p.typeface = bold; p.textSize = 36f; p.color = INK
-        c.drawText(fit(p, ps.person.name, textMax), x0 + 104f, cy - 8f, p)
-        p.typeface = Typeface.DEFAULT; p.textSize = 28f; p.color = MUTED
+        // nome (divide a linha com a pílula) e parte (divide com o valor)
+        val np = text(36f, BOLD, INK)
+        c.drawText(fit(np, ps.person.name, x1 - pw - 24f - nameX), nameX, cy - 10f, np)
+        val sp = text(28f, REGULAR, MUTED)
         val sub = if (ps.isPayer) "Pagou a despesa · parte ${Money.format(ps.person.share)}" else "Parte ${Money.format(ps.owed)} · devolveu ${Money.format(ps.paid)}"
-        // a linha de baixo divide o espaço com o valor à direita (que é mais largo que a pílula)
-        c.drawText(fit(p, sub, x1 - amountW - 28f - (x0 + 104f)), x0 + 104f, cy + 34f, p)
+        c.drawText(fit(sp, sub, x1 - amountW - 28f - nameX), nameX, cy + 34f, sp)
 
-        p.reset(); p.color = LINE; p.strokeWidth = 2f
-        c.drawLine(x0 + 104f, top + ROW_H - 1f, x1, top + ROW_H - 1f, p)
+        if (!last) c.drawLine(nameX, top + ROW_H - 1f, x1, top + ROW_H - 1f, stroke(LINE, 2f))
     }
 
     private fun stateColor(s: SharedSummary.State) = when (s) {
