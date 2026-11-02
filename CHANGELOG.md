@@ -8,6 +8,14 @@
 - Vale para **todos os temas**, sem excesso: nos escuros os brilhos e a translucidez são menores, para o texto continuar legível; nos temas OLED (preto puro) os brilhos ficam quase apagados.
 - Desligado, o visual é exatamente o de antes. Nenhuma biblioteca nova.
 
+### Boas-vindas
+
+- A apresentação mostra as novidades: **saldo acumulado entre os meses** (página inicial), **despesas compartilhadas** (Planejamento) e o **efeito vidro** (página Privacidade). Quem já usa o app pode rever em Ajustes › Sobre › Ver apresentação.
+
+### Correções
+
+- **Lançamentos:** ao tocar nos botões Lista/Calendário no topo, o efeito de toque aparecia como um quadrado. Agora acompanha o formato arredondado do botão.
+
 ### Despesas compartilhadas
 
 - **Novo módulo** em **Meu dinheiro › Despesas compartilhadas** e no botão **+ › Despesa compartilhada**: nome, valor total, data, quem pagou, participantes pelo nome, observação e nota fiscal ou comprovante anexado (foto ou PDF, criptografado e só no aparelho).

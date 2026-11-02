@@ -70,6 +70,7 @@ private val PAGES = listOf(
             Point(Ico.ADD, "Registre receitas e despesas em poucos toques"),
             Point(Ico.FORECAST, "Veja o saldo de hoje e o previsto até o fim do mês"),
             Point(Ico.CALENDAR, "Acompanhe vencimentos na lista ou no calendário"),
+            Point(Ico.TUNE, "Veja cada mês isolado ou com o saldo acumulado dos meses anteriores"),
         )),
     Page(Ico.CARD, "Contas e cartões", "Tudo num lugar só.",
         "Contas, dinheiro e cartões de crédito juntos, com as faturas organizadas.",
@@ -85,6 +86,7 @@ private val PAGES = listOf(
             Point(Ico.REPORTS, "Resumo do mês por categoria, com relatório em PDF"),
             Point(Ico.LIMIT, "Limites por categoria, com aviso antes de passar"),
             Point(Ico.GOAL, "Metas para guardar dinheiro com prazo"),
+            Point(Ico.GROUP, "Despesas compartilhadas: divida com amigos e família e veja quem já pagou"),
             Point(Ico.ASSIST, "Assistente e simulador \"E se…?\", sem enviar nada para fora"),
         )),
     Page(Ico.SHIELD, "Privacidade", "Seus dados ficam com você.",
@@ -92,6 +94,7 @@ private val PAGES = listOf(
         listOf(
             Point(Ico.SHIELD, "Tudo criptografado neste celular"),
             Point(Ico.FINGERPRINT, "Bloqueio com PIN ou digital e \"Ocultar valores\""),
+            Point(Ico.SETTINGS, "Temas claros e escuros, com efeito vidro opcional"),
             Point(Ico.REPEAT, "Backup automático criptografado numa pasta sua, até no Google Drive"),
             Point(Ico.WALLET, "Backup em arquivo, que também abre no Finan+ web e no Linux"),
         )),
