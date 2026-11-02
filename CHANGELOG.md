@@ -2,6 +2,10 @@
 
 ## Em desenvolvimento
 
+### Boas-vindas
+
+- A apresentação mostra as novidades: **saldo acumulado entre os meses** (página inicial) e **despesas compartilhadas** (Planejamento). Quem já usa o app pode rever em Ajustes › Sobre › Ver apresentação.
+
 ### Correções
 
 - **Lançamentos:** ao tocar nos botões Lista/Calendário no topo, o efeito de toque aparecia como um quadrado. Agora acompanha o formato arredondado do botão.
