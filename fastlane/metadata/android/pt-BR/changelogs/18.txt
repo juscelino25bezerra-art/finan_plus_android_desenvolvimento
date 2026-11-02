@@ -1,1 +1,1 @@
-Com "Acumular saldo entre os meses" ligado, o Resumo e o relatório em PDF agora mostram o saldo que vem dos meses anteriores e o saldo acumulado (no PDF, também mês a mês). Correção visual: os cartões de "Próximos vencimentos" no Início têm espaço entre eles.
+Despesas compartilhadas agora podem ser enviadas como imagem, com a marca do Finan+, quem pagou e quem deve e quanto. Com "Acumular saldo entre os meses" ligado, o Resumo e o PDF mostram o saldo que vem dos meses anteriores e o acumulado. Correção: espaço entre os cartões de "Próximos vencimentos".

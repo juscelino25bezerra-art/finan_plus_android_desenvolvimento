@@ -531,16 +531,31 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
     }
 
     Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 14.dp) {
-        Text("Comprovante em PDF", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        Text("Compartilhar", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
         Text(
-            "Dados da despesa, a parte de cada pessoa, quem já pagou e o que falta. O PDF mostra os valores mesmo com “Ocultar valores” ligado.",
+            "Uma imagem com a marca do Finan+ para mandar no grupo, ou o comprovante completo em PDF: a parte de cada pessoa, quem já pagou e o que falta. Os dois mostram os valores mesmo com “Ocultar valores” ligado.",
             style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 2.dp),
         )
-        FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Pill(if (busy) "Gerando…" else "Compartilhar como imagem", icon = Ico.SHARE) {
+                if (busy) return@Pill
+                busy = true
+                scope.launch {
+                    val uri = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val cur = Repo.state.value.shared.first { it.id == id }
+                            SharedReceipts.tempUri(ctx, Shared.imageName(cur), com.finanplus.export.SharedImage.png(ctx, cur))
+                        }.getOrNull()
+                    }
+                    busy = false
+                    if (uri == null) dialogs.notice("Não foi possível gerar a imagem", "Tente de novo em instantes.")
+                    else shareImage(ctx, uri, shareText(e, st))
+                }
+            }
             Pill(if (busy) "Gerando…" else "Baixar PDF", icon = Ico.RECEIPT) {
                 if (!busy) { AppLock.allowExternalOnce(); save.launch(Shared.pdfName(e)) }
             }
-            Pill("Enviar pelo WhatsApp", icon = Ico.SHARE) {
+            Pill("PDF pelo WhatsApp", icon = Ico.SHARE) {
                 if (busy) return@Pill
                 busy = true
                 scope.launch {
@@ -581,6 +596,16 @@ private fun openExternal(ctx: Context, intent: Intent, uri: Uri): Boolean {
     AppLock.allowExternalOnce()
     return try { ctx.startActivity(intent); true }
     catch (_: ActivityNotFoundException) { AppLock.endExternal(); false }
+}
+
+/** Compartilha a imagem pelo app que a pessoa escolher (WhatsApp, Telegram, e-mail…). */
+private fun shareImage(ctx: Context, uri: Uri, text: String) {
+    val send = Intent(Intent.ACTION_SEND).setType("image/png")
+        .putExtra(Intent.EXTRA_STREAM, uri).putExtra(Intent.EXTRA_TEXT, text)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).also { it.clipData = ClipData.newRawUri("", uri) }
+    AppLock.allowExternalOnce()
+    try { ctx.startActivity(Intent.createChooser(send, "Compartilhar despesa").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    catch (_: ActivityNotFoundException) { AppLock.endExternal() }
 }
 
 /** Envia o PDF direto pelo WhatsApp (ou WhatsApp Business); sem ele instalado, abre o "Compartilhar" do Android. */

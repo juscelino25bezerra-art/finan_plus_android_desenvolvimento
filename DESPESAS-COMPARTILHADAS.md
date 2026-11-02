@@ -63,6 +63,20 @@ Filtros disponíveis:
 - período (De/Até);
 - participante.
 
+## Compartilhar como imagem
+
+No detalhe, em **Compartilhar › Compartilhar como imagem**, o Finan+ gera uma imagem PNG (1080 px de largura) e abre o "Compartilhar" do Android, para mandar no WhatsApp, Telegram, e-mail etc. Junto vai um resumo em texto de quem falta pagar.
+
+A imagem segue a identidade do Finan+:
+
+- no topo, o ícone e o nome do app, com "Despesa compartilhada";
+- o fundo é azul-claro com brilhos suaves, como no app;
+- um cartão branco traz o nome da despesa, a data, quem pagou e a divisão, o **total** em destaque, o recebido, o pendente e a situação, com uma barra do que já voltou;
+- em "Quem deve e quanto", cada pessoa aparece com a inicial, a parte, quanto devolveu, a situação e o que falta. Quem pagou aparece com quanto recebe dos outros;
+- no rodapé, "Feito com Finan+ · Finanças pessoais livres e privadas" e o endereço do site.
+
+A imagem usa sempre as cores claras do app, em qualquer tema. A altura cresce com o número de pessoas. Ela é desenhada no aparelho, sem internet (`export/SharedImage.kt`), e mostra os valores mesmo com "Ocultar valores" ligado.
+
 ## Comprovante em PDF
 
 No detalhe, em **Comprovante em PDF**:
@@ -118,5 +132,6 @@ O Finan+ web não conhece as despesas compartilhadas. Quando ele grava pelo **Ac
 | `core/RemoteSave.kt` | `keepShared` (gravação pelo Acesso pela rede) |
 | `data/SharedReceipts.kt` | Comprovantes cifrados, cópias temporárias, limpeza |
 | `export/SharedPdf.kt` | Comprovante em PDF |
+| `export/SharedImage.kt` | Imagem para compartilhar, com a marca do Finan+ |
 | `ui/screens/SharedExpenses.kt` | Histórico, formulário, detalhe e pagamento |
 | `SharedTest` | Divisão igual e personalizada, centavos, pagamentos parciais e quitação, edição com pagamentos, validações, histórico, backup ida e volta, gravação pela rede e nome do PDF |

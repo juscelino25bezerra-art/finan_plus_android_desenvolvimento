@@ -26,14 +26,14 @@ Builds:
     gradle:
       - yes
 
-  - versionName: 1.8.1
+  - versionName: 1.9.0
     versionCode: 18
-    commit: v1.8.1
+    commit: v1.9.0
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.8.1
+CurrentVersion: 1.9.0
 CurrentVersionCode: 18
