@@ -2,6 +2,10 @@
 
 ## Em desenvolvimento
 
+### Correções
+
+- **Lançamentos:** ao tocar nos botões Lista/Calendário no topo, o efeito de toque aparecia como um quadrado. Agora acompanha o formato arredondado do botão.
+
 ### Despesas compartilhadas
 
 - **Novo módulo** em **Meu dinheiro › Despesas compartilhadas** e no botão **+ › Despesa compartilhada**: nome, valor total, data, quem pagou, participantes pelo nome, observação e nota fiscal ou comprovante anexado (foto ou PDF, criptografado e só no aparelho).
