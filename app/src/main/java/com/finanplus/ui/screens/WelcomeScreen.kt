@@ -94,6 +94,7 @@ private val PAGES = listOf(
         listOf(
             Point(Ico.SHIELD, "Tudo criptografado neste celular"),
             Point(Ico.FINGERPRINT, "Bloqueio com PIN ou digital e \"Ocultar valores\""),
+            Point(Ico.SETTINGS, "Temas claros e escuros, com efeito vidro opcional"),
             Point(Ico.REPEAT, "Backup automático criptografado numa pasta sua, até no Google Drive"),
             Point(Ico.WALLET, "Backup em arquivo, que também abre no Finan+ web e no Linux"),
         )),

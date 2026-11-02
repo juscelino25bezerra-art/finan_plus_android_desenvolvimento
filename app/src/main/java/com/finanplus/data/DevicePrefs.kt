@@ -40,6 +40,8 @@ data class DeviceSettings(
      * Desligado por padrão: cada mês mostra só o que entrou e saiu nele (visão isolada).
      */
     val accumulateBalance: Boolean = false,
+    /** efeito vidro (Ajustes › Aparência): opcional, desligado por padrão, vale para todos os temas */
+    val glass: Boolean = false,
 ) {
     val hasPin get() = pinHash.isNotEmpty()
     /** O app pede desbloqueio se houver PIN, digital, ou os dois. */
@@ -64,6 +66,7 @@ class DevicePrefs private constructor(context: Context) {
         assistAsk = sp.getBoolean("assistAsk", true),
         dismissedTips = sp.getStringSet("dismissedTips", emptySet())?.toSet() ?: emptySet(),
         accumulateBalance = sp.getBoolean("accumulateBalance", false),
+        glass = sp.getBoolean("glass", false),
     )
 
     fun update(f: (DeviceSettings) -> DeviceSettings) {
@@ -74,6 +77,7 @@ class DevicePrefs private constructor(context: Context) {
             remove("materialIcons") // preferência da fase de teste dos ícones, não é mais usada
             putBoolean("assistCategory", n.assistCategory); putBoolean("assistTips", n.assistTips); putBoolean("assistAsk", n.assistAsk)
             putBoolean("accumulateBalance", n.accumulateBalance)
+            putBoolean("glass", n.glass)
             // guarda só as últimas 200 dicas dispensadas (os ids incluem o mês, então as antigas deixam de importar)
             putStringSet("dismissedTips", HashSet(n.dismissedTips.toList().takeLast(200)))
         }

@@ -96,6 +96,7 @@ import com.finanplus.ui.components.LocalDialogs
 import com.finanplus.ui.components.LocalPrivacy
 import com.finanplus.ui.components.MoneyText
 import com.finanplus.ui.components.br
+import com.finanplus.ui.components.glassBorder
 import com.finanplus.ui.screens.AccountsScreen
 import com.finanplus.ui.screens.HomeScreen
 import com.finanplus.ui.screens.LockScreen
@@ -211,7 +212,7 @@ fun FinanRoot(activity: MainActivity) {
     val s by Repo.state.collectAsStateWithLifecycle()
     val dev by DevicePrefs.get(activity).flow.collectAsStateWithLifecycle()
     val locked by AppLock.locked.collectAsStateWithLifecycle()
-    FinanTheme(s.theme) {
+    FinanTheme(s.theme, dev.glass) {
         val dark = Fin.c.dark
         LaunchedEffect(dark) {
             val t = android.graphics.Color.TRANSPARENT
@@ -328,7 +329,8 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
                 }
             }
             // Faixa atrás da barra de status: o conteúdo rolado não fica sob os ícones do sistema.
-            Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(Fin.c.bg))
+            // com o efeito vidro, levemente translúcida: os brilhos do fundo continuam até o topo
+            Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(if (Fin.c.glass) Fin.c.bg.copy(alpha = 0.9f) else Fin.c.bg))
             BottomNav(nav, shownTab, Modifier.align(Alignment.BottomCenter))
             if (shownTab == Tab.HOME || shownTab == Tab.MOVES) {
                 val listScrolling = if (shownTab == Tab.HOME) homeListState.isScrollInProgress else movesListState.isScrollInProgress
@@ -357,14 +359,17 @@ private fun BottomNav(nav: Nav, shown: Tab, modifier: Modifier) {
     val p = Fin.c
     // Fundo opaco atrás da barra e da área de gesto: o conteúdo rolável não aparece por baixo.
     Box(
-        modifier.fillMaxWidth().background(p.bg).navigationBarsPadding(),
+        modifier.fillMaxWidth()
+            // efeito vidro: a faixa some aos poucos em vez de cortar os brilhos do fundo
+            .then(if (p.glass) Modifier.background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(p.bg.copy(alpha = 0f), p.bg.copy(alpha = 0.92f), p.bg.copy(alpha = 0.92f)))) else Modifier.background(p.bg))
+            .navigationBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             Modifier.padding(horizontal = 12.dp, vertical = 12.dp).widthIn(max = 536.dp).fillMaxWidth()
                 // sem recorte (clip): sombras e áreas de toque permanecem visíveis.
                 .shadow(16.dp, RoundedCornerShape(28.dp), clip = false)
-                .background(p.surface.compositeOver(p.bg), RoundedCornerShape(28.dp)).border(1.dp, p.border, RoundedCornerShape(28.dp))
+                .background(p.surface.compositeOver(p.bg), RoundedCornerShape(28.dp)).glassBorder(p, RoundedCornerShape(28.dp))
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -465,7 +470,7 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
     }
     val where = if (t.isCard) "Cartão " + (s.card(t.cardId)?.name ?: "") else s.account(t.accountId)?.name ?: "Conta"
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(20.dp)).background(p.surface).border(1.dp, p.border, RoundedCornerShape(20.dp)),
+        Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(20.dp)).background(p.surface).glassBorder(p, RoundedCornerShape(20.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(

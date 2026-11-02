@@ -2,9 +2,15 @@
 
 ## Em desenvolvimento
 
+### Efeito vidro (opcional)
+
+- **Ajustes › Aparência › Efeito vidro** (desligado por padrão; fica só neste aparelho, fora do backup). Ligado, os cartões de todas as telas ficam mais translúcidos, com uma borda clara em cima, sobre um fundo com brilhos suaves nas cores do tema. A barra inferior e a faixa da barra de status deixam os brilhos continuarem até as bordas.
+- Vale para **todos os temas**, sem excesso: nos escuros os brilhos e a translucidez são menores, para o texto continuar legível; nos temas OLED (preto puro) os brilhos ficam quase apagados.
+- Desligado, o visual é exatamente o de antes. Nenhuma biblioteca nova.
+
 ### Boas-vindas
 
-- A apresentação mostra as novidades: **saldo acumulado entre os meses** (página inicial) e **despesas compartilhadas** (Planejamento). Quem já usa o app pode rever em Ajustes › Sobre › Ver apresentação.
+- A apresentação mostra as novidades: **saldo acumulado entre os meses** (página inicial), **despesas compartilhadas** (Planejamento) e o **efeito vidro** (página Privacidade). Quem já usa o app pode rever em Ajustes › Sobre › Ver apresentação.
 
 ### Correções
 
