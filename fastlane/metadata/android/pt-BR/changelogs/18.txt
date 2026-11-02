@@ -1,0 +1,1 @@
+Correção visual: os cartões de "Próximos vencimentos" no Início agora têm espaço entre eles, em vez de ficarem colados.

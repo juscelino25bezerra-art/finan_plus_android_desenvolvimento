@@ -1,0 +1,1 @@
+Visual fix: the cards in "Upcoming bills" on the Home screen now have space between them instead of touching.

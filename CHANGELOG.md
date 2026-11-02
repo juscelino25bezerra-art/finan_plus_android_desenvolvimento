@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.1 — Correção visual no Início (02/11/2026)
+
+`versionCode 18`.
+
+- **Início:** com mais de um vencimento, os cartões de **Próximos vencimentos** ficavam colados um no outro. Agora têm espaço entre eles.
+
+**English:** fixes the spacing between the cards in *Upcoming bills* on the Home screen.
+
 ## 1.8.0 — Despesas compartilhadas, saldo acumulado e efeito vidro (02/11/2026)
 
 Mescla do trabalho feito no repositório de desenvolvimento ([finan_plus_android_desenvolvimento](https://github.com/juscelino25bezerra-art/finan_plus_android_desenvolvimento), PRs #21 a #25). `versionCode 17`.
