@@ -2,6 +2,16 @@
 
 ## Em desenvolvimento
 
+### Despesas compartilhadas
+
+- **Novo módulo** em **Meu dinheiro › Despesas compartilhadas** e no botão **+ › Despesa compartilhada**: nome, valor total, data, quem pagou, participantes pelo nome, observação e nota fiscal ou comprovante anexado (foto ou PDF, criptografado e só no aparelho).
+- **Divisão igual ou pelo valor de cada um**, com o cálculo de quanto cada pessoa deve devolver a quem pagou. O formulário mostra a parte de cada um, ou quanto falta para as partes somarem o total.
+- **Acompanhamento:** total, recebido e pendente, situação de cada pessoa e pagamentos **totais ou parciais**, com data. Também dá para quitar com um toque ou excluir um pagamento.
+- **Histórico** com busca, situação, período e participante.
+- **Comprovante em PDF** para baixar ou **enviar pelo WhatsApp**.
+- **Backup:** campo novo `shared`, que só aparece quando há despesas. O Acesso pela rede preserva as despesas quando o Finan+ web grava sem o campo.
+- Não mexe no saldo, nos lançamentos nem nos relatórios. Detalhes e testes (`SharedTest`) em [DESPESAS-COMPARTILHADAS.md](DESPESAS-COMPARTILHADAS.md).
+
 ### Acumular saldo entre os meses
 
 - **Ajustes › Lançamentos › Acumular saldo entre os meses** (desligada por padrão; fica só neste aparelho, fora do backup). Ligada, a coluna **Saldo** do resumo em Lançamentos mostra o saldo das contas **ao fim do período**, somando o saldo inicial e o que sobrou dos meses anteriores, e o **previsto** soma as pendências, faturas e recorrências até lá. Receitas e despesas continuam sendo só as do período.

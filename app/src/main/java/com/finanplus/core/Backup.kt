@@ -10,8 +10,8 @@ import kotlin.math.roundToInt
 
 class BackupException(msg: String) : Exception(msg)
 
-data class Dropped(val txs: Int = 0, val goals: Int = 0, val accounts: Int = 0, val cards: Int = 0, val recurring: Int = 0) {
-    val total get() = txs + goals + accounts + cards + recurring
+data class Dropped(val txs: Int = 0, val goals: Int = 0, val accounts: Int = 0, val cards: Int = 0, val recurring: Int = 0, val shared: Int = 0) {
+    val total get() = txs + goals + accounts + cards + recurring + shared
 }
 
 /** [version] = backupVersion do arquivo (null se ausente); [newer] = feito por uma versão mais nova do Finan+. */
@@ -185,15 +185,61 @@ object Backup {
             goals.add(Goal(idFor(g["id"]), str(g["name"], 60), target, maxOf(0, cents(g["saved"])), parseDate(g["deadline"]), maxOf(0, cents(g["monthly"]))))
         }
 
+        // despesas compartilhadas (campo só do Android; sem ele, nenhuma)
+        val shared = ArrayList<SharedExpense>()
+        val rawShared = r["shared"] as? List<*> ?: emptyList<Any?>()
+        if (enforceLimits && rawShared.size > AppState.Limits.SHARED) throw BackupException("Muitas despesas compartilhadas no backup")
+        rawShared.forEach { x -> normalizeShared(obj(x), ::idFor)?.let { shared.add(it) } ?: run { d = d.copy(shared = d.shared + 1) } }
+
         // limites
         val limits = LinkedHashMap<String, Cents>()
         obj(r["limits"])?.forEach { (k, v) -> val c = k.trim().take(40); val n = cents(v); if (c.isNotEmpty() && n > 0) limits[c] = n }
 
         val autoLock = intIn(r["autoLock"], 0, 30, 0).takeIf { it in AppState.AUTOLOCK_OPTIONS } ?: 0
-        val state = AppState(txs, goals, accounts, cards, recurring, cats, limits, r["privacy"] == true, autoLock, ThemeId.of(r["theme"]))
+        val state = AppState(txs, goals, accounts, cards, recurring, cats, limits, r["privacy"] == true, autoLock, ThemeId.of(r["theme"]), shared)
         if (!state.hasSafeMoneyTotals()) throw BackupException("O total dos valores excede o limite seguro")
         val version = num(r["backupVersion"])?.takeIf { it >= 0 && it <= Int.MAX_VALUE.toDouble() }?.roundToInt()
         return Normalized(state, d, version)
+    }
+
+    /**
+     * Uma despesa compartilhada. Inválida (null): sem nome, total, data, participantes ou pagador, ou partes
+     * que não somam o total. Pagamentos inválidos, de quem não deve ou acima da parte são descartados.
+     */
+    private fun normalizeShared(o: Map<String, Any?>?, idFor: (Any?) -> String): SharedExpense? {
+        if (o == null) return null
+        val name = str(o["name"], Shared.NAME_MAX); val total = cents(o["total"]); val date = parseDate(o["date"])
+        if (name.isEmpty() || total <= 0 || date == null) return null
+        val rawPeople = (o["people"] as? List<*>)?.take(Shared.PEOPLE_MAX) ?: return null
+        val idMap = HashMap<String, String>()
+        val people = ArrayList<SharedPerson>()
+        for (x in rawPeople) {
+            val p = obj(x) ?: return null
+            val pn = str(p["name"], Shared.PERSON_MAX); val share = cents(p["share"])
+            if (pn.isEmpty() || share < 0) return null
+            val id = idFor(p["id"]); idMap.putIfAbsent(str(p["id"], 48), id)
+            people.add(SharedPerson(id, pn, share))
+        }
+        if (people.size < 2 || people.fold(0L) { a, p -> a + p.share } != total) return null
+        val payerId = idMap[str(o["payer"], 48)] ?: return null
+        val e = SharedExpense(
+            id = idFor(o["id"]), name = name, total = total, date = date, payerId = payerId, people = people,
+            split = SplitMode.of(o["split"]), note = str(o["note"], Shared.NOTE_MAX),
+            receipt = safeId(o["receipt"]), receiptType = if (safeId(o["receipt"]).isEmpty()) "" else str(o["receiptType"], 60),
+        )
+        // pagamentos: só de quem deve, e no máximo até a parte de cada um
+        val left = Shared.summary(e).people.associate { it.person.id to it.owed }.toMutableMap()
+        val payments = ArrayList<SharedPayment>()
+        for (x in (o["payments"] as? List<*>)?.take(Shared.PAYMENTS_MAX) ?: emptyList<Any?>()) {
+            val p = obj(x) ?: continue
+            val pid = idMap[str(p["person"], 48)] ?: continue
+            val v = cents(p["value"]); val pd = parseDate(p["date"]) ?: continue
+            val max = left[pid] ?: 0L
+            if (v <= 0 || v > max) continue
+            left[pid] = max - v
+            payments.add(SharedPayment(idFor(p["id"]), pid, v, pd))
+        }
+        return e.copy(payments = payments)
     }
 
     /** O BOM do início (arquivos salvos no Bloco de Notas) é ignorado, como no Finan+ web. */
@@ -228,6 +274,15 @@ object Backup {
         m["privacy"] = s.privacy
         m["autoLock"] = s.autoLock
         m["theme"] = s.theme.json
+        // só aparece quando há despesas compartilhadas (o Finan+ web ignora o campo)
+        if (s.shared.isNotEmpty()) m["shared"] = s.shared.map { e ->
+            linkedMapOf<String, Any?>(
+                "id" to e.id, "name" to e.name, "total" to Money.toReaisJson(e.total), "date" to e.date.toString(),
+                "payer" to e.payerId, "split" to e.split.json, "note" to e.note,
+                "people" to e.people.map { linkedMapOf("id" to it.id, "name" to it.name, "share" to Money.toReaisJson(it.share)) },
+                "payments" to e.payments.map { linkedMapOf("id" to it.id, "person" to it.personId, "value" to Money.toReaisJson(it.value), "date" to it.date.toString()) },
+            ).apply { if (e.receipt.isNotEmpty()) { put("receipt", e.receipt); put("receiptType", e.receiptType) } }
+        }
         m["backupVersion"] = VERSION
         if (meta != null) m["_backup"] = meta
         return Json.stringify(m)

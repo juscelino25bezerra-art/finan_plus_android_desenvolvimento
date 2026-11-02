@@ -109,6 +109,10 @@ fun SheetHost(s: AppState, sheet: Sheet, onClose: () -> Unit) {
                 is Sheet.MovesFilters -> MovesFiltersSheet(s, onClose)
                 is Sheet.Simulator -> SimulatorSheet(s, sheet, onClose)
                 is Sheet.BillImport -> BillImportSheet(s, sheet, onClose)
+                Sheet.SharedList -> SharedListSheet(s)
+                is Sheet.SharedEdit -> SharedEditor(s, sheet.id, onClose)
+                is Sheet.SharedDetail -> SharedDetailSheet(s, sheet.id, onClose)
+                is Sheet.SharedPay -> SharedPaySheet(s, sheet.expenseId, sheet.personId)
             }
         }
     }
@@ -127,6 +131,9 @@ private fun AddChoiceEditor() {
     }
     AddChoiceRow("Nova recorrência", "Configure uma movimentação que se repete", com.finanplus.ui.components.Ico.REPEAT, Fin.c.accent2, Fin.c.accent) {
         nav.open(Sheet.RecurringEdit())
+    }
+    AddChoiceRow("Despesa compartilhada", "Divida com outras pessoas e veja quem já pagou", com.finanplus.ui.components.Ico.GROUP, Fin.c.accent2, Fin.c.accent) {
+        nav.open(Sheet.SharedEdit())
     }
 }
 

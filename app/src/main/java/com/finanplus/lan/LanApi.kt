@@ -255,7 +255,7 @@ class LanRoutes(
             // o Finan+ web ainda não conhece o goalId: o celular restaura as reservas para meta (RemoteSave)
             val next = when (val o = RemoteSave.protectGoalReserves(s, normalized.state)) {
                 is Outcome.Err -> return@apply o
-                is Outcome.Ok -> o.state
+                is Outcome.Ok -> RemoteSave.keepShared(s, o.state, data.containsKey("shared"))
             }
             s.growthError(next)?.let { Outcome.Err("Limite atingido", "$it Exclua itens antigos antes de criar novos.") }
                 ?: run { newRev = versions.assign(next); Outcome.Ok(next) }

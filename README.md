@@ -13,6 +13,7 @@ Esta é a versão nativa para Android, em **Kotlin + Jetpack Compose**: dados cr
 - Metas e reserva para meta (guardar tira da conta sem ser despesa): [METAS.md](METAS.md)
 - Recorrências nos próximos meses ("Previsto"): [RECORRENCIAS.md](RECORRENCIAS.md)
 - Ler fatura ou boleto (PDF com senha, linha digitável e Pix): [FATURAS.md](FATURAS.md)
+- Despesas compartilhadas (divisão, quem deve a quem, pagamentos e comprovante em PDF): [DESPESAS-COMPARTILHADAS.md](DESPESAS-COMPARTILHADAS.md)
 - Como o assistente decide cada coisa: [ASSISTENTE.md](ASSISTENTE.md)
 - Acesso pela rede (uso, certificado, segurança): [ACESSO-PELA-REDE.md](ACESSO-PELA-REDE.md) · auditoria: [AUDITORIA-LAN.md](AUDITORIA-LAN.md)
 - Auditoria de outubro de 2026 e o que foi corrigido: [docs/AUDITORIA-2026-10.md](docs/AUDITORIA-2026-10.md)
@@ -52,6 +53,7 @@ Requisitos: Android 8.0 (API 26) ou superior. O SDK alvo é o 35.
 | Simulador "E se…?" | Economizar por mês, quanto tempo para comprar, mudança na renda e antecipar dívida parcelada, a partir da média dos últimos 3 meses. Nada é gravado; dá para transformar em meta. Detalhes em [SIMULADOR.md](SIMULADOR.md) |
 | Editores | Lançamento (parcelas com divisão do total, repetir mensalmente, cartão), meta, conta, cartão, recorrência (com início, pausa e edição), limite, pagamento de fatura |
 | Ler fatura ou boleto | Valor e vencimento de uma fatura em PDF (inclusive com senha, que pode ser lembrada por cartão), da linha digitável do boleto ou do Pix copia e cola. Também por **Compartilhar › Finan+**. Fatura de cartão é comparada com a calculada pelo app. Tudo no aparelho; você confere antes de salvar. Detalhes em [FATURAS.md](FATURAS.md) |
+| Despesas compartilhadas | Em **Meu dinheiro** e no botão **+**: divida uma despesa igualmente ou pelo valor de cada um, diga quem pagou e veja quem deve e quanto. Registre pagamentos totais ou parciais, anexe a nota fiscal (cifrada, só no aparelho), filtre o histórico e gere o comprovante em PDF para baixar ou enviar pelo WhatsApp. Não mexe no saldo. Detalhes em [DESPESAS-COMPARTILHADAS.md](DESPESAS-COMPARTILHADAS.md) |
 | Ajustes | 7 temas (Sistema, Claro, Gruvbox, OLED Cinza, Gruvbox OLED, Tokyo Night, Nord), PIN, biometria, ocultar valores, bloqueio automático, bloqueio de capturas de tela, notificações, widget, contas/cartões, recorrências, limites, categorias (com renomear), CSV, backup, **backup automático** diário criptografado numa pasta ([BACKUP-AUTOMATICO.md](BACKUP-AUTOMATICO.md)), restauração, apagar tudo |
 | Relatório em PDF | Qualquer período (atalhos ou datas): resumo com comparação ao período anterior, gastos por categoria (gráfico e tabela com limites), evolução mensal, maiores despesas, contas, metas e lista de lançamentos, com páginas numeradas. Em *Relatórios* ou *Ajustes › Dados* |
 | Assistente | No aparelho, sem internet: sugestão de categoria pela descrição, resumo do mês, dicas (duplicados, aumento de preço, ritmo do limite, acima da média, pequenos gastos, gastos fixos) e perguntas rápidas. Cada resultado tem “Por quê?”. Detalhes em [ASSISTENTE.md](ASSISTENTE.md) |

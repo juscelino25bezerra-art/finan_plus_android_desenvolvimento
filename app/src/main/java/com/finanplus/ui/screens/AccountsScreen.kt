@@ -222,6 +222,12 @@ fun AccountsScreen(s: AppState) {
         }
 
         item {
+            Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 13.dp, onClick = { nav.open(Sheet.SharedList) }) {
+                AccountCardHeading(Ico.GROUP, "Despesas compartilhadas", sharedCardSubtitle(s, hide), "Nova") { nav.open(Sheet.SharedEdit()) }
+            }
+        }
+
+        item {
             Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 13.dp) {
                 AccountCardHeading(Ico.ASSIST, "Simular meu dinheiro", "Teste cenários sem alterar seus dados")
                 OutlinedButton(

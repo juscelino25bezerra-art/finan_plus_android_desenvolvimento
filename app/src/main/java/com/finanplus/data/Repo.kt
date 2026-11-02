@@ -193,6 +193,7 @@ object Repo {
                 DevicePrefs.get(app).wipe()
                 BillPasswords.get(app).wipe() // senhas de fatura lembradas
                 AutoBackup.wipe(app) // desliga o backup automático e esquece a pasta e a senha (os arquivos na pasta ficam)
+                SharedReceipts.wipe(app) // comprovantes das despesas compartilhadas e a chave deles
                 lastWritten = null
                 saveBlocked = false
                 _problem.value = null
