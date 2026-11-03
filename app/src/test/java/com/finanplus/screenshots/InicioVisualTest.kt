@@ -9,11 +9,11 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.finanplus.MainActivity
@@ -60,8 +60,9 @@ class InicioVisualTest {
 
     private fun has(text: String) = compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
 
-    private fun scrollTo(text: String) {
-        compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Saldo atual"))).performScrollToNode(hasText(text))
+    /** Rola a lista do Início até o item [index] (0 topo, 1 saldo, 2 pendências, 3 assistente, 4 vencimentos). */
+    private fun scrollToItem(index: Int) {
+        compose.onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Saldo atual"))).performScrollToIndex(index)
         compose.waitForIdle()
     }
 
@@ -107,7 +108,7 @@ class InicioVisualTest {
                 assertTrue("linha fixa do previsto continua ($tag)", !has("a receber − "))
                 val suffix = name + if (glass) "-vidro" else ""
                 shot("inicio-$suffix")
-                scrollTo("Ver todos")
+                scrollToItem(3)
                 assertTrue("sem o grupo do mês seguinte ($tag)", has("PRÓXIMO MÊS · 1 DE"))
                 assertTrue("link antigo continua ($tag)", !has("Ver pagamento"))
                 shot("inicio-vencimentos-$suffix")
