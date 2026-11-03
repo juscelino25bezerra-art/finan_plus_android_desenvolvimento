@@ -339,7 +339,7 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                 )
             }
             val lan by com.finanplus.lan.Lan.ui.collectAsState()
-            Collapsible("Acesso pela rede", if (lan.running) "Ligado · " + (if (lan.devices == 1) "1 aparelho conectado" else "${lan.devices} aparelhos conectados") else "Lançar e exportar pelo navegador de outro aparelho") {
+            Collapsible("Acesso pela rede", if (lan.running) "Ligado · " + (if (lan.devices.size == 1) "1 aparelho conectado" else "${lan.devices.size} aparelhos conectados") else "Lançar e exportar pelo navegador de outro aparelho") {
                 com.finanplus.lan.LanSettings(lan)
             }
             val auto by com.finanplus.data.AutoBackup.state.collectAsState()
