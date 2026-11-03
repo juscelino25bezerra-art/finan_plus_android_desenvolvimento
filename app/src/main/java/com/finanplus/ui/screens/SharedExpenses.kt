@@ -114,8 +114,9 @@ private fun money(hide: Boolean): (Long) -> String = { if (hide) "R$ •••�
 @Composable
 private fun stateColor(st: SharedSummary.State) = when (st) {
     SharedSummary.State.SETTLED -> Fin.c.green
-    SharedSummary.State.PARTIAL -> Fin.c.accent
-    SharedSummary.State.OPEN -> Fin.c.red
+    // pendência é atenção (âmbar), não erro (vermelho)
+    SharedSummary.State.PARTIAL -> Fin.c.warning
+    SharedSummary.State.OPEN -> Fin.c.warning
 }
 
 /** Resumo do card em Meu dinheiro. */
