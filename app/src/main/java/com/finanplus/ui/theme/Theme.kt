@@ -43,7 +43,13 @@ data class Palette(
     val glowB: Color,
     /** efeito vidro ligado (Ajustes › Aparência): cartões mais translúcidos sobre brilhos suaves no fundo */
     val glass: Boolean = false,
+    /** metas (dinheiro separado): âmbar do tema; nunca a cor da marca (REDESIGN-COERENCIA.md) */
+    val goal: Color = Color(0xFFB4580A),
+    /** cartão de crédito (compras e fatura): lilás do tema */
+    val card: Color = Color(0xFF7446D0),
 ) {
+    val goalContainer: Color get() = goal.copy(alpha = if (dark) 0.18f else 0.13f)
+    val cardContainer: Color get() = card.copy(alpha = if (dark) 0.18f else 0.12f)
     val primaryPressed: Color get() = if (dark) accent.copy(alpha = 0.82f) else Color(0xFF304FA9)
     val successContainer: Color get() = if (dark) green.copy(alpha = 0.18f) else Color(0xFFEAF7F0)
     val dangerContainer: Color get() = if (dark) red.copy(alpha = 0.18f) else Color(0xFFFFF0F2)
@@ -68,20 +74,20 @@ object FinRadius {
 }
 
 private val Light = Palette(false, Color(0xFFEEF4FF), Color(0xB8FFFFFF), Color(0xB8FFFFFF), Color(0xFF182238), Color(0xFF5B6579),
-    Color(0xFF3A5FC8), Color(0xFFDFE8FF), Color.White, Color(0xFFB03A4F), Color(0xFF1B7351), Color(0xFFDFE5EF), Color(0xFFD9E5FF), Color(0xFFFFE7ED))
+    Color(0xFF3A5FC8), Color(0xFFDFE8FF), Color.White, Color(0xFFB03A4F), Color(0xFF1B7351), Color(0xFFDFE5EF), Color(0xFFD9E5FF), Color(0xFFFFE7ED), goal = Color(0xFFB4580A), card = Color(0xFF7446D0))
 private val Oled = Palette(true, Color(0xFF181A1F), Color(0xFF23262D), Color(0xFF353941), Color(0xFFF1F3F6), Color(0xFFA8ADB7),
-    Color(0xFF8AA8FF), Color(0xFF30343D), Color(0xFF10131A), Color(0xFFFF8A91), Color(0xFF63D6A5), Color(0xFF353941), Color(0xFF181A1F), Color(0xFF181A1F))
+    Color(0xFF8AA8FF), Color(0xFF30343D), Color(0xFF10131A), Color(0xFFFF8A91), Color(0xFF63D6A5), Color(0xFF353941), Color(0xFF181A1F), Color(0xFF181A1F), goal = Color(0xFFF5A35C), card = Color(0xFFC3A6FF))
 private val Tokyo = Palette(true, Color(0xFF1A1B26), Color(0xDB24283B), Color(0x247AA2F7), Color(0xFFC0CAF5), Color(0xFF9AA5CE),
-    Color(0xFF7AA2F7), Color(0xFF292E42), Color(0xFF1A1B26), Color(0xFFF7768E), Color(0xFF9ECE6A), Color(0xFF3B4261), Color(0xFF24283B), Color(0xFF292E42))
+    Color(0xFF7AA2F7), Color(0xFF292E42), Color(0xFF1A1B26), Color(0xFFF7768E), Color(0xFF9ECE6A), Color(0xFF3B4261), Color(0xFF24283B), Color(0xFF292E42), goal = Color(0xFFFF9E64), card = Color(0xFFBB9AF7))
 private val Nord = Palette(true, Color(0xFF2E3440), Color(0xDB3B4252), Color(0x1FD8DEE9), Color(0xFFECEFF4), Color(0xFFB7C0CF),
-    Color(0xFF88C0D0), Color(0xFF434C5E), Color(0xFF2E3440), Color(0xFFF0A3A9), Color(0xFFA3BE8C), Color(0xFF4C566A), Color(0xFF3B4252), Color(0xFF354052))
+    Color(0xFF88C0D0), Color(0xFF434C5E), Color(0xFF2E3440), Color(0xFFF0A3A9), Color(0xFFA3BE8C), Color(0xFF4C566A), Color(0xFF3B4252), Color(0xFF354052), goal = Color(0xFFD08770), card = Color(0xFFB48EAD))
 
 // Gruvbox (paleta de morhetz): fundo #282828, cartões #32302F, texto creme, azul como destaque
 private val Gruvbox = Palette(true, Color(0xFF282828), Color(0xFF32302F), Color(0xFF3C3836), Color(0xFFEBDBB2), Color(0xFFA89984),
-    Color(0xFF83A598), Color(0xFF3A4442), Color(0xFF1D2021), Color(0xFFFF7F7F), Color(0xFFB8BB26), Color(0xFF504945), Color(0xFF282828), Color(0xFF282828))
+    Color(0xFF83A598), Color(0xFF3A4442), Color(0xFF1D2021), Color(0xFFFF7F7F), Color(0xFFB8BB26), Color(0xFF504945), Color(0xFF282828), Color(0xFF282828), goal = Color(0xFFFE8019), card = Color(0xFFD3869B))
 // Gruvbox OLED: as mesmas cores sobre preto puro (pixels apagados nas telas OLED); cartões quase pretos com borda fina
 private val GruvboxOled = Palette(true, Color(0xFF000000), Color(0xFF0D0D0C), Color(0xFF1D2021), Color(0xFFEBDBB2), Color(0xFFA89984),
-    Color(0xFF83A598), Color(0xFF17201F), Color(0xFF000000), Color(0xFFFB4934), Color(0xFFB8BB26), Color(0xFF282828), Color(0xFF000000), Color(0xFF000000))
+    Color(0xFF83A598), Color(0xFF17201F), Color(0xFF000000), Color(0xFFFB4934), Color(0xFFB8BB26), Color(0xFF282828), Color(0xFF000000), Color(0xFF000000), goal = Color(0xFFFE8019), card = Color(0xFFD3869B))
 
 val LocalPalette = staticCompositionLocalOf { Light }
 

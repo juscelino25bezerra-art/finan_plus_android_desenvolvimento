@@ -150,7 +150,12 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
         // período: ‹ mês › e, ao lado, período livre e situação
         item { PeriodBar(nav, today) }
         item { FilterChips(nav) }
-        item { PeriodSummary(flow, pending, hide, accumulated, accumulate && filtered) }
+        // mês inteiro sem filtro: os números do glossário único (os mesmos do Início e do calendário)
+        val monthOnly = com.finanplus.core.Period.fullMonth(f.from, f.to)
+        if (monthOnly != null && !filtered) item {
+            val totals = androidx.compose.runtime.remember(s, monthOnly, today0) { com.finanplus.core.Totals.month(s, monthOnly, today0) }
+            MonthSummaryCard(totals, accumulate)
+        } else item { PeriodSummary(flow, pending, hide, accumulated, accumulate && filtered) }
         if (list.isEmpty() && q.isNotEmpty()) item {
             Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 24.dp) {
                 Text(androidx.compose.ui.res.stringResource(com.finanplus.R.string.moves_search_empty), fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -343,7 +348,7 @@ private fun DayGroupHeader(date: LocalDate, total: com.finanplus.core.DayTotal, 
             )
             if (total.goals != 0L) Row(verticalAlignment = Alignment.CenterVertically) {
                 // guardado: cor primária (continua seu, separado na meta); retirado: verde (voltou para a conta)
-                val color = if (total.goals > 0) p.accent else p.green
+                val color = if (total.goals > 0) p.goal else p.green
                 com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.GOAL, color, size = 14.dp)
                 Text(
                     androidx.compose.ui.res.stringResource(

@@ -197,7 +197,7 @@ fun ReportsScreen(s: AppState) {
                             )
                         }
                         if (forecastEnd != null) {
-                            val future = remember(s, forecastEnd, today) { Finance.futureBalance(s, forecastEnd, today) }
+                            val future = remember(s, forecastEnd, today) { com.finanplus.core.Totals.forecastAt(s, forecastEnd, today) }
                             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 12.dp)) {
                                 Text(stringResource(R.string.summary_forecast, forecastEnd.format(DM)), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 MoneyText(future, color = if (future < 0) p.red else p.accent, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold))
@@ -206,12 +206,12 @@ fun ReportsScreen(s: AppState) {
                     }
                     if (goalMoves.saved > 0L || goalMoves.withdrawn > 0L) {
                         Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            AppIcon(Ico.GOAL, p.accent, size = 18.dp)
+                            AppIcon(Ico.GOAL, p.goal, size = 18.dp)
                             Column(Modifier.weight(1f).padding(start = 8.dp)) {
                                 Text(stringResource(R.string.summary_goals_saved), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                                 Text(stringResource(R.string.summary_goals_hint), style = MaterialTheme.typography.labelSmall, color = p.muted)
                             }
-                            MoneyText(goalMoves.net, color = p.accent, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold))
+                            MoneyText(goalMoves.net, color = p.goal, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold))
                         }
                     }
                 }
@@ -400,7 +400,7 @@ private fun MoneyFlowCard(
     val scale = maxOf(income, totalOut, 1L)
     val out = listOfNotNull(
         FlowPart("Despesas", expense, p.red).takeIf { expense > 0L },
-        FlowPart(stringResource(R.string.summary_goals_saved), goals, p.accent).takeIf { goals > 0L },
+        FlowPart(stringResource(R.string.summary_goals_saved), goals, p.goal).takeIf { goals > 0L },
     )
     val outPct = SummaryView.percents(out.map { it.value })
     val inPct = SummaryView.percents(sources.map { it.second })
@@ -533,7 +533,7 @@ fun MonthDetailSheet(s: AppState, ym: YearMonth, close: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(18.dp)).background(innerBg()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         DetailRow(Ico.UP, stringResource(R.string.summary_income), fl.income, p.green)
         DetailRow(Ico.DOWN, stringResource(R.string.summary_expenses), fl.expense, p.red)
-        DetailRow(Ico.GOAL, stringResource(R.string.summary_goals_saved), g.net, p.accent)
+        DetailRow(Ico.GOAL, stringResource(R.string.summary_goals_saved), g.net, p.goal)
         DetailRow(Ico.CHECK, stringResource(R.string.summary_month_result), fl.balance, when { fl.balance < 0 -> p.red; fl.balance > 0 -> p.green; else -> p.text })
     }
     Row(

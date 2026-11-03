@@ -217,7 +217,7 @@ private fun OverviewCard(o: MoneyView.Overview) {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(vertical = 14.dp)) {
             OverviewCell(stringResource(R.string.money_in_accounts), o.inAccounts, if (o.inAccounts < 0) p.red else p.text)
             VerticalDivider(thickness = 1.dp, color = p.border)
-            OverviewCell(stringResource(R.string.money_in_goals), o.inGoals, p.accent)
+            OverviewCell(stringResource(R.string.money_in_goals), o.inGoals, p.goal)
             VerticalDivider(thickness = 1.dp, color = p.border)
             OverviewCell(stringResource(R.string.money_open_invoices), o.openInvoices, if (o.openInvoices > 0) p.red else p.text)
         }

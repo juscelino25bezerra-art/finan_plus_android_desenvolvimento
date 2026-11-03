@@ -476,18 +476,19 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
         else -> "Paga"
     }
     val statusColor = when {
-        t.isGoal -> p.accent
+        t.isGoal -> p.goal
         !t.paid && t.date.isBefore(today) -> p.red
         t.paid && t.kind == Kind.INCOME -> p.green
         t.paid && t.kind == Kind.EXPENSE -> p.green
-        t.isCard -> p.accent
+        t.isCard -> p.card
         else -> p.muted
     }
     val dateLabel = buildString {
         append(t.date.br())
         if (t.paid && t.scheduledDate != null) append(" · previsto ").append(t.scheduledDate.br())
     }
-    val where = if (t.isCard) "Cartão " + (s.card(t.cardId)?.name ?: "") else s.account(t.accountId)?.name ?: "Conta"
+    // a conta só aparece quando existe mais de uma; o cartão aparece sempre (é a forma de pagamento)
+    val where = if (t.isCard) "Cartão " + (s.card(t.cardId)?.name ?: "") else if (s.accounts.size > 1) s.account(t.accountId)?.name ?: "Conta" else null
     Row(
         Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(20.dp)).background(p.surface).glassBorder(p, RoundedCornerShape(20.dp)),
         verticalAlignment = Alignment.CenterVertically,
@@ -497,17 +498,17 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // ícone da categoria num quadrado na cor do tipo (despesa, receita, meta; previsto = neutro)
-            com.finanplus.ui.components.CategoryTile(com.finanplus.core.TxForm.displayCategory(t.category), com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected))
+            com.finanplus.ui.components.CategoryTile(com.finanplus.core.TxForm.displayCategory(t.category), com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected, card = t.isCard || t.cardPayment.isNotEmpty()))
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(t.desc, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                // duas linhas fixas: data e situação nunca são cortadas, mesmo com nomes longos
-                Text("${com.finanplus.core.TxForm.displayCategory(t.category)} · $where", style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // nome em até duas linhas, sem cortar no meio (PDF de redesign)
+                Text(t.desc, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(listOfNotNull(com.finanplus.core.TxForm.displayCategory(t.category), where).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$status · $dateLabel", style = MaterialTheme.typography.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            // reserva para meta: sem sinal e na cor primária (o dinheiro continua seu, separado na meta);
+            // reserva para meta: sem sinal e no âmbar das metas (o dinheiro continua seu, separado na meta);
             // retirada da meta: volta para a conta, então "+" em verde, como uma entrada
             MoneyText(t.value, prefix = when { t.isGoal && t.kind == Kind.EXPENSE -> ""; t.kind == Kind.EXPENSE -> "− "; else -> "+ " },
-                color = when { t.isGoal && t.kind == Kind.EXPENSE -> p.accent; t.kind == Kind.EXPENSE -> p.red; else -> p.green },
+                color = when { t.isGoal && t.kind == Kind.EXPENSE -> p.goal; t.kind == Kind.EXPENSE -> p.red; else -> p.green },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold))
         }
         // compra no cartão e pagamento de fatura não alternam pago/pendente (ver Ops.canTogglePaid)

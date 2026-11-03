@@ -18,8 +18,9 @@
     <string name="home_forecast_label">Previsto em %1$s</string>
     <string name="home_forecast_info">Como o saldo previsto é calculado</string>
     <string name="home_forecast_title">Saldo previsto em %1$s</string>
-    <string name="home_forecast_body">Considera valores pendentes, faturas e recorrências até esta data.</string>
+    <string name="home_forecast_body">Considera valores pendentes (inclusive atrasados), faturas, recorrências e os aportes planejados nas metas que ainda faltam neste mês. O que você já guardou numa meta já saiu do saldo e não é descontado de novo.</string>
     <string name="home_forecast_math">Hoje %1$s + %2$s a receber − %3$s a pagar = %4$s</string>
+    <string name="home_forecast_math_goals">Hoje %1$s + %2$s a receber − %3$s a pagar − %4$s para metas = %5$s</string>
     <string name="home_forecast_math_title">Como chegamos a esse valor</string>
     <string name="home_vs_month">%1$s vs. %2$s</string>
     <string name="home_to_receive">Falta receber</string>
@@ -185,4 +186,29 @@
     <string name="limits_sheet_title">Limites mensais</string>
     <string name="limits_sheet_subtitle">Inclui lançamentos pendentes deste mês.</string>
     <string name="limits_sheet_new">Adicionar limite</string>
+
+    <!-- Glossário único de valores (core/Totals.kt, REDESIGN-COERENCIA.md) -->
+    <string name="ms_forecast_end">Previsto no fim do mês</string>
+    <string name="ms_balance_end">Saldo no fim do mês</string>
+    <string name="ms_result">Resultado do mês</string>
+    <string name="ms_result_forecast">Resultado previsto do mês</string>
+    <string name="ms_balance_now">Saldo atual</string>
+    <string name="ms_forecast_start">Previsto no início do mês</string>
+    <string name="ms_balance_start">Saldo no início do mês</string>
+    <string name="ms_in">Entrou</string>
+    <string name="ms_out">Saiu</string>
+    <string name="ms_goals_saved">Guardado em metas</string>
+    <string name="ms_to_receive">A receber</string>
+    <string name="ms_to_pay">A pagar</string>
+    <string name="ms_to_pay_goals">A pagar + metas</string>
+    <string name="ms_goals_planned">Reservado para metas</string>
+    <string name="ms_left_to_receive">Ficou a receber</string>
+    <string name="ms_left_to_pay">Ficou a pagar</string>
+    <string name="ms_forecast_short">Previsto</string>
+    <string name="ms_balance_end_short">Saldo final</string>
+    <string name="ms_note_out_goals">Já saíram %1$s este mês e %2$s foram para metas.</string>
+    <string name="ms_note_out">Já saíram %1$s este mês.</string>
+    <string name="ms_note_goals">%1$s foram para metas este mês.</string>
+    <string name="ms_note_card">As compras no cartão contam pela fatura.</string>
+    <string name="ms_note_goal_once">O que já foi guardado em metas já está fora do saldo atual.</string>
 </resources>

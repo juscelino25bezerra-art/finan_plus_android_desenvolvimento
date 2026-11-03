@@ -149,18 +149,19 @@ fun categoryIcon(category: String): Ico? {
 }
 
 /** Tom do ícone de um item nas listas (Início e Lançamentos): a cor diz o tipo, não a categoria. */
-enum class Tone { NEGATIVE, POSITIVE, PRIMARY, NEUTRAL }
+enum class Tone { NEGATIVE, POSITIVE, PRIMARY, NEUTRAL, GOAL, CARD }
 
 @Composable
-fun Tone.color(): Color = Fin.c.let { p -> when (this) { Tone.NEGATIVE -> p.red; Tone.POSITIVE -> p.green; Tone.PRIMARY -> p.accent; Tone.NEUTRAL -> p.muted } }
+fun Tone.color(): Color = Fin.c.let { p -> when (this) { Tone.NEGATIVE -> p.red; Tone.POSITIVE -> p.green; Tone.PRIMARY -> p.accent; Tone.NEUTRAL -> p.muted; Tone.GOAL -> p.goal; Tone.CARD -> p.card } }
 
 /**
  * Tom de um lançamento: despesa e conta a pagar = negativo; receita e valor a receber = positivo;
- * reserva para meta = cor primária; [neutral] = mês seguinte ou só informativo.
+ * reserva para meta = âmbar das metas; cartão (compra ou fatura) = lilás; [neutral] = mês seguinte ou só informativo.
  */
-fun txTone(kind: com.finanplus.core.Kind, goal: Boolean, neutral: Boolean = false): Tone = when {
+fun txTone(kind: com.finanplus.core.Kind, goal: Boolean, neutral: Boolean = false, card: Boolean = false): Tone = when {
     neutral -> Tone.NEUTRAL
-    goal -> Tone.PRIMARY
+    goal -> Tone.GOAL
+    card -> Tone.CARD
     kind == com.finanplus.core.Kind.INCOME -> Tone.POSITIVE
     else -> Tone.NEGATIVE
 }
