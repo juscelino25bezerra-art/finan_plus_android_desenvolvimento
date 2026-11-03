@@ -32,7 +32,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import com.finanplus.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,11 +81,11 @@ private val VISIBLE_MONEY: MoneyFmt = { c -> Money.format(c) }
 fun rememberMoneyFmt(): MoneyFmt = if (LocalPrivacy.current) HIDDEN_MONEY else VISIBLE_MONEY
 
 /** Abre a aba Lançamentos já filtrada pelo que a dica/resposta usou. */
-private fun openMoves(nav: Nav, query: String?, from: LocalDate?, to: LocalDate?, kind: Kind? = null) {
+internal fun openMoves(nav: Nav, query: String?, from: LocalDate?, to: LocalDate?, kind: Kind? = null, paid: Boolean? = null) {
     val f = nav.filters
     f.query = query ?: ""
     f.from = from; f.to = to
-    f.kind = kind; f.paid = null
+    f.kind = kind; f.paid = paid
     nav.sheet = null
     nav.tab = Tab.MOVES
 }
@@ -131,54 +137,103 @@ fun HomeAssistantCard(s: AppState) {
     val today = com.finanplus.ui.components.LocalToday.current
     val report = remember(s, money, today) { Insights.report(s, today, money) }
     val tips = remember(s, money, today, dev.dismissedTips) { visibleTips(s, dev, money, today) }
+    val risk = remember(s, today) { com.finanplus.core.HomeAdvice.risk(s, today) }
     val p = Fin.c
 
-    // cartão compacto: as 2 frases mais úteis do mês (Insights.highlights), a dica principal e um único link.
-    // O resumo completo, todas as dicas, "Por quê?" e as perguntas ficam na folha do assistente.
+    // UM aviso principal, que cruza informações (ver INICIO.md):
+    // 1) risco no próximo dia com contas; 2) a frase mais útil do resumo que não repete os cartões de cima;
+    // 3) a dica principal. O resumo completo, as dicas e as perguntas ficam na folha do assistente.
     Glass(Modifier.padding(top = 12.dp), radius = 26.dp, padding = 16.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.ASSIST, p.accent, size = 22.dp, filled = true)
             Spacer(Modifier.width(8.dp))
-            Text("Assistente", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.home_assistant), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.semantics { heading() })
         }
         if (dev.assistTips) {
-            val lines = report.highlights.ifEmpty { report.lines.take(1) }
+            val line = (report.highlights + report.lines).firstOrNull { !com.finanplus.core.HomeAdvice.repeatsCards(it) }
             Spacer(Modifier.height(8.dp))
-            // cada frase numa faixa com ícone; tocar abre o assistente (o mesmo que o link abaixo)
-            lines.forEachIndexed { i, line ->
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(18.dp)).background(innerBg())
-                        .clickable(role = Role.Button) { nav.open(Sheet.Assistant) }.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    com.finanplus.ui.components.IconTile(
-                        if (i == 0) com.finanplus.ui.components.Ico.RECEIPT else com.finanplus.ui.components.Ico.CALENDAR,
-                        p.accent, p.accent2, size = 36.dp, iconSize = 19.dp,
+            when {
+                risk != null -> AdviceRow(com.finanplus.ui.components.Ico.WARNING, p.red, riskText(risk, money)) { nav.open(Sheet.Assistant) }
+                line != null -> AdviceRow(com.finanplus.ui.components.Ico.RECEIPT, p.accent, AnnotatedString(line)) { nav.open(Sheet.Assistant) }
+                else -> tips.firstOrNull()?.let { t ->
+                    TipItem(
+                        t,
+                        onDismiss = { prefs.update { it.copy(dismissedTips = it.dismissedTips + t.id) } },
+                        onOpen = if (t.query != null || t.from != null) ({ openMoves(nav, t.query, t.from, t.to) }) else null,
                     )
-                    Text(line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(horizontal = 10.dp))
-                    com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.NEXT, p.muted, size = 18.dp)
                 }
             }
-            tips.firstOrNull()?.let { t ->
-                TipItem(
-                    t,
-                    onDismiss = { prefs.update { it.copy(dismissedTips = it.dismissedTips + t.id) } },
-                    onOpen = if (t.query != null || t.from != null) ({ openMoves(nav, t.query, t.from, t.to) }) else null,
-                )
-            }
-        } else Text("Pergunte sobre seus gastos.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
-        val link = when {
-            dev.assistTips && tips.size > 1 -> "Ver as ${tips.size} dicas"
-            dev.assistTips -> "Abrir assistente"
-            else -> "Perguntar"
-        }
+        } else Text(stringResource(R.string.home_ask), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
         Row(
             Modifier.padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button) { nav.open(Sheet.Assistant) }
-                .padding(vertical = 8.dp, horizontal = 2.dp),
+                .padding(vertical = 12.dp, horizontal = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(link, color = p.accent, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.home_open_assistant), color = p.accent, fontWeight = FontWeight.Bold)
             com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.NEXT, p.accent, size = 18.dp)
+        }
+    }
+}
+
+/** Faixa do aviso principal: ícone num quadrado suave e o texto (com valores em destaque). */
+@Composable
+private fun AdviceRow(icon: com.finanplus.ui.components.Ico, tint: androidx.compose.ui.graphics.Color, text: AnnotatedString, onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(18.dp)).background(innerBg())
+            .clickable(role = Role.Button, onClick = onOpen).padding(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        com.finanplus.ui.components.IconTile(icon, tint, tint.copy(alpha = if (Fin.c.dark) 0.16f else 0.12f), size = 36.dp, iconSize = 19.dp)
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(start = 10.dp))
+    }
+}
+
+/**
+ * Frase do aviso de risco (strings.xml), com os valores em negrito: contas na cor negativa,
+ * recebimento na positiva. Com "Ocultar valores", [money] devolve "R$ •••" e nada vaza.
+ */
+@Composable
+internal fun riskText(r: com.finanplus.core.RiskAdvice, money: MoneyFmt): AnnotatedString {
+    val p = Fin.c
+    val day = r.day.dayOfMonth.toString()
+    val inc = r.income
+    return when {
+        inc == null -> styled(
+            R.string.home_risk_no_income,
+            day to null, money(r.bills) to p.red, money(r.balance) to null, money(r.missing) to p.red,
+        )
+        r.sameDay -> styled(
+            R.string.home_risk_same_day,
+            day to null, money(r.bills) to p.red, inc.title to null, money(inc.amount) to p.green, money(r.balance) to null, money(r.missing) to p.red,
+        )
+        else -> styled(
+            R.string.home_risk_before,
+            day to null, money(r.bills) to p.red, inc.title to null, money(inc.amount) to p.green, money(r.balance) to null, money(r.missing) to p.red,
+            inc.date.dayOfMonth.toString() to null,
+        )
+    }
+}
+
+/**
+ * Monta um texto de strings.xml com argumentos em destaque: cada argumento com cor sai em negrito
+ * nessa cor; os sem cor entram como texto normal. Os marcadores evitam depender da posição no texto
+ * (a tradução pode mudar a ordem).
+ */
+@Composable
+internal fun styled(id: Int, vararg args: Pair<String, androidx.compose.ui.graphics.Color?>): AnnotatedString {
+    val marks = args.indices.map { "\u0001$it\u0002" }
+    val raw = stringResource(id, *marks.toTypedArray())
+    return buildAnnotatedString {
+        var i = 0
+        while (i < raw.length) {
+            val st = raw.indexOf('\u0001', i)
+            if (st < 0) { append(raw.substring(i)); break }
+            append(raw.substring(i, st))
+            val en = raw.indexOf('\u0002', st)
+            val (text, color) = args[raw.substring(st + 1, en).toInt()]
+            if (color == null) append(text)
+            else withStyle(SpanStyle(color = color, fontWeight = FontWeight.Bold)) { append(text) }
+            i = en + 1
         }
     }
 }

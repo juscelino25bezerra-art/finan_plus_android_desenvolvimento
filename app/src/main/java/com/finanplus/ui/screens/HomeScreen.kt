@@ -5,20 +5,17 @@ package com.finanplus.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.graphics.Color
-import com.finanplus.ui.components.Ico
-import com.finanplus.ui.components.IconTile
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,38 +23,50 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.finanplus.R
 import com.finanplus.core.AppState
 import com.finanplus.core.Finance
+import com.finanplus.core.HomeAdvice
 import com.finanplus.core.Kind
+import com.finanplus.core.Money
+import com.finanplus.core.MonthCalendar
+import com.finanplus.core.Period
 import com.finanplus.core.ym
 import com.finanplus.ui.LocalNav
 import com.finanplus.ui.Sheet
-import com.finanplus.ui.Tab
-import com.finanplus.ui.components.Bar
+import com.finanplus.ui.components.AppIcon
 import com.finanplus.ui.components.BR
-import com.finanplus.ui.components.Eyebrow
+import com.finanplus.ui.components.Bar
+import com.finanplus.ui.components.CategoryTile
 import com.finanplus.ui.components.Glass
+import com.finanplus.ui.components.Ico
+import com.finanplus.ui.components.IconTile
 import com.finanplus.ui.components.LocalPrivacy
+import com.finanplus.ui.components.LocalToday
 import com.finanplus.ui.components.MoneyText
-import com.finanplus.ui.components.SectionHead
-import com.finanplus.ui.components.br
+import com.finanplus.ui.components.Tone
+import com.finanplus.ui.components.color
 import com.finanplus.ui.components.sensitive
 import com.finanplus.ui.screenPadding
 import com.finanplus.ui.theme.Fin
@@ -71,22 +80,31 @@ fun fullDate(d: LocalDate): String =
 
 fun YearMonth.label(): String = format(DateTimeFormatter.ofPattern("MMM 'de' yyyy", BR))
 
+private val DM: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM")
+
+/**
+ * Início (ver INICIO.md): saldo atual e previsto num cartão só; "Falta receber" e "Falta pagar";
+ * o aviso principal do Assistente; e os próximos vencimentos agrupados por data.
+ * Os números vêm das mesmas funções de antes (Finance e Period): esta tela só organiza.
+ */
 @Composable
 fun HomeScreen(s: AppState, listState: LazyListState = rememberLazyListState()) {
     val nav = LocalNav.current
     val p = Fin.c
     val hide = LocalPrivacy.current
-    val today = com.finanplus.ui.components.LocalToday.current
+    val today = LocalToday.current
     val ym = today.ym()
     val flow = Finance.monthFlow(s, ym)
     val balance = Finance.currentBalance(s)
     val projectionEnd = ym.atEndOfMonth()
     val future = Finance.futureBalance(s, projectionEnd, today)
-    val pending = androidx.compose.runtime.remember(s, ym, today) { com.finanplus.core.Period.monthPending(s, ym, today) }
-    val nextDues = androidx.compose.runtime.remember(s, today) { Finance.upcomingDues(s, today) }
+    val pending = remember(s, ym, today) { Period.monthPending(s, ym, today) }
+    val bills = remember(s, ym, today) { HomeAdvice.monthBills(s, ym, today) }
+    val nextIncome = remember(s, today) { HomeAdvice.nextIncome(s, today) }
+    val groups = remember(s, today) { HomeAdvice.upcoming(s, today) }
     // saldo no fim do mês anterior = saldo atual sem o que foi realizado nas contas a partir deste mês
     // (mesma regra de Finance.accountBalance); null quando ainda não há lançamentos antes deste mês
-    val prevEnd: Long? = androidx.compose.runtime.remember(s, ym, balance) {
+    val prevEnd: Long? = remember(s, ym, balance) {
         if (s.txs.none { it.date.isBefore(ym.atDay(1)) }) null
         else {
             val ids = s.accounts.map { it.id }.toSet()
@@ -94,16 +112,16 @@ fun HomeScreen(s: AppState, listState: LazyListState = rememberLazyListState()) 
                 .fold(0L) { n, t -> if (t.kind == Kind.INCOME) n + t.value else n - t.value }
         }
     }
+    val monthFrom = ym.atDay(1)
 
     LazyColumn(state = listState, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        // topo: nome e data; a engrenagem saiu (a aba Ajustes faz o mesmo)
+        // topo: nome, data e "Ocultar valores" (o slogan fica só na tela de boas-vindas)
         item {
             Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
                     Text("Finan+", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
                     // data dinâmica (ex.: "Quinta, 8 de outubro"); muda sozinha com o dia
-                    Text("Seu dinheiro, sem complicação.", style = MaterialTheme.typography.bodyMedium, color = p.muted)
-                    Text(com.finanplus.core.MonthCalendar.dayTitle(today, today), style = MaterialTheme.typography.labelSmall, color = p.muted)
+                    Text(MonthCalendar.dayTitle(today, today), style = MaterialTheme.typography.labelSmall, color = p.muted)
                 }
                 Row(
                     Modifier.clip(RoundedCornerShape(99.dp))
@@ -113,131 +131,142 @@ fun HomeScreen(s: AppState, listState: LazyListState = rememberLazyListState()) 
                         .padding(horizontal = 11.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.SHIELD, if (hide) p.green else p.accent, size = 16.dp)
+                    AppIcon(Ico.SHIELD, if (hide) p.green else p.accent, size = 16.dp)
                     Spacer(Modifier.width(5.dp))
                     Text(if (hide) "Mostrar valores" else "Ocultar valores", color = if (hide) p.green else p.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+        // saldo atual e previsto num cartão só; a conta do previsto fica no botão "info"
         item {
             Glass(radius = 30.dp, padding = 16.dp) {
-                // saldo atual em destaque; as ondas ficam junto ao rótulo, sem passar pelo valor
-                Box(Modifier.fillMaxWidth()) {
-                    Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconTile(Ico.WALLET, p.accent, p.accent2, size = 44.dp, iconSize = 22.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Saldo atual", style = MaterialTheme.typography.bodyMedium, color = p.muted, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(10.dp))
+                MoneyText(
+                    balance, color = if (balance < 0) p.red else p.text,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 34.sp, fontWeight = FontWeight.ExtraBold),
+                )
+                HorizontalDivider(Modifier.padding(top = 14.dp, bottom = 6.dp), thickness = 1.dp, color = p.border)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconTile(Ico.WALLET, p.accent, p.accent2, size = 44.dp, iconSize = 22.dp)
-                            Spacer(Modifier.width(10.dp))
-                            Text("Saldo atual", style = MaterialTheme.typography.bodyMedium, color = p.muted, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                stringResource(R.string.home_forecast_label, projectionEnd.format(DM)),
+                                style = MaterialTheme.typography.bodySmall, color = p.muted, fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                            )
+                            // botão "info": área de toque de 48dp, ícone pequeno
+                            val info = stringResource(R.string.home_forecast_info)
+                            Box(
+                                Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
+                                    .clickable(role = Role.Button) { nav.open(Sheet.ForecastInfo) }
+                                    .semantics { contentDescription = info },
+                                contentAlignment = Alignment.Center,
+                            ) { AppIcon(Ico.INFO, p.muted, size = 18.dp) }
                         }
-                        Spacer(Modifier.height(10.dp))
                         MoneyText(
-                            balance, color = if (balance < 0) p.red else p.text,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 34.sp, fontWeight = FontWeight.ExtraBold),
+                            future, color = if (future < 0) p.red else p.accent,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
                         )
                     }
-                }
-                Spacer(Modifier.height(12.dp))
-                // saldo previsto: faixa interna, como no conceito
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(innerBg()).padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconTile(Ico.FORECAST, p.accent, p.accent2)
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text("Saldo previsto até ${projectionEnd.br()}", style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        MoneyText(future, color = if (future < 0) p.red else p.accent, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold))
-                        Text(
-                            "Considera valores pendentes, faturas e recorrências até esta data.",
-                            style = MaterialTheme.typography.labelSmall, color = p.muted, maxLines = 2,
+                    // comparação com o fim do mês anterior; no primeiro mês não há com o que comparar
+                    if (!hide && prevEnd != null) {
+                        val d = future - prevEnd
+                        val chipColor = if (d >= 0) p.green else p.red
+                        val chipText = stringResource(
+                            R.string.home_vs_month,
+                            (if (d >= 0) "+" else "−") + Money.format(kotlin.math.abs(d)),
+                            MonthCalendar.monthName(ym.minusMonths(1)),
                         )
-                        // comparação com o fim do mês anterior; no primeiro mês não há com o que comparar
-                        if (!hide && prevEnd != null) {
-                            Spacer(Modifier.height(6.dp))
-                            val (chipText, chipColor) = when {
-                                prevEnd == null -> "1º mês · sem comparação" to p.muted
-                                else -> {
-                                    val d = future - prevEnd
-                                    val sign = if (d >= 0) "+" else "−"
-                                    "$sign${com.finanplus.core.Money.format(kotlin.math.abs(d))} vs. fim de ${com.finanplus.core.MonthCalendar.monthName(ym.minusMonths(1))}" to (if (d >= 0) p.green else p.red)
-                                }
-                            }
-                            Box(Modifier.clip(RoundedCornerShape(99.dp)).background(chipColor.copy(alpha = 0.12f)).padding(horizontal = 9.dp, vertical = 4.dp)) {
-                                Text(chipText, color = chipColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.clip(RoundedCornerShape(99.dp)).background(chipColor.copy(alpha = 0.12f)).padding(horizontal = 9.dp, vertical = 5.dp)) {
+                            Text(chipText, color = chipColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
-                }
-                // como o previsto foi calculado (só quando a conta fecha com os números da tela)
-                if (!hide && (pending.toReceive > 0 || pending.toPay > 0) && balance + pending.toReceive - pending.toPay == future) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Hoje ${com.finanplus.core.Money.format(balance)} + ${com.finanplus.core.Money.format(pending.toReceive)} a receber − ${com.finanplus.core.Money.format(pending.toPay)} a pagar",
-                        style = MaterialTheme.typography.labelSmall, color = p.muted, modifier = Modifier.padding(horizontal = 4.dp),
-                    )
                 }
                 // uso das receitas: só quando já entrou alguma receita no mês
                 if (flow.income > 0) {
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(12.dp))
                     Bar(flow.expense.toFloat() / flow.income, p.accent, Modifier.sensitive(hide))
                     Spacer(Modifier.height(8.dp))
                     val used = flow.expense * 100.0 / flow.income
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            if (hide) "Valores ocultos." else "Despesas equivalem a ${"%.1f".format(BR, used)}% das receitas recebidas.",
-                            Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = p.muted, fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                    Text(
+                        if (hide) "Valores ocultos." else "Despesas equivalem a ${"%.1f".format(BR, used)}% das receitas recebidas.",
+                        style = MaterialTheme.typography.bodySmall, color = p.muted, fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }
-        // pendências e progresso deixam claro o que falta entrar e sair, sem misturar valores realizados.
+        // o que falta entrar e sair no mês; tocar abre Lançamentos já filtrado
         item {
+            val money = rememberMoneyFmt()
+            val received = flow.income
+            val incomeTotal = pending.toReceive + received
+            val receiveNote = when {
+                nextIncome != null -> stringResource(R.string.home_next_income, money(nextIncome.amount), nextIncome.date.format(DM))
+                received > 0 -> stringResource(R.string.home_all_received)
+                else -> stringResource(R.string.home_nothing_to_receive)
+            }
+            val payNote =
+                if (bills.isEmpty()) stringResource(R.string.home_all_paid)
+                else pluralStringResource(R.plurals.home_bills_until, bills.size, bills.size, projectionEnd.format(DM))
             Row(Modifier.fillMaxWidth().padding(top = 12.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PendingCard("Falta receber", pending.toReceive, flow.income, "recebido", p.green, Ico.INCOME, Modifier.weight(1f))
-                // Em despesas, faturas abertas podem corresponder a compras já registradas; não exibimos uma porcentagem que as conte duas vezes.
-                PendingCard("Falta pagar", pending.toPay, flow.expense, "pago", p.red, Ico.EXPENSE, Modifier.weight(1f), showProgress = false)
+                PendingCard(
+                    stringResource(R.string.home_to_receive), pending.toReceive, receiveNote, p.green, Ico.INCOME, Modifier.weight(1f),
+                    progress = if (received > 0 && incomeTotal > 0) received.toFloat() / incomeTotal else null,
+                    action = stringResource(R.string.home_open_receive),
+                ) { openMoves(nav, null, monthFrom, projectionEnd, Kind.INCOME, paid = false) }
+                PendingCard(
+                    stringResource(R.string.home_to_pay), pending.toPay, payNote, p.red, Ico.EXPENSE, Modifier.weight(1f),
+                    action = stringResource(R.string.home_open_pay),
+                ) { openMoves(nav, null, monthFrom, projectionEnd, Kind.EXPENSE, paid = false) }
             }
         }
+        // assistente logo abaixo: um aviso principal que cruza as informações (pode ser desligado em Ajustes)
+        item { HomeAssistantCard(s) }
         item {
-            SectionHead(null, "Próximos vencimentos")
-            if (nextDues.isEmpty()) NextPaymentCard(null) {}
-            // em coluna com espaço entre os cartões: soltos no mesmo item, eles ficavam colados um no outro
-            else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                nextDues.forEach { due ->
-                    NextPaymentCard(due) {
-                        if (due.type == com.finanplus.core.ReminderType.INVOICE_DUE) nav.open(Sheet.PayInvoice(due.refId))
-                        else s.txs.firstOrNull { it.id == due.refId }?.let { nav.open(Sheet.TxEdit(it.kind, it.id)) }
-                    }
+            Row(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.home_upcoming), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
+                Row(
+                    Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp))
+                        .clickable(role = Role.Button) { openMoves(nav, null, monthFrom, projectionEnd) }
+                        .padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(R.string.home_see_all), color = p.accent, fontWeight = FontWeight.Bold)
+                    AppIcon(Ico.NEXT, p.accent, size = 18.dp)
                 }
             }
+            UpcomingCard(s, groups)
         }
-        // assistente: as 2 frases mais úteis do mês e a dica mais importante (pode ser desligado em Ajustes)
-        item { HomeAssistantCard(s) }
-
     }
 }
-/** Cartão do que ainda falta entrar/sair; realizado e pendente permanecem separados. */
+
+/** Cartão do que ainda falta entrar/sair no mês. [progress] só aparece quando já entrou algo (> 0%). */
 @Composable
 private fun PendingCard(
     label: String,
     pending: Long,
-    realized: Long,
-    realizedLabel: String,
+    note: String,
     color: Color,
     icon: Ico,
     modifier: Modifier,
-    showProgress: Boolean = true,
+    progress: Float? = null,
+    action: String,
+    onClick: () -> Unit,
 ) {
     val p = Fin.c
     val hide = LocalPrivacy.current
-    val nav = LocalNav.current
-    val total = pending + realized
-    val progress = if (total > 0) realized.toFloat() / total else 0f
     val shape = RoundedCornerShape(22.dp)
     Column(
         modifier.fillMaxHeight().clip(shape).background(p.surface, shape)
             .background(color.copy(alpha = if (p.dark) 0.10f else 0.07f), shape)
-            .border(1.dp, p.border, shape).clickable(role = Role.Button) { nav.tab = Tab.MOVES }
+            .border(1.dp, p.border, shape)
+            .clickable(role = Role.Button, onClickLabel = action, onClick = onClick)
             .padding(13.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,53 +276,102 @@ private fun PendingCard(
         }
         Spacer(Modifier.height(7.dp))
         MoneyText(pending, color = color, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold))
-        if (showProgress && total > 0) {
+        if (progress != null) {
             Spacer(Modifier.height(7.dp))
-            Bar(progress, color, Modifier.sensitive(hide), height = 6.dp)
-            Text(
-                if (hide) "Progresso oculto" else "${"%.0f".format(BR, progress * 100)}% $realizedLabel",
-                style = MaterialTheme.typography.labelSmall, color = p.muted, modifier = Modifier.padding(top = 5.dp),
-            )
-        } else Text(
-            when {
-                !showProgress && pending > 0 -> "Contas e faturas em aberto neste mês"
-                !showProgress -> "Tudo pago neste mês"
-                else -> "Nada registrado neste mês"
-            },
-            style = MaterialTheme.typography.labelSmall, color = p.muted,
-        )
+            val pct = if (hide) stringResource(R.string.home_progress_hidden) else stringResource(R.string.home_received_pct, "%.0f".format(BR, progress * 100))
+            Bar(progress, color, Modifier.sensitive(hide).semantics { contentDescription = pct }, height = 6.dp)
+        }
+        Text(note, style = MaterialTheme.typography.labelSmall, color = p.muted, modifier = Modifier.padding(top = 5.dp))
     }
 }
 
+/**
+ * Próximos vencimentos num cartão só: grupos por data (rótulo pequeno em caixa alta) e linhas separadas
+ * por divisórias finas. Contas de meses seguintes ficam em cor neutra (não entram no "Falta pagar").
+ */
 @Composable
-private fun NextPaymentCard(due: com.finanplus.core.Reminder?, onOpen: () -> Unit) {
+private fun UpcomingCard(s: AppState, groups: List<HomeAdvice.DueGroup>) {
     val p = Fin.c
-    if (due == null) {
+    val nav = LocalNav.current
+    val today = LocalToday.current
+    if (groups.isEmpty()) {
         Glass(radius = 20.dp, padding = 14.dp) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconTile(Ico.CHECK, p.green, p.green.copy(alpha = 0.12f))
                 Column(Modifier.padding(start = 12.dp)) {
-                    Text("Nenhum pagamento pendente", fontWeight = FontWeight.Bold)
-                    Text("Quando houver uma conta ou fatura, ela aparecerá aqui.", style = MaterialTheme.typography.bodySmall, color = p.muted)
+                    Text(stringResource(R.string.home_no_dues_title), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.home_no_dues_hint), style = MaterialTheme.typography.bodySmall, color = p.muted)
                 }
             }
         }
         return
     }
-    val overdue = due.date.isBefore(com.finanplus.ui.components.LocalToday.current)
-    Glass(radius = 20.dp, padding = 14.dp, onClick = onOpen) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconTile(if (overdue) Ico.WARNING else Ico.CALENDAR, if (overdue) p.red else p.accent, if (overdue) p.red.copy(alpha = 0.12f) else p.accent2)
-            Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
-                Text(due.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    (if (overdue) "Vencido em " else "Vence em ") + due.date.br(),
-                    style = MaterialTheme.typography.bodySmall, color = if (overdue) p.red else p.muted,
-                )
+    Glass(radius = 22.dp, padding = 0.dp) {
+        groups.forEachIndexed { gi, g ->
+            if (gi > 0) HorizontalDivider(thickness = 1.dp, color = p.border)
+            val dayText = "${g.date.dayOfMonth} de ${MonthCalendar.monthName(YearMonth.from(g.date))}"
+            val label = when {
+                g.nextMonth -> stringResource(R.string.home_next_month_group, dayText)
+                g.overdue -> stringResource(R.string.home_overdue_group, MonthCalendar.dayTitle(g.date, today))
+                else -> MonthCalendar.dayTitle(g.date, today)
             }
-            MoneyText(due.amount, color = p.red, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
+            Text(
+                label.uppercase(BR), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                color = if (g.overdue) p.red else p.muted,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 2.dp).semantics { heading() },
+            )
+            g.items.forEachIndexed { i, due ->
+                if (i > 0) HorizontalDivider(Modifier.padding(start = 70.dp), thickness = 1.dp, color = p.border.copy(alpha = 0.6f))
+                val tone = if (g.nextMonth) Tone.NEUTRAL else Tone.NEGATIVE
+                val sub = if (due.invoice) stringResource(R.string.home_invoice_subtitle) else due.category
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                        .clickable(role = Role.Button) {
+                            if (due.invoice) nav.open(Sheet.PayInvoice(due.refId))
+                            else s.txs.firstOrNull { it.id == due.refId }?.let { nav.open(Sheet.TxEdit(it.kind, it.id)) }
+                        }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CategoryTile(due.category, tone, size = 40.dp, icon = if (due.invoice) Ico.CARD else null)
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text(due.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(sub, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    MoneyText(due.amount, color = tone.color(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
+                    Spacer(Modifier.width(4.dp))
+                    AppIcon(Ico.NEXT, p.muted, size = 18.dp)
+                }
+            }
+            if (gi == groups.lastIndex) Spacer(Modifier.height(4.dp))
         }
-        Text("Ver pagamento  ›", color = p.accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 52.dp, top = 8.dp))
+    }
+}
+
+/** Folha do botão "info" do previsto: o que entra na conta e a conta com os números de hoje. */
+@Composable
+fun ForecastInfoSheet(s: AppState) {
+    val p = Fin.c
+    val today = LocalToday.current
+    val ym = today.ym()
+    val end = ym.atEndOfMonth()
+    val balance = Finance.currentBalance(s)
+    val future = Finance.futureBalance(s, end, today)
+    val pending = remember(s, ym, today) { Period.monthPending(s, ym, today) }
+    val money = rememberMoneyFmt()
+    Text(stringResource(R.string.home_forecast_title, end.format(DM)), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+    MoneyText(future, color = if (future < 0) p.red else p.accent, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.padding(top = 4.dp))
+    Text(stringResource(R.string.home_forecast_body), style = MaterialTheme.typography.bodyMedium, color = p.muted, modifier = Modifier.padding(top = 10.dp))
+    // a conta só aparece quando fecha com os números da tela (atrasados de outros meses entram no previsto)
+    if (balance + pending.toReceive - pending.toPay == future) Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(18.dp)).background(innerBg()).padding(14.dp)) {
+        Text(stringResource(R.string.home_forecast_math_title), style = MaterialTheme.typography.labelSmall, color = p.muted, fontWeight = FontWeight.Bold)
+        Text(
+            styled(
+                R.string.home_forecast_math,
+                money(balance) to p.text, money(pending.toReceive) to p.green, money(pending.toPay) to p.red, money(future) to p.accent,
+            ),
+            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 

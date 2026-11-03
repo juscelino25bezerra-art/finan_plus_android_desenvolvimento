@@ -1,5 +1,16 @@
 # Changelog
 
+## Em desenvolvimento
+
+### Início
+
+- **Cartão do saldo mais simples:** "Saldo atual" e, abaixo de um divisor, "Previsto em 30/11" com o chip "vs. outubro". O cartão interno do previsto e a linha fixa "Hoje … a receber − … a pagar" saíram. A conta agora fica no botão "info", ao lado do previsto. O slogan saiu do Início e continua na tela de boas-vindas.
+- **"Falta receber" e "Falta pagar":** mostram "Próximo: R$ X em dd/MM" e "N contas até dd/MM". A barra de recebido só aparece quando algo já entrou. Tocar no cartão abre Lançamentos já filtrado.
+- **Assistente logo abaixo, com um aviso só:** se o saldo de hoje não cobre as contas do próximo dia com vencimentos, o aviso diz quanto faltaria e se algum recebimento cai até lá. Sem risco, mostra a frase mais útil do resumo sem repetir os cartões.
+- **Próximos vencimentos num cartão só:** agrupados por data, com divisórias, linha inteira clicável e "Ver todos". Contas do mês seguinte aparecem em cor neutra.
+- **Ícones por tipo (Início e Lançamentos):** despesa em vermelho, receita em verde, meta na cor primária e itens do mês seguinte em cor neutra. Os ícones de letra viraram ícones de categoria.
+- Nenhum cálculo mudou. Detalhes e testes (`HomeAdviceTest`, `InicioVisualTest`) em [INICIO.md](INICIO.md).
+
 ## 1.9.0 — Despesa compartilhada como imagem, metas como "guardado" em Lançamentos e busca recolhível (02/11/2026)
 
 `versionCode 18`.

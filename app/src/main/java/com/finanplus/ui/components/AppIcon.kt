@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.finanplus.R
 import com.finanplus.core.AppState
 import com.finanplus.core.assist.Text as AssistText
+import com.finanplus.ui.theme.Fin
 
 /**
  * Ícones do app: Material Symbols Rounded, traço leve (peso 300), em tamanhos contidos (18–22dp).
@@ -34,6 +35,7 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0) {
     GOAL(R.drawable.ms_flag),
     CHECK(R.drawable.ms_check),
     CARD(R.drawable.ms_credit_card),
+    INFO(R.drawable.ms_info),
     ASSIST(R.drawable.ms_auto_awesome),
     FINGERPRINT(R.drawable.ms_fingerprint),
     UP(R.drawable.ms_arrow_upward),
@@ -133,15 +135,39 @@ fun categoryIcon(category: String): Ico? {
         c in setOf("presentes", "doacoes", "presente", "doacao") -> Ico.GIFTS
         c in setOf("emprestimo", "emprestimos", "financiamento", "banco", "dividas") -> Ico.BANK
         c in setOf("trabalho", "adiantamento quinzenal", "adiantamento", "comissao") -> Ico.WORK
+        // nomes compostos ou criados pela pessoa ("Cartão Itaú", "Empréstimo Caixa", "Meta viagem")
+        "cartao" in c || "fatura" in c -> Ico.CARD
+        "emprestimo" in c || "financiamento" in c -> Ico.BANK
+        "salario" in c -> Ico.SALARY
+        c.startsWith("meta") -> Ico.GOAL
         else -> null
     }
 }
 
-/** Quadradinho de categoria nas listas: ícone da categoria ou, se desconhecida, a inicial do nome. */
+/** Tom do ícone de um item nas listas (Início e Lançamentos): a cor diz o tipo, não a categoria. */
+enum class Tone { NEGATIVE, POSITIVE, PRIMARY, NEUTRAL }
+
 @Composable
-fun CategoryGlyph(category: String, tint: Color) {
-    val ico = categoryIcon(category)
-    val initial = category.trim().firstOrNull()?.uppercase()
-    if (ico != null || initial == null) AppIcon(ico ?: Ico.OTHER, tint, size = 20.dp)
-    else Text(initial, color = tint, fontWeight = FontWeight.Bold)
+fun Tone.color(): Color = Fin.c.let { p -> when (this) { Tone.NEGATIVE -> p.red; Tone.POSITIVE -> p.green; Tone.PRIMARY -> p.accent; Tone.NEUTRAL -> p.muted } }
+
+/**
+ * Tom de um lançamento: despesa e conta a pagar = negativo; receita e valor a receber = positivo;
+ * reserva para meta = cor primária; [neutral] = mês seguinte ou só informativo.
+ */
+fun txTone(kind: com.finanplus.core.Kind, goal: Boolean, neutral: Boolean = false): Tone = when {
+    neutral -> Tone.NEUTRAL
+    goal -> Tone.PRIMARY
+    kind == com.finanplus.core.Kind.INCOME -> Tone.POSITIVE
+    else -> Tone.NEGATIVE
 }
+
+/** Quadrado arredondado com fundo suave e o ícone da categoria na cor forte do [tone]. */
+@Composable
+fun CategoryTile(category: String, tone: Tone, size: Dp = 42.dp, icon: Ico? = null) {
+    val c = tone.color()
+    IconTile(icon ?: categoryIcon(category) ?: Ico.OTHER, c, c.copy(alpha = if (Fin.c.dark) 0.16f else 0.12f), size = size, iconSize = size * 0.48f)
+}
+
+/** Ícone de categoria solto (sem o quadrado): o da categoria ou, se desconhecida, o genérico (sem letras). */
+@Composable
+fun CategoryGlyph(category: String, tint: Color) = AppIcon(categoryIcon(category) ?: Ico.OTHER, tint, size = 20.dp)
