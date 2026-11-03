@@ -11,7 +11,6 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.core.app.ActivityScenario
@@ -61,7 +60,7 @@ class ResumoVisualTest {
     }
     /** Itens da lista do Resumo (sem saldo acumulado): 0 título, 1 período, 2 selo, 3 resultado, 4 receitas/despesas, 5 fluxo, 6 categorias, 7 evolução. */
     private fun scrollToItem(index: Int) {
-        compose.onAllNodes(hasScrollToIndexAction()).onFirst().performScrollToIndex(index)
+        compose.onNode(hasScrollToIndexAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).performScrollToIndex(index)
         compose.waitForIdle()
     }
 
