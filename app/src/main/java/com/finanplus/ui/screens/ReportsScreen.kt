@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -237,9 +238,10 @@ fun ReportsScreen(s: AppState) {
                     if (c.invoiceDue != null) stringResource(R.string.summary_card_spend, money(c.amount), c.invoiceDue.format(DM))
                     else stringResource(R.string.summary_card_spend_no_date, money(c.amount))
                 }
-                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SumBox(stringResource(R.string.summary_income), Ico.UP, flow.income, p.green, listOfNotNull(delta(flow.income, prev?.income), incomeNote), Modifier.weight(1f))
-                    SumBox(stringResource(R.string.summary_expenses), Ico.DOWN, flow.expense, p.red, listOfNotNull(delta(flow.expense, prev?.expense), cardNote), Modifier.weight(1f))
+                // os dois cartões com a mesma altura, mesmo quando uma nota quebra em duas linhas
+                Row(Modifier.padding(top = 8.dp).height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SumBox(stringResource(R.string.summary_income), Ico.UP, flow.income, p.green, listOfNotNull(delta(flow.income, prev?.income), incomeNote), Modifier.weight(1f).fillMaxHeight())
+                    SumBox(stringResource(R.string.summary_expenses), Ico.DOWN, flow.expense, p.red, listOfNotNull(delta(flow.expense, prev?.expense), cardNote), Modifier.weight(1f).fillMaxHeight())
                 }
             }
             item {

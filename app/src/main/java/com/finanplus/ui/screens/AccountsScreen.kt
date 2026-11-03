@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -170,9 +171,9 @@ private fun SummaryCard(s: AppState) {
     Glass(Modifier.fillMaxWidth().padding(top = 12.dp), radius = 28.dp, padding = 16.dp) {
         Text(stringResource(R.string.money_in_accounts_title), style = MaterialTheme.typography.bodyMedium, color = p.muted, fontWeight = FontWeight.SemiBold)
         MoneyText(o.inAccounts, color = if (o.inAccounts < 0) p.red else p.text, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold))
-        Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Tile(stringResource(R.string.money_open_invoice), o.openInvoices, p.card, p.cardContainer, Modifier.weight(1f))
-            Tile(stringResource(R.string.money_saved_goals), o.inGoals, p.goal, p.goalContainer, Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Tile(stringResource(R.string.money_open_invoice), o.openInvoices, p.card, p.cardContainer, Modifier.weight(1f).fillMaxHeight())
+            Tile(stringResource(R.string.money_saved_goals), o.inGoals, p.goal, p.goalContainer, Modifier.weight(1f).fillMaxHeight())
         }
     }
 }
