@@ -314,13 +314,16 @@ private fun DayCell(d: LocalDate, day: CalDay?, today: LocalDate, selected: Bool
                 d.dayOfMonth.toString(), color = numberColor, fontSize = 14.sp, maxLines = 1,
                 fontWeight = if (isToday || selected) FontWeight.ExtraBold else if (d.isBefore(today)) FontWeight.Normal else FontWeight.SemiBold,
             )
-            if (day != null && !hide && (day.income != 0L || day.expense != 0L)) {
+            // total do dia sem as reservas para meta (como na lista); dia só com reserva: o valor guardado, na cor primária
+            if (day != null && !hide && day.hasFlow) {
                 val color = when {
                     selected -> p.onAccent
-                    day.net >= 0 -> p.green
+                    day.flowNet >= 0 -> p.green
                     else -> p.red
                 }
-                ShrinkText(MonthCalendar.signed(day.net), color)
+                ShrinkText(MonthCalendar.signed(day.flowNet), color)
+            } else if (day != null && !hide && day.goals != 0L) {
+                ShrinkText(MonthCalendar.compact(kotlin.math.abs(day.goals)), if (selected) p.onAccent else if (day.goals > 0) p.accent else p.green)
             }
             if (day != null && day.marks.isNotEmpty()) Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 day.marks.forEach { m ->
@@ -389,10 +392,18 @@ private fun DayHeader(s: AppState, nav: Nav, d: LocalDate, day: CalDay?, today: 
             Text(MonthCalendar.dayTitle(d, today), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             val n = day?.count ?: 0
             val countText = when (n) { 0 -> "Sem lançamentos"; 1 -> "1 lançamento"; else -> "$n lançamentos" }
-            val net = day?.net ?: 0L
-            val netText = if (hide || day == null || (day.income == 0L && day.expense == 0L)) "" else
+            val net = day?.flowNet ?: 0L
+            val netText = if (hide || day == null || !day.hasFlow) "" else
                 " · resultado das movimentações deste dia " + (if (net > 0) "+ " else if (net < 0) "− " else "") + Money.format(kotlin.math.abs(net))
             Text(countText + netText, style = MaterialTheme.typography.bodySmall, color = p.muted)
+            if (!hide && day != null && day.goals != 0L) Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                val color = if (day.goals > 0) p.accent else p.green
+                AppIcon(Ico.GOAL, color, size = 14.dp)
+                Text(
+                    androidx.compose.ui.res.stringResource(if (day.goals > 0) com.finanplus.R.string.day_goals_saved else com.finanplus.R.string.day_goals_withdrawn, Money.format(kotlin.math.abs(day.goals))),
+                    Modifier.padding(start = 4.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = color,
+                )
+            }
         }
     }
     // lançar direto nesta data, já como receita ou despesa

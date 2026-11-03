@@ -1,5 +1,13 @@
 # Changelog
 
+## Em desenvolvimento
+
+### Lançamentos
+
+- **Reservas para meta como "guardado":** na lista, a reserva aparece sem o sinal "−", na cor primária do tema, e sai do total do dia. Se o dia tem reservas, aparece embaixo do total a linha "R$ X em metas". O calendário segue a mesma regra. A retirada da meta aparece em verde, porque o dinheiro volta para a conta. Só apresentação: saldos, previsto, "falta pagar", Receitas/Despesas e Resumo não mudaram.
+- **Busca recolhível:** o campo fixo virou um botão de lupa no cabeçalho. O campo abre com foco e teclado, o "X" limpa e recolhe, e o Voltar só recolhe. Com texto buscado, a lupa fica destacada. Sem resultado, aparece "Nenhum lançamento encontrado".
+- Detalhes e testes (`DayTotalTest`, `LancamentosVisualTest`) em [LANCAMENTOS-METAS-E-BUSCA.md](LANCAMENTOS-METAS-E-BUSCA.md).
+
 ## 1.9.0 — Despesa compartilhada como imagem, saldo acumulado no Resumo e no PDF (02/11/2026)
 
 `versionCode 18`.

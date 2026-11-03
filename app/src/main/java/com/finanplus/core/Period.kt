@@ -6,6 +6,15 @@ package com.finanplus.core
 import java.time.LocalDate
 import java.time.YearMonth
 
+/**
+ * Total de um dia na lista de Lançamentos e no calendário.
+ * [net] = receitas − despesas das contas (realizadas ou pendentes), sem compras no cartão (contam na fatura)
+ * e sem reservas para meta; [goals] = guardado em metas − retirado das metas nesse dia;
+ * [hasFlow] = o dia tem alguma receita ou despesa que entra em [net] (sem isso, o total do dia não aparece).
+ * Só apresentação: os saldos (atual, previsto) continuam tirando a reserva da conta, como sempre.
+ */
+data class DayTotal(val net: Cents, val goals: Cents, val hasFlow: Boolean)
+
 /** O que falta entrar e sair num mês (o que ainda está pendente). */
 data class Pending(val toReceive: Cents, val toPay: Cents)
 
@@ -78,6 +87,16 @@ object Period {
      * Compras no cartão ficam de fora (contam pela fatura); pagamento de fatura conta como saída.
      * É a mesma regra do calendário.
      */
+    fun dayTotal(txs: List<Tx>): DayTotal {
+        var net = 0L; var goals = 0L; var flow = false
+        for (t in txs) when {
+            t.isCard -> {}
+            t.isGoal -> goals += if (t.kind == Kind.EXPENSE) t.value else -t.value
+            else -> { flow = true; net += if (t.kind == Kind.INCOME) t.value else -t.value }
+        }
+        return DayTotal(net, goals, flow)
+    }
+
     fun cashNet(txs: List<Tx>): Cents = txs.fold(0L) { n, t ->
         when {
             t.isCard -> n

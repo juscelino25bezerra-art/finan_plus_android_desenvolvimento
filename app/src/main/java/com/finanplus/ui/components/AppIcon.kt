@@ -47,6 +47,7 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0) {
     PREV(R.drawable.ms_chevron_left),
     NEXT(R.drawable.ms_chevron_right),
     SEARCH(R.drawable.ms_search),
+    CLOSE(R.drawable.ms_close),
     RECEIPT(R.drawable.ms_receipt_long),
     TUNE(R.drawable.ms_tune),
     WALLET(R.drawable.ms_account_balance_wallet),

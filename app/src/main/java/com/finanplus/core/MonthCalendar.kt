@@ -30,8 +30,14 @@ data class CalDay(
     val marks: Set<DayMark>,
     /** há conta pendente com data passada ou fatura vencida em aberto */
     val overdue: Boolean,
+    /** guardado em metas − retirado das metas no dia (já incluído em [income]/[expense], que alimentam os totais do mês) */
+    val goals: Cents = 0L,
+    /** o dia tem receita, despesa, pagamento ou fatura fora as reservas para meta */
+    val hasFlow: Boolean = false,
 ) {
     val net: Cents get() = income - expense
+    /** total do dia mostrado no quadradinho e no resumo do dia: [net] sem as reservas para meta (como na lista) */
+    val flowNet: Cents get() = net + goals
     val count: Int get() = txs.size + invoices.size
 }
 
@@ -71,17 +77,18 @@ object MonthCalendar {
             var inc = 0L; var exp = 0L
             val marks = LinkedHashSet<DayMark>()
             var overdue = false
+            var goals = 0L; var flow = invs.isNotEmpty()
             for (t in txs) {
                 when {
                     t.isCard -> marks.add(DayMark.CARD) // compra no cartão: só na fatura
-                    t.isGoal -> { if (t.kind == Kind.INCOME) inc += t.value else exp += t.value; marks.add(DayMark.GOAL) }
-                    t.kind == Kind.INCOME -> { inc += t.value; marks.add(DayMark.INCOME) }
-                    else -> { exp += t.value; marks.add(if (t.cardPayment.isNotEmpty()) DayMark.CARD else DayMark.EXPENSE) }
+                    t.isGoal -> { if (t.kind == Kind.INCOME) { inc += t.value; goals -= t.value } else { exp += t.value; goals += t.value }; marks.add(DayMark.GOAL) }
+                    t.kind == Kind.INCOME -> { inc += t.value; flow = true; marks.add(DayMark.INCOME) }
+                    else -> { exp += t.value; flow = true; marks.add(if (t.cardPayment.isNotEmpty()) DayMark.CARD else DayMark.EXPENSE) }
                 }
                 if (!t.paid && !t.isCard && t.date.isBefore(today)) overdue = true
             }
             for (i in invs) { exp += i.amount; marks.add(DayMark.CARD); if (i.overdue) overdue = true }
-            CalDay(day, txs, invs, inc, exp, DayMark.entries.filter { it in marks }.toSet(), overdue)
+            CalDay(day, txs, invs, inc, exp, DayMark.entries.filter { it in marks }.toSet(), overdue, goals, flow)
         }
     }
 
@@ -147,13 +154,14 @@ object MonthCalendar {
         if (day == null || day.count == 0) parts.add("sem lançamentos")
         else {
             parts.add(if (day.count == 1) "1 lançamento" else "${day.count} lançamentos")
-            if (!hide && (day.income != 0L || day.expense != 0L)) {
+            if (!hide && day.hasFlow) {
                 parts.add(when {
-                    day.net > 0 -> "saldo do dia mais ${Money.format(day.net)}"
-                    day.net < 0 -> "saldo do dia menos ${Money.format(-day.net)}"
+                    day.flowNet > 0 -> "saldo do dia mais ${Money.format(day.flowNet)}"
+                    day.flowNet < 0 -> "saldo do dia menos ${Money.format(-day.flowNet)}"
                     else -> "saldo do dia zero"
                 })
             }
+            if (!hide && day.goals != 0L) parts.add(if (day.goals > 0) "${Money.format(day.goals)} guardados em metas" else "${Money.format(-day.goals)} retirados de metas")
             if (day.overdue) parts.add("em atraso")
         }
         return parts.joinToString(", ")
