@@ -10,6 +10,14 @@ This is the native Android version, written in **Kotlin + Jetpack Compose**: dat
 
 The app itself is in Brazilian Portuguese and uses the Brazilian real (R$). The detailed feature documents are in Portuguese.
 
+## What's new in 1.11.0
+
+- **One number, one name, one rule:** Home, Transactions (list and calendar), Summary and the widget share the same calculation for To receive, To pay, Reserved for goals and Forecast. Money already saved in a goal is no longer subtracted twice, and overdue items show up in "To pay".
+- **My money** with a summary at the top, an alert when a goal will miss its deadline, and dedicated screens for Accounts and cards, Debts (new), Limits, Goals and Categories.
+- **New expense** with category and date chips, a collapsed "More options" with a summary, and "Undo" after saving.
+- **Categories** on their own screen (drag to reorder, swipe to archive). Credit card and overdraft are no longer categories; Loan becomes Debts.
+- Regrouped **Settings**, redesigned **Shared expense** and **What if…?**; correct plurals, one icon per concept and dedicated colors for goals (amber) and cards (lilac). Details: [REDESIGN-COERENCIA.md](REDESIGN-COERENCIA.md).
+
 ## What's new in 1.10.0
 
 - **Home:** current balance and end-of-month forecast in a single card (an "info" button explains the forecast), "Still to receive" and "Still to pay" with the next amount, one Assistant warning when the balance does not cover the upcoming bills, and upcoming due dates grouped by day. Details: [INICIO.md](INICIO.md).

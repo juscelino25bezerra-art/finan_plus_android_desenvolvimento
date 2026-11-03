@@ -1,6 +1,6 @@
 # Changelog
 
-## Em desenvolvimento
+## 1.11.0 — Redesign premium e coerente: um número, um nome, uma regra (03/11/2026)
 
 ### Redesign premium e coerente
 

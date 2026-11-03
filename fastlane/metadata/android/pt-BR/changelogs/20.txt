@@ -1,0 +1,1 @@
+Redesign coerente: o mesmo cálculo de A receber, A pagar, metas e Previsto em todas as telas (a meta já guardada não é descontada de novo). Meu dinheiro com telas próprias e Dívidas, nova despesa com chips e Desfazer, Categorias com arrastar e arquivar, Ajustes agrupado. Cartão de Crédito e Limite Especial deixam de ser categorias; Empréstimo vira Dívidas.

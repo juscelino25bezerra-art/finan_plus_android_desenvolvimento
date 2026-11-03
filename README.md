@@ -6,6 +6,14 @@ Esta é a versão nativa para Android, em **Kotlin + Jetpack Compose**: dados cr
 
 **English:** [README.en.md](README.en.md)
 
+## Novidades da versão 1.11.0
+
+- **Um número, um nome, uma regra:** Início, Lançamentos (lista e calendário), Resumo e widget usam o mesmo cálculo de A receber, A pagar, Reservado para metas e Previsto. A meta já guardada não é descontada de novo e os atrasados aparecem no "A pagar".
+- **Meu dinheiro** com resumo no topo, alerta de meta fora do prazo e telas próprias para Contas e cartões, Dívidas (nova), Limites, Metas e Categorias.
+- **Nova despesa** com categorias e data em chips, "Mais opções" com resumo e "Desfazer" ao salvar.
+- **Categorias** em tela própria (arrastar para ordenar, deslizar para arquivar). Cartão de Crédito e Limite Especial deixam de ser categorias; Empréstimo vira Dívidas.
+- **Ajustes** agrupado, **Despesa compartilhada** e **E se…?** redesenhados; plurais corretos, ícones por conceito e cores próprias para metas (âmbar) e cartão (lilás). Detalhes em [REDESIGN-COERENCIA.md](REDESIGN-COERENCIA.md).
+
 ## Novidades da versão 1.10.0
 
 - **Início:** saldo atual e previsto num cartão só (a conta do previsto fica no botão "info"), "Falta receber" e "Falta pagar" com o próximo valor, aviso de risco do Assistente e próximos vencimentos agrupados por data. Detalhes em [INICIO.md](INICIO.md).
