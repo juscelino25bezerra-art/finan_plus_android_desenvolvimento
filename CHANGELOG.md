@@ -1,5 +1,9 @@
 # Changelog
 
+## Em desenvolvimento
+
+- **Acesso pela rede com o Finan+ web 1.5.0:** a cópia do PWA dentro do app (`app/src/main/assets/lan/pwa`) foi atualizada com `tools/sync-pwa.sh` a partir do Finan+ web 1.5.0, com o mesmo visual e as mesmas regras desta versão (cálculo único, Meu dinheiro com páginas, nova tela de lançamento, reservas para meta e despesas compartilhadas). O navegador do computador passa a mostrar e editar as reservas para meta e as despesas compartilhadas.
+
 ## 1.11.0 — Redesign premium e coerente: um número, um nome, uma regra (03/11/2026)
 
 ### Redesign premium e coerente
