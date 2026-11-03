@@ -4,12 +4,14 @@
 
 <p><b>Features</b></p>
 <ul>
-<li>Income and expenses with categories, accounts and credit cards (current bill and bill payment)</li>
+<li>Quick entry for income and expenses: a large amount, category and date chips, and Undo after saving</li>
+<li>Accounts and credit cards: each card shows its open bill, limit usage and due date, with alerts when the limit is almost used</li>
 <li>Installments, recurring transactions, bills to pay and to receive</li>
-<li>Current balance and projected end-of-month balance, plus a calendar with each day's balance</li>
+<li>Current balance and end-of-month forecast, calculated the same way on every screen, plus a calendar with each day's balance</li>
 <li>Each month's balance on its own or carried over from previous months, as you prefer</li>
-<li><b>Shared expenses:</b> split a bill with friends or family (equally or by each person's amount), see who owes what, record partial payments, attach the receipt and send a PDF statement via WhatsApp</li>
-<li>Monthly limits per category and savings goals: saving into a goal takes the money out of the account without counting it as an expense</li>
+<li><b>Shared expenses:</b> split a bill with friends or family (equally or by each person's amount), see who owes what, record partial payments, attach the receipt and send a PDF statement or a Finan+ image via WhatsApp</li>
+<li>Monthly limits per category and savings goals: saving into a goal takes the money out of the account without counting it as an expense, with an alert when a goal will miss its deadline</li>
+<li><b>Debts:</b> loans and financing in installments, with the next installment and how much is left</li>
 <li>"What if…?" simulator to save, plan a purchase or pay off a debt early, without touching your data</li>
 <li>Read a bill or boleto: amount and due date from a PDF (password-protected too), the boleto line or a Pix code</li>
 <li>Reports with charts and PDF report export</li>

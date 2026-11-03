@@ -2,12 +2,14 @@
 
 <p><b>O que você pode fazer</b></p>
 <ul>
-<li>Receitas e despesas com categorias, contas e cartões de crédito (fatura atual e pagamento de fatura)</li>
+<li>Lançamento rápido de receitas e despesas: valor em destaque, categoria e data em chips e Desfazer ao salvar</li>
+<li>Contas e cartões de crédito: cada cartão mostra a fatura aberta, o uso do limite e o vencimento, com alerta quando o limite está perto do fim</li>
 <li>Parcelas, lançamentos recorrentes e contas a pagar e a receber</li>
-<li>Saldo atual e saldo previsto para o fim do mês, e calendário com o saldo de cada dia</li>
+<li>Saldo atual e previsto para o fim do mês, com a mesma conta em todas as telas, e calendário com o saldo de cada dia</li>
 <li>Saldo de cada mês isolado ou acumulado com os meses anteriores, como você preferir</li>
-<li><b>Despesas compartilhadas:</b> divida uma conta com amigos ou família (igualmente ou pelo valor de cada um), veja quem deve e quanto, registre pagamentos parciais, anexe a nota fiscal e envie o comprovante em PDF pelo WhatsApp</li>
-<li>Limites mensais por categoria e metas de economia: guardar numa meta tira o dinheiro da conta sem contar como despesa</li>
+<li><b>Despesas compartilhadas:</b> divida uma conta com amigos ou família (igualmente ou pelo valor de cada um), veja quem deve e quanto, registre pagamentos parciais, anexe a nota fiscal e envie o comprovante em PDF ou uma imagem com a marca do Finan+ pelo WhatsApp</li>
+<li>Limites mensais por categoria e metas de economia: guardar numa meta tira o dinheiro da conta sem contar como despesa, com alerta quando a meta vai passar do prazo</li>
+<li><b>Dívidas:</b> empréstimos e financiamentos em parcelas, com a próxima parcela e quanto falta</li>
 <li>Simulador "E se…?" para economizar, planejar uma compra ou antecipar uma dívida, sem mexer nos dados</li>
 <li>Ler fatura ou boleto: valor e vencimento de PDF (inclusive com senha), da linha digitável ou do Pix copia e cola</li>
 <li>Relatórios com gráficos e exportação de relatório em PDF</li>
