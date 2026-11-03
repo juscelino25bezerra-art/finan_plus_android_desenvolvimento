@@ -288,9 +288,10 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             prefs.askedNotifications = true
             askNotif.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        // cartão e limite especial deixam de ser categorias; Empréstimo vira Dívidas (uma vez por aparelho)
-        if (!prefs.categoriesMigrated) { Repo.migrateCategories(); prefs.categoriesMigrated = true }
     }
+    // cartão e limite especial deixam de ser categorias; Empréstimo vira Dívidas. Roda sempre que as categorias
+    // mudam (abrir o app, desbloquear, restaurar um backup): os dados podem chegar depois da primeira composição.
+    LaunchedEffect(s.cats) { if (com.finanplus.core.TxForm.migrate(Repo.state.value) != null) Repo.migrateCategories() }
 
     // "hoje" dinâmico: muda na meia-noite, ao voltar ao app e se a data do aparelho mudar
     val today = com.finanplus.ui.components.rememberToday()

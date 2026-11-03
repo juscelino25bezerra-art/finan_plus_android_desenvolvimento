@@ -12,5 +12,5 @@ object Words {
     fun count(n: Int, one: String, many: String): String = "$n ${if (n == 1) one else many}"
 
     /** Troca o símbolo de grau usado como ordinal ("13° Salário") pelo indicador ordinal ("13º Salário"). Só para exibir. */
-    fun ordinal(text: String): String = text.replace(Regex("(\\d)\\s?°"), "$1º")
+    fun ordinal(text: String): String = text.replace(Regex("(\\d)\\s?[°˚ᵒ]"), "$1º")
 }

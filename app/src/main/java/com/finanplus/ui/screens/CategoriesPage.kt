@@ -139,7 +139,8 @@ private fun ReorderableList(kind: Kind, list: List<String>) {
                 swipe, enableDismissFromStartToEnd = false,
                 modifier = Modifier.zIndex(if (dragging == i) 1f else 0f).graphicsLayer { translationY = if (dragging == i) offset else 0f },
                 backgroundContent = {
-                    Row(Modifier.fillMaxSize().background(p.muted.copy(alpha = 0.85f)).padding(end = 16.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    // o fundo "Arquivar" só aparece enquanto a linha é deslizada (parado, a linha fica limpa)
+                    if (swipe.dismissDirection == SwipeToDismissBoxValue.EndToStart) Row(Modifier.fillMaxSize().background(p.muted.copy(alpha = 0.85f)).padding(end = 16.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             AppIcon(Ico.ARCHIVE, p.bg, size = 20.dp)
                             Text(arch, color = p.bg, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -148,7 +149,7 @@ private fun ReorderableList(kind: Kind, list: List<String>) {
                 },
             ) {
                 Row(
-                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = if (dragging == i) 1f else 0f)).heightIn(min = 56.dp)
+                    Modifier.fillMaxWidth().background(if (dragging == i || swipe.dismissDirection != SwipeToDismissBoxValue.Settled) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent).heightIn(min = 56.dp)
                         .onSizeChanged { rowPx = maxOf(1, it.height) }
                         .semantics {
                             customActions = listOfNotNull(
