@@ -253,7 +253,7 @@ private fun CollapsibleHeader(
             Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp))
                 .clickable(role = Role.Button, onClick = onToggle)
                 .testTag(tag)
-                .clearAndSetSemantics { contentDescription = state; role = Role.Button; heading() }
+                .semantics(mergeDescendants = true) { contentDescription = state; heading() }
                 .padding(start = 4.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -283,7 +283,7 @@ private fun AlertRow(text: String, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(top = 6.dp).heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp))
             .background(p.warningContainer).clickable(role = Role.Button, onClick = onClick)
-            .clearAndSetSemantics { contentDescription = cd; role = Role.Button }.padding(horizontal = 12.dp),
+            .semantics(mergeDescendants = true) { contentDescription = cd }.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(Ico.WARNING, p.warning, size = 20.dp)
@@ -335,7 +335,7 @@ private fun CardCard(r: MoneyView.CardRow, primaryPay: Boolean, onOpen: () -> Un
         }
         // 2: barra de uso do limite
         val barCd = MoneyView.barDescription(r, hide)
-        Column(Modifier.padding(top = 14.dp).clearAndSetSemantics { contentDescription = barCd }) {
+        Column(Modifier.padding(top = 14.dp).semantics(mergeDescendants = true) { contentDescription = barCd }) {
             Bar(r.pct / 100f, barColor, Modifier.sensitive(hide))
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (r.band == MoneyView.Band.CRITICAL) AppIcon(Ico.WARNING, p.warning, Modifier.padding(end = 4.dp), size = 16.dp)
