@@ -120,14 +120,13 @@ internal fun CardDetailSheet(s: AppState, id: String, close: () -> Unit) {
     Pill(stringResource(R.string.card_detail_edit), Modifier.fillMaxWidth().padding(top = 16.dp), icon = Ico.EDIT) { nav.open(Sheet.CardEdit(card.id)) }
 }
 
-/** Planejamento › Metas: a lista que antes ficava na seção recolhível de Meu dinheiro. */
+/** Meu dinheiro › Metas. */
 @Composable
-internal fun GoalsListSheet(s: AppState) {
+internal fun GoalsListContent(s: AppState) {
     val nav = LocalNav.current
     val p = Fin.c
     val hide = LocalPrivacy.current
     val today = LocalToday.current
-    Header(stringResource(R.string.goals_sheet_title), stringResource(R.string.goals_sheet_subtitle))
     Pill(stringResource(R.string.goals_sheet_new), Modifier.fillMaxWidth().padding(top = 4.dp), icon = Ico.ADD) { nav.open(Sheet.GoalEdit()) }
     s.goals.forEach { goal ->
         val plan = Finance.goalPlan(goal, today)
@@ -152,14 +151,13 @@ internal fun GoalsListSheet(s: AppState) {
     }
 }
 
-/** Planejamento › Limites mensais: a lista que antes ficava na seção recolhível de Meu dinheiro. */
+/** Meu dinheiro › Limites mensais. */
 @Composable
-internal fun LimitsListSheet(s: AppState) {
+internal fun LimitsListContent(s: AppState) {
     val nav = LocalNav.current
     val p = Fin.c
     val hide = LocalPrivacy.current
     val usage = Finance.budgetUsage(s, LocalToday.current.ym())
-    Header(stringResource(R.string.limits_sheet_title), stringResource(R.string.limits_sheet_subtitle))
     Pill(stringResource(R.string.limits_sheet_new), Modifier.fillMaxWidth().padding(top = 4.dp), icon = Ico.ADD) { nav.open(Sheet.LimitEdit()) }
     s.limits.forEach { (category, limit) ->
         val spent = usage[category] ?: 0L

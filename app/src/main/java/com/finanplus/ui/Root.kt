@@ -118,7 +118,7 @@ enum class Tab(val label: String, val icon: com.finanplus.ui.components.Ico) {
 sealed interface Sheet : java.io.Serializable {
     /** [date]: data inicial de um lançamento novo (ex.: o dia escolhido no calendário) */
     data object AddChoice : Sheet
-    data class TxEdit(val kind: Kind, val id: String? = null, val date: LocalDate? = null) : Sheet
+    data class TxEdit(val kind: Kind, val id: String? = null, val date: LocalDate? = null, val category: String? = null) : Sheet
     /** [name]/[target]/[monthly]: valores iniciais de uma meta nova (ex.: vindos do simulador) */
     data class GoalEdit(val id: String? = null, val name: String = "", val target: Long = 0, val monthly: Long = 0) : Sheet
     data class AccountEdit(val id: String? = null) : Sheet
@@ -128,9 +128,6 @@ sealed interface Sheet : java.io.Serializable {
     data class PayInvoice(val cardId: String) : Sheet
     /** Meu dinheiro: detalhe do cartão (fatura, compras, histórico e editar) */
     data class CardDetail(val id: String) : Sheet
-    /** Meu dinheiro › Planejamento: lista de metas e lista de limites mensais */
-    data object GoalsList : Sheet
-    data object LimitsList : Sheet
     /** assistente: perguntas, resumo e todas as dicas */
     data object Assistant : Sheet
     /** Início: como o saldo previsto do fim do mês é calculado */
@@ -183,12 +180,14 @@ class Nav {
     /** calendário: mês mostrado e dia escolhido (null = nenhum) */
     var calMonth by mutableStateOf(java.time.YearMonth.now())
     var calDay by mutableStateOf<LocalDate?>(LocalDate.now())
+    /** Meu dinheiro: tela aberta (contas, dividas, limites, metas, categorias; null = visão geral) */
+    var moneyPage by mutableStateOf<String?>(null)
     fun open(s: Sheet) { sheet = s }
 
     companion object {
         /** Aba, folha aberta e filtros sobrevivem a girar a tela, mudar a fonte e ao bloqueio do app. */
         val Saver = listSaver<Nav, Any?>(
-            save = { n -> listOf(n.tab.name, n.sheet, n.filters.from, n.filters.to, n.filters.query, n.filters.kind?.name, n.filters.paid, n.movesView.name, n.calMonth, n.calDay) },
+            save = { n -> listOf(n.tab.name, n.sheet, n.filters.from, n.filters.to, n.filters.query, n.filters.kind?.name, n.filters.paid, n.movesView.name, n.calMonth, n.calDay, n.moneyPage) },
             restore = { l ->
                 Nav().apply {
                     tab = runCatching { Tab.valueOf(l[0] as String) }.getOrDefault(Tab.HOME)
@@ -201,6 +200,7 @@ class Nav {
                     movesView = runCatching { MovesView.valueOf(l.getOrNull(7) as String) }.getOrDefault(MovesView.LIST)
                     calMonth = l.getOrNull(8) as java.time.YearMonth? ?: java.time.YearMonth.now()
                     calDay = if (l.size > 9) l[9] as LocalDate? else LocalDate.now()
+                    moneyPage = l.getOrNull(10) as String?
                 }
             },
         )
@@ -288,6 +288,8 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             prefs.askedNotifications = true
             askNotif.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        // cartão e limite especial deixam de ser categorias; Empréstimo vira Dívidas (uma vez por aparelho)
+        if (!prefs.categoriesMigrated) { Repo.migrateCategories(); prefs.categoriesMigrated = true }
     }
 
     // "hoje" dinâmico: muda na meia-noite, ao voltar ao app e se a data do aparelho mudar

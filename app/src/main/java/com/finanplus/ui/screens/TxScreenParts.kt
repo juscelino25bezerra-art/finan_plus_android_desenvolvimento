@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -96,7 +97,10 @@ internal object TxTags {
     const val DRAWER = "tx_drawer"
     const val KIND_EXPENSE = "tx_kind_expense"
     const val KIND_INCOME = "tx_kind_income"
+    const val ALL_CATEGORIES = "tx_all_categories"
+    const val PAY_ROW = "tx_pay_row"
     fun cell(name: String) = "tx_cat_$name"
+    fun chip(name: String) = "tx_chip_$name"
 }
 
 /** Ícones da tela de lançamento (mapeamento da proposta; o resto cai no ícone geral da categoria e, por fim, em more_horiz). */
@@ -122,27 +126,49 @@ internal object TxIcons {
     }
 }
 
-/** Seletor Despesa | Receita em duas metades; a metade escolhida fica preenchida com a cor do tipo. */
+/** Seletor Despesa | Receita (segmentado): a cor do tipo fica no valor; o fundo dos botões nunca é vermelho/verde. */
 @Composable
 internal fun KindSwitch(kind: Kind, onChange: (Kind) -> Unit) {
     val p = Fin.c
     Row(
         Modifier.fillMaxWidth().padding(top = 4.dp).height(52.dp).clip(RoundedCornerShape(16.dp))
-            .background(p.track).border(1.dp, p.border, RoundedCornerShape(16.dp)).padding(4.dp),
+            .background(p.accent2.copy(alpha = 0.7f)).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         listOf(Kind.EXPENSE to R.string.tx_kind_expense, Kind.INCOME to R.string.tx_kind_income).forEach { (k, label) ->
             val on = k == kind
-            val fill = if (k == Kind.EXPENSE) p.red else p.green
-            val bg by animateColorAsState(if (on) fill else Color.Transparent, tween(220), label = "metade $k")
-            val fg by animateColorAsState(if (on) onFill(fill) else p.text, tween(220), label = "texto $k")
+            val bg by animateColorAsState(if (on) MaterialTheme.colorScheme.surface else Color.Transparent, tween(200), label = "metade $k")
             Box(
-                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(12.dp)).background(bg)
+                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(13.dp)).background(bg)
                     .testTag(if (k == Kind.EXPENSE) TxTags.KIND_EXPENSE else TxTags.KIND_INCOME)
                     .semantics { selected = on }
                     .clickable(role = Role.Tab) { onChange(k) },
                 contentAlignment = Alignment.Center,
-            ) { Text(stringResource(label), color = fg, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall) }
+            ) { Text(stringResource(label), color = if (on) p.text else p.muted, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall) }
+        }
+    }
+}
+
+/** Rótulo pequeno de cada bloco do formulário. */
+@Composable
+internal fun FormLabel(text: String) =
+    Text(text, Modifier.padding(top = 14.dp, bottom = 6.dp, start = 2.dp), style = MaterialTheme.typography.labelLarge, color = Fin.c.muted, fontWeight = FontWeight.SemiBold)
+
+/** Chip do formulário (categoria, data): selecionado = cor primária. Área de toque de 48dp. */
+@Composable
+internal fun FormChip(label: String, selected: Boolean, icon: Ico?, modifier: Modifier = Modifier, trailing: Ico? = null, onClick: () -> Unit) {
+    val p = Fin.c
+    Box(modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier.clip(RoundedCornerShape(20.dp)).background(if (selected) p.accent else p.surface)
+                .border(1.dp, if (selected) p.accent else p.border, RoundedCornerShape(20.dp))
+                .semantics { this.selected = selected }.clickable(role = Role.RadioButton, onClick = onClick)
+                .heightIn(min = 40.dp).padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) { AppIcon(icon, if (selected) p.onAccent else p.accent, size = 18.dp); Spacer(Modifier.width(6.dp)) }
+            Text(label, color = if (selected) p.onAccent else p.text, style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1)
+            if (trailing != null) { Spacer(Modifier.width(4.dp)); AppIcon(trailing, if (selected) p.onAccent else p.muted, size = 18.dp) }
         }
     }
 }
@@ -221,16 +247,16 @@ internal fun FieldRow(
     }
 }
 
-/** Gaveta de categorias: busca, "Usadas recentemente" (até 4) e "Todas" em grade de 3 colunas. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/** Seletor de categoria (folha): busca, lista com ícone e check na escolhida e "Gerenciar categorias". */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CategoryDrawer(choices: List<String>, recent: List<String>, current: String?, tone: Color, onPick: (String) -> Unit, onClose: () -> Unit) {
+internal fun CategoryDrawer(kind: Kind, choices: List<String>, current: String?, onPick: (String) -> Unit, onClose: () -> Unit, onManage: () -> Unit) {
     val p = Fin.c
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by rememberSaveable { mutableStateOf("") }
     val shown = TxForm.filter(choices, query)
     val closeLabel = stringResource(R.string.tx_close)
-    ModalBottomSheet(onDismissRequest = onClose, sheetState = state, containerColor = MaterialTheme.colorScheme.surface, modifier = Modifier.testTag(TxTags.DRAWER)) {
+    ModalBottomSheet(onDismissRequest = onClose, sheetState = state, containerColor = MaterialTheme.colorScheme.surface, modifier = Modifier.statusBarsPadding().testTag(TxTags.DRAWER)) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.85f).navigationBarsPadding().padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.tx_category), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
@@ -251,50 +277,35 @@ internal fun CategoryDrawer(choices: List<String>, recent: List<String>, current
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = p.track, unfocusedContainerColor = p.track,
                     focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = p.text, unfocusedTextColor = p.text, cursorColor = tone,
+                    focusedTextColor = p.text, unfocusedTextColor = p.text, cursorColor = p.accent,
                     focusedPlaceholderColor = p.muted, unfocusedPlaceholderColor = p.muted,
                 ),
             )
-            LazyVerticalGrid(
-                GridCells.Fixed(3), Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                val showRecent = recent.isNotEmpty() && query.isBlank()
-                if (showRecent) {
-                    item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel(stringResource(R.string.tx_drawer_recent)) }
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            recent.take(4).forEach { c ->
-                                AssistChip(
-                                    onClick = { onPick(c) }, label = { Text(c, maxLines = 1) }, modifier = Modifier.heightIn(min = 48.dp),
-                                    leadingIcon = { AppIcon(TxIcons.forCategory(c), tone, size = 18.dp) },
-                                    colors = AssistChipDefaults.assistChipColors(labelColor = p.text),
-                                )
-                            }
+            SectionLabel(stringResource(if (kind == Kind.EXPENSE) R.string.tx_drawer_expenses else R.string.tx_drawer_incomes))
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
+                if (shown.isEmpty()) item { Text(stringResource(R.string.tx_drawer_empty), color = p.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 16.dp)) }
+                items(shown.size, key = { shown[it] }) { i ->
+                    val c = shown[i]
+                    val on = c == current
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(16.dp))
+                            .background(if (on) p.accent2 else Color.Transparent)
+                            .testTag(TxTags.cell(c)).semantics { selected = on }
+                            .clickable(role = Role.RadioButton) { onPick(c) }.padding(horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconTile(TxIcons.forCategory(c), p.accent, p.accent2, size = 38.dp, iconSize = 20.dp)
+                        Text(com.finanplus.core.Words.ordinal(c), Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
+                        if (on) AppIcon(Ico.CHECK, p.accent, size = 22.dp, description = "Selecionada")
+                    }
+                }
+                item {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.TextButton(onClick = onManage, Modifier.heightIn(min = 48.dp)) {
+                            Text(stringResource(R.string.tx_manage_categories), color = p.accent, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
-                item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel(stringResource(R.string.tx_drawer_all)) }
-                if (shown.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(stringResource(R.string.tx_drawer_empty), color = p.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 16.dp))
-                }
-                items(shown, key = { it }) { c ->
-                    val on = c == current
-                    Column(
-                        Modifier.heightIn(min = 84.dp).clip(RoundedCornerShape(16.dp))
-                            .background(if (on) tone.copy(alpha = if (p.dark) 0.22f else 0.14f) else p.track)
-                            .border(if (on) 2.dp else 1.dp, if (on) tone else p.border, RoundedCornerShape(16.dp))
-                            .testTag(TxTags.cell(c)).semantics { selected = on }
-                            .clickable(role = Role.Button) { onPick(c) }
-                            .padding(horizontal = 6.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
-                    ) {
-                        AppIcon(TxIcons.forCategory(c), if (on) tone else p.accent, size = 26.dp)
-                        Text(c, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.labelLarge, color = p.text,
-                            textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(16.dp)) }
             }
         }
     }

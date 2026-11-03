@@ -106,8 +106,6 @@ fun SheetHost(s: AppState, sheet: Sheet, onClose: () -> Unit) {
                 is Sheet.LimitEdit -> LimitEditor(s, sheet.category, onClose)
                 is Sheet.PayInvoice -> PayInvoiceEditor(s, sheet.cardId, onClose)
                 is Sheet.CardDetail -> CardDetailSheet(s, sheet.id, onClose)
-                Sheet.GoalsList -> GoalsListSheet(s)
-                Sheet.LimitsList -> LimitsListSheet(s)
                 is Sheet.Assistant -> AssistantSheet(s, onClose)
                 Sheet.ForecastInfo -> ForecastInfoSheet(s)
                 Sheet.SummaryInfo -> SummaryInfoSheet()

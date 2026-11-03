@@ -56,13 +56,45 @@ object TxForm {
     const val LEGACY_CARD_CATEGORY = "Cartão de Crédito"
     const val OTHERS = "Outros"
 
-    private fun isLegacyCard(c: String) = AssistText.fold(c.trim()) == AssistText.fold(LEGACY_CARD_CATEGORY)
+    /** Formas de pagamento que eram categorias (REDESIGN-COERENCIA.md): cartão é forma de pagamento; limite especial é da conta. */
+    private val paymentLike = setOf("cartao de credito", "cartao", "limite especial", "cheque especial")
 
-    /** Nome mostrado: lançamento antigo salvo como "Cartão de Crédito" aparece como "Outros" (o dado não muda). */
+    private fun isLegacyCard(c: String) = AssistText.fold(c.trim()) in paymentLike
+
+    /** Nome mostrado: lançamento antigo salvo como "Cartão de Crédito" ou "Limite Especial" aparece como "Outros" (o dado não muda). */
     fun displayCategory(c: String): String = if (isLegacyCard(c)) OTHERS else c
 
     /** Categorias escolhidas na gaveta: as do tipo, sem "Cartão de Crédito". */
     fun choices(cats: List<String>): List<String> = cats.filterNot { isLegacyCard(it) }.distinct()
+
+    fun isPaymentLike(c: String): Boolean = isLegacyCard(c)
+
+    /**
+     * Migração das categorias (uma vez por aparelho, ao abrir): "Cartão de Crédito" e "Limite Especial" saem da lista
+     * de despesas; "Empréstimo" vira "Dívidas" (lançamentos, recorrências e limites acompanham o novo nome).
+     * Os lançamentos antigos com cartão ou limite especial continuam com o nome salvo e aparecem como "Outros".
+     * null = nada a migrar.
+     */
+    fun migrate(s: AppState): AppState? {
+        var exp = s.cats.expense
+        var changed = false
+        val cleaned = exp.filterNot { isLegacyCard(it) }
+        if (cleaned.size != exp.size && cleaned.isNotEmpty()) { exp = cleaned; changed = true }
+        var st = s.copy(cats = s.cats.copy(expense = exp))
+        val loans = exp.filter { Debts.isDebtCategory(it) && it != Debts.CATEGORY }
+        for (old in loans) {
+            val hasDebts = st.cats.expense.contains(Debts.CATEGORY)
+            st = if (!hasDebts) (Ops.renameCategory(st, Kind.EXPENSE, old, Debts.CATEGORY) as? Outcome.Ok)?.state ?: st
+            else st.copy(
+                cats = st.cats.copy(expense = st.cats.expense.filterNot { it == old }),
+                txs = st.txs.map { if (it.kind == Kind.EXPENSE && it.category == old) it.copy(category = Debts.CATEGORY) else it },
+                recurring = st.recurring.map { if (it.kind == Kind.EXPENSE && it.category == old) it.copy(category = Debts.CATEGORY) else it },
+                limits = if (old in st.limits && Debts.CATEGORY !in st.limits) LinkedHashMap(st.limits).apply { put(Debts.CATEGORY, remove(old)!!) } else st.limits - old,
+            )
+            changed = true
+        }
+        return if (changed) st else null
+    }
 
     /**
      * Ao trocar Receita/Despesa: a categoria escolhida continua se existir no novo tipo; senão a seleção é limpa ("").
