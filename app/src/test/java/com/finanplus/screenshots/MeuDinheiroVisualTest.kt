@@ -14,6 +14,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -97,7 +99,7 @@ class MeuDinheiroVisualTest {
         prefs.welcomeSeen = true
         prefs.categoriesMigrated = false
     }
-    private fun openCard(title: String) { compose.onNode(hasText(title) and hasClickAction()).performClick(); compose.waitForIdle() }
+    private fun openCard(title: String) { compose.onNode(hasText(title) and hasClickAction()).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick); compose.waitForIdle() }
     private fun back() { compose.onNode(hasContentDescription("Voltar para Meu dinheiro")).performClick(); compose.waitForIdle() }
 
     @After fun reset() = prefs.update { it.copy(glass = false) }

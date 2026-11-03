@@ -12,6 +12,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.onFirst
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.finanplus.MainActivity
@@ -61,7 +63,7 @@ class RedesignVisualTest {
         compose.onNode(hasText(label) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).performClick()
         compose.waitForIdle()
     }
-    private fun tapText(t: String) { compose.onNode(hasText(t, substring = true) and hasClickAction()).performClick(); compose.waitForIdle() }
+    private fun tapText(t: String) { compose.onAllNodes(hasText(t, substring = true) and hasClickAction()).onFirst().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick); compose.waitForIdle() }
 
     /** Os números da proposta: saldo R$ 166,88 depois de guardar R$ 100,00, a receber R$ 3.413,62, a pagar R$ 609,91. */
     private fun estado(): AppState {
