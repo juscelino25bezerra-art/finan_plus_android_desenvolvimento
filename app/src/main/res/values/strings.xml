@@ -108,4 +108,37 @@
     <string name="summary_month_detail_open">Ver os lançamentos do mês</string>
     <string name="summary_month_result">Resultado</string>
     <string name="summary_month_until">Até o dia %1$d, o mês ainda está em andamento.</string>
+    <!-- Nova tela de lançamento -->
+    <string name="tx_title_new">Novo lançamento</string>
+    <string name="tx_title_edit">Editar lançamento</string>
+    <string name="tx_close">Fechar</string>
+    <string name="tx_kind_expense">Despesa</string>
+    <string name="tx_kind_income">Receita</string>
+    <string name="tx_currency">R$</string>
+    <string name="tx_amount_label">Valor em reais</string>
+    <string name="tx_amount_placeholder">0,00</string>
+    <string name="tx_amount_error">Informe um valor maior que zero.</string>
+    <string name="tx_category">Categoria</string>
+    <string name="tx_choose_category">Escolher categoria</string>
+    <string name="tx_pay_with">Pagar com</string>
+    <string name="tx_receive_in">Receber em</string>
+    <string name="tx_date">Data</string>
+    <string name="tx_today">Hoje</string>
+    <string name="tx_description_hint">Descrição (opcional)</string>
+    <string name="tx_description_suggestions">Descrições mais usadas</string>
+    <string name="tx_more">Mais opções</string>
+    <string name="tx_less">Menos opções</string>
+    <string name="tx_save_expense">Salvar despesa</string>
+    <string name="tx_save_income">Salvar receita</string>
+    <string name="tx_saved_expense">Despesa salva</string>
+    <string name="tx_saved_income">Receita salva</string>
+    <string name="tx_drawer_search">Buscar categoria</string>
+    <string name="tx_drawer_search_clear">Limpar a busca</string>
+    <string name="tx_drawer_recent">Usadas recentemente</string>
+    <string name="tx_drawer_all">Todas</string>
+    <string name="tx_drawer_empty">Nenhuma categoria encontrada</string>
+    <string name="tx_pay_accounts">Contas</string>
+    <string name="tx_pay_cards">Cartões</string>
+    <string name="tx_date_ok">OK</string>
+    <string name="tx_date_cancel">Cancelar</string>
 </resources>

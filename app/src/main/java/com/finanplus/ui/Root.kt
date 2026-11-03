@@ -203,7 +203,9 @@ class Nav {
 }
 
 val LocalNav = staticCompositionLocalOf { Nav() }
-private val LocalTxSnackbar = staticCompositionLocalOf { SnackbarHostState() }
+internal val LocalTxSnackbar = staticCompositionLocalOf { SnackbarHostState() }
+/** Escopo que vive tanto quanto a tela principal: o snackbar de "Despesa salva" sobrevive ao fechar o formulário. */
+internal val LocalUiScope = staticCompositionLocalOf<kotlinx.coroutines.CoroutineScope?> { null }
 
 /** Padding inferior para o conteúdo não ficar sob a navegação e a ação flutuante. */
 @Composable
@@ -273,6 +275,7 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
     // Android 13+: pede a permissão de notificação na primeira abertura (uma vez só).
     val ctx = LocalContext.current
     val txSnackbarState = remember { SnackbarHostState() }
+    val uiScope = rememberCoroutineScope()
     val prefs = DevicePrefs.get(ctx)
     val askNotif = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> prefs.update { it.copy(notifications = granted) } }
     LaunchedEffect(Unit) {
@@ -318,6 +321,7 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
     CompositionLocalProvider(
         LocalNav provides nav,
         LocalTxSnackbar provides txSnackbarState,
+        LocalUiScope provides uiScope,
         com.finanplus.ui.components.LocalToday provides today,
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -356,8 +360,10 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
                     .padding(start = 12.dp, end = 82.dp, bottom = 116.dp).widthIn(max = 360.dp),
             )
             SaveErrorBanner(Modifier.align(Alignment.TopCenter)) { reaskProblem++ }
+            // Receita e Despesa (novo e editar): tela cheia por cima de tudo (LANCAMENTO-NOVA-TELA.md)
+            nav.sheet?.let { sh -> if (sh is Sheet.TxEdit && com.finanplus.ui.screens.usesTxScreen(s, sh)) key(sh) { com.finanplus.ui.screens.TxScreen(s, sh) { nav.sheet = null } } }
         }
-        nav.sheet?.let { sh -> key(sh) { SheetHost(s, sh) { nav.sheet = null } } }
+        nav.sheet?.let { sh -> if (!(sh is Sheet.TxEdit && com.finanplus.ui.screens.usesTxScreen(s, sh))) key(sh) { SheetHost(s, sh) { nav.sheet = null } } }
         ProblemNotice(reaskProblem)
     }
 }
@@ -486,11 +492,11 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // ícone da categoria num quadrado na cor do tipo (despesa, receita, meta; previsto = neutro)
-            com.finanplus.ui.components.CategoryTile(t.category, com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected))
+            com.finanplus.ui.components.CategoryTile(com.finanplus.core.TxForm.displayCategory(t.category), com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected))
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(t.desc, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // duas linhas fixas: data e situação nunca são cortadas, mesmo com nomes longos
-                Text("${t.category} · $where", style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${com.finanplus.core.TxForm.displayCategory(t.category)} · $where", style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$status · $dateLabel", style = MaterialTheme.typography.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             // reserva para meta: sem sinal e na cor primária (o dinheiro continua seu, separado na meta);

@@ -21,6 +21,14 @@
 - **Evolução:** só meses com lançamentos, valor sobre cada barra, toque abre o detalhe do mês, verde escuro e vermelho claro, e "até dia X" no mês em andamento.
 - Nenhum cálculo mudou. Detalhes, decisões em aberto e testes em [RESUMO.md](RESUMO.md).
 
+### Nova tela de lançamento
+
+- **Tela cheia para Receita e Despesa:** seletor em duas metades com a cor do tipo, valor grande com formatação pt-BR enquanto digita e erro discreto para valor zero.
+- **Campos num cartão só:** Categoria, Pagar com (contas e cartões) ou Receber em, e Data com o seletor nativo.
+- **Gaveta de categorias:** busca, "Usadas recentemente" e grade de 3 colunas com ícones. "Cartão de Crédito" saiu da lista; lançamentos antigos com ela aparecem como "Outros", sem mudar o dado.
+- **Descrição com sugestões** das mais usadas e botão Salvar fixo no rodapé com snackbar "Despesa salva"/"Receita salva".
+- Nenhum cálculo nem dado salvo mudou. Detalhes e decisões em [LANCAMENTO.md](LANCAMENTO.md).
+
 ## 1.9.0 — Despesa compartilhada como imagem, metas como "guardado" em Lançamentos e busca recolhível (02/11/2026)
 
 `versionCode 18`.
