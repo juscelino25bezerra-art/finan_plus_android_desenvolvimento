@@ -27,7 +27,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -105,51 +104,56 @@ class LancamentoTelaTest {
     }
 
     @Test
-    fun gavetaCategoriaTrocaDeTipoESalvar() {
+    fun seletorDeCategoriaTrocaDeTipoSalvarEDesfazer() {
         DevicePrefs.get(app).askedNotifications = true
         DevicePrefs.get(app).welcomeSeen = true
         DevicePrefs.get(app).update { it.copy(glass = false) }
         Repo.showForScreenshots(estado().copy(theme = ThemeId.GRUVBOX))
         ActivityScenario.launch(MainActivity::class.java).use {
             abrirNovo("Despesa")
-            assertTrue("sem o título", has("Novo lançamento"))
-            assertTrue("sem 'Escolher categoria'", has("Escolher categoria"))
-            assertTrue("sem 'Pagar com'", has("Pagar com"))
+            assertTrue("sem o título", has("Nova despesa"))
+            assertTrue("sem o atalho Ler boleto", has("Ler boleto"))
             assertTrue("sem 'Salvar despesa'", has("Salvar despesa"))
+            assertTrue("sem os chips de data", has("Hoje") && has("Ontem") && has("Escolher"))
             assertTrue("sugestões de descrição", has("Mercado") && has("Uber"))
+            // pré-seleção = última categoria usada (Transporte, ontem)
+            assertTrue("sem a pré-seleção", hasTag(TxTags.chip("Transporte")))
 
-            // gaveta: abre, mostra recentes e não oferece "Cartão de Crédito"
-            click(TxTags.CATEGORY_ROW)
-            assertTrue("a gaveta não abriu", hasTag(TxTags.DRAWER))
-            assertTrue("sem 'Usadas recentemente'", has("Usadas recentemente"))
-            assertTrue("'Cartão de Crédito' continua na grade", !hasTag(TxTags.cell("Cartão de Crédito")))
-            click(TxTags.cell("Transporte"))
-            assertTrue("a gaveta não fechou", !hasTag(TxTags.DRAWER))
-            assertTrue("a categoria não foi escolhida", !has("Escolher categoria") && has("Transporte"))
+            // seletor em folha: busca, lista com check, sem "Cartão de Crédito", "Gerenciar categorias"
+            click(TxTags.ALL_CATEGORIES)
+            assertTrue("o seletor não abriu", hasTag(TxTags.DRAWER))
+            assertTrue("sem a seção DESPESAS", has("DESPESAS"))
+            assertTrue("sem Gerenciar categorias", has("Gerenciar categorias"))
+            assertTrue("'Cartão de Crédito' continua na lista", !hasTag(TxTags.cell("Cartão de Crédito")))
+            click(TxTags.cell("Lazer"))
+            assertTrue("o seletor não fechou", !hasTag(TxTags.DRAWER))
+            assertTrue("a categoria escolhida não virou chip", hasTag(TxTags.chip("Lazer")))
 
-            // botão habilita com valor, troca de cor ao mudar de tipo e a categoria some (não existe em receita)
+            // botão principal na cor primária nos dois tipos; o tipo muda o texto e a categoria
             compose.onNode(hasTestTag(TxTags.AMOUNT)).performTextInput("12,5")
             compose.waitForIdle()
             val expense = saveColor()
             click(TxTags.KIND_INCOME)
             compose.mainClock.advanceTimeBy(400); compose.waitForIdle()
-            val income = saveColor()
-            assertNotEquals("a cor do botão não mudou", expense, income)
-            assertTrue("vermelho esperado na despesa", android.graphics.Color.red(expense) > android.graphics.Color.green(expense) + 40)
-            assertTrue("verde esperado na receita", android.graphics.Color.green(income) >= android.graphics.Color.red(income) - 10)
-            assertTrue("sem 'Salvar receita'", has("Salvar receita") && has("Receber em"))
-            assertTrue("categoria não foi limpa", has("Escolher categoria"))
+            assertEquals("o botão principal mudou de cor com o tipo", expense, saveColor())
+            assertTrue("sem 'Salvar receita'", has("Salvar receita") && has("Nova receita"))
+            assertTrue("categoria da receita não foi pré-selecionada", hasTag(TxTags.chip("Salário")))
             click(TxTags.KIND_EXPENSE)
             compose.mainClock.advanceTimeBy(400); compose.waitForIdle()
-            assertEquals("a cor da despesa voltou diferente", expense, saveColor())
 
-            // salvar: fecha e mostra o snackbar
+            // mais opções recolhido com resumo; abre e mostra "Pagar com"
+            assertTrue("sem o resumo de mais opções", has("à vista"))
+            compose.onNode(hasText("Mais opções")).performClick(); compose.waitForIdle()
+            assertTrue("sem 'Pagar com'", has("Pagar com"))
+
+            // salvar: fecha e mostra o aviso com Desfazer
             click(TxTags.SAVE)
-            assertTrue("a tela não fechou", !has("Novo lançamento"))
-            assertTrue("sem o snackbar", has("Despesa salva"))
+            assertTrue("a tela não fechou", !has("Nova despesa"))
+            assertTrue("sem o aviso", has("Despesa salva"))
             val saved = Repo.state.value.txs.first { it.value == 1250L }
-            assertEquals(1250L, saved.value)
-            assertEquals("Outros", saved.category)
+            assertEquals("Transporte", saved.category) // ao voltar para despesa, volta a última usada
+            compose.onNode(hasText("Desfazer")).performClick(); compose.waitForIdle()
+            assertTrue("Desfazer não removeu", Repo.state.value.txs.none { it.value == 1250L })
         }
     }
 
@@ -167,7 +171,7 @@ class LancamentoTelaTest {
                 compose.waitForIdle()
                 assertTrue("formatação pt-BR ($suffix)", has("1.234,56"))
                 shot("lancamento-despesa-$suffix")
-                click(TxTags.CATEGORY_ROW)
+                click(TxTags.ALL_CATEGORIES)
                 shot("lancamento-gaveta-$suffix")
                 click(TxTags.cell("Alimentação"))
                 click(TxTags.KIND_INCOME)

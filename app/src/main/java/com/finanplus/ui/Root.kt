@@ -507,9 +507,9 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
                 Text(listOfNotNull(com.finanplus.core.Words.ordinal(com.finanplus.core.TxForm.displayCategory(t.category)), where).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$status · $dateLabel", style = MaterialTheme.typography.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            // reserva para meta: sem sinal e no âmbar das metas (o dinheiro continua seu, separado na meta);
+            // reserva para meta: sai do saldo ("−"), no âmbar das metas; nunca é chamada de despesa;
             // retirada da meta: volta para a conta, então "+" em verde, como uma entrada
-            MoneyText(t.value, prefix = when { t.isGoal && t.kind == Kind.EXPENSE -> ""; t.kind == Kind.EXPENSE -> "− "; else -> "+ " },
+            MoneyText(t.value, prefix = when { t.kind == Kind.EXPENSE -> "− "; else -> "+ " },
                 color = when { t.isGoal && t.kind == Kind.EXPENSE -> p.goal; t.kind == Kind.EXPENSE -> p.red; else -> p.green },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold))
         }

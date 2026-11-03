@@ -141,7 +141,7 @@ class InicioVisualTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             compose.onNode(hasContentDescription("Como o saldo previsto é calculado")).performClick()
             compose.waitForIdle()
-            assertTrue("folha sem a explicação", has("Considera valores pendentes, faturas e recorrências até esta data."))
+            assertTrue("folha sem a explicação", has("Considera valores pendentes (inclusive atrasados)"))
             assertTrue("folha sem a conta", has("Hoje R$ 166,88 + R$ 1.213,62 a receber"))
             shot("inicio-previsto-info")
         }

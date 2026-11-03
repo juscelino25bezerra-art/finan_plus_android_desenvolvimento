@@ -91,6 +91,8 @@ class ScreenshotTest {
         Repo.showForScreenshots(AppState(theme = ThemeId.LIGHT))
         ActivityScenario.launch(MainActivity::class.java).use {
             tab("Meu dinheiro")
+            compose.onNode(hasText("Contas e cartões") and androidx.compose.ui.test.hasClickAction()).performClick()
+            compose.waitForIdle()
             for (label in listOf(
                 "Conta principal",
                 "R$ 0,00",
