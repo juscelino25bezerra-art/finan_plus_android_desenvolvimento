@@ -380,7 +380,7 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
     // ---- gaveta de categorias
     if (drawer) CategoryDrawer(
         choices = choices, recent = remember(s.txs, kind, choices) { TxForm.recentCategories(s.txs, kind, choices) },
-        selected = TxForm.displayCategory(category).takeIf { category.isNotBlank() }, tone = tone,
+        current = TxForm.displayCategory(category).takeIf { category.isNotBlank() }, tone = tone,
         onPick = { category = it; drawer = false }, onClose = { drawer = false },
     )
     // ---- pagar com / receber em

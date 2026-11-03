@@ -170,6 +170,7 @@ internal fun AmountEntry(amount: String, onChange: (String) -> Unit, tone: Color
         val needed = (shown.length.coerceAtLeast(4)) * 0.6f * basePx
         val scale = if (needed > available) (available / needed).coerceAtLeast(0.45f) else 1f
         val size = (52f * scale).sp
+        val fieldMax = maxWidth * 0.82f
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Text(stringResource(R.string.tx_currency), color = tone, fontWeight = FontWeight.Bold, fontSize = (22f * scale.coerceAtLeast(0.7f)).sp,
                 modifier = Modifier.padding(end = 6.dp, top = 6.dp))
@@ -179,7 +180,7 @@ internal fun AmountEntry(amount: String, onChange: (String) -> Unit, tone: Color
                     val f = AmountInput.format(v.text)
                     field = TextFieldValue(f, TextRange(f.length)); onChange(f)
                 },
-                modifier = Modifier.focusRequester(focus).widthIn(min = 48.dp, max = maxWidth * 0.82f).heightIn(min = 64.dp)
+                modifier = Modifier.focusRequester(focus).widthIn(min = 48.dp, max = fieldMax).heightIn(min = 64.dp)
                     .testTag(TxTags.AMOUNT).semantics { contentDescription = label },
                 singleLine = true,
                 textStyle = TextStyle(color = tone, fontSize = size, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center),
@@ -223,7 +224,7 @@ internal fun FieldRow(
 /** Gaveta de categorias: busca, "Usadas recentemente" (até 4) e "Todas" em grade de 3 colunas. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-internal fun CategoryDrawer(choices: List<String>, recent: List<String>, selected: String?, tone: Color, onPick: (String) -> Unit, onClose: () -> Unit) {
+internal fun CategoryDrawer(choices: List<String>, recent: List<String>, current: String?, tone: Color, onPick: (String) -> Unit, onClose: () -> Unit) {
     val p = Fin.c
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by rememberSaveable { mutableStateOf("") }
@@ -278,7 +279,7 @@ internal fun CategoryDrawer(choices: List<String>, recent: List<String>, selecte
                     Text(stringResource(R.string.tx_drawer_empty), color = p.muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 16.dp))
                 }
                 items(shown, key = { it }) { c ->
-                    val on = c == selected
+                    val on = c == current
                     Column(
                         Modifier.heightIn(min = 84.dp).clip(RoundedCornerShape(16.dp))
                             .background(if (on) tone.copy(alpha = if (p.dark) 0.22f else 0.14f) else p.track)
