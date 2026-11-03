@@ -247,6 +247,9 @@ object Shared {
     /** Arquivos de comprovante em uso (os demais podem ser apagados do aparelho). */
     fun receiptsInUse(s: AppState): Set<String> = s.shared.mapNotNullTo(HashSet()) { it.receipt.ifEmpty { null } }
 
+    /** Nome da imagem: "finanplus-mercado-do-mes-2026-11-02.png". */
+    fun imageName(e: SharedExpense): String = pdfName(e).removePrefix("comprovante-").removeSuffix(".pdf").let { "finanplus-$it.png" }
+
     /** Nome do PDF: "comprovante-mercado-do-mes-2026-11-02.pdf". */
     fun pdfName(e: SharedExpense): String {
         val slug = fold(e.name).lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40).ifEmpty { "despesa" }

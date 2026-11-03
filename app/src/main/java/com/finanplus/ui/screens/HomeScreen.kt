@@ -201,10 +201,13 @@ fun HomeScreen(s: AppState, listState: LazyListState = rememberLazyListState()) 
         item {
             SectionHead(null, "Próximos vencimentos")
             if (nextDues.isEmpty()) NextPaymentCard(null) {}
-            else nextDues.forEach { due ->
-                NextPaymentCard(due) {
-                    if (due.type == com.finanplus.core.ReminderType.INVOICE_DUE) nav.open(Sheet.PayInvoice(due.refId))
-                    else s.txs.firstOrNull { it.id == due.refId }?.let { nav.open(Sheet.TxEdit(it.kind, it.id)) }
+            // em coluna com espaço entre os cartões: soltos no mesmo item, eles ficavam colados um no outro
+            else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                nextDues.forEach { due ->
+                    NextPaymentCard(due) {
+                        if (due.type == com.finanplus.core.ReminderType.INVOICE_DUE) nav.open(Sheet.PayInvoice(due.refId))
+                        else s.txs.firstOrNull { it.id == due.refId }?.let { nav.open(Sheet.TxEdit(it.kind, it.id)) }
+                    }
                 }
             }
         }

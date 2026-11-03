@@ -13,6 +13,7 @@ Esta é a versão nativa para Android, em **Kotlin + Jetpack Compose**: dados cr
 - Metas e reserva para meta (guardar tira da conta sem ser despesa): [METAS.md](METAS.md)
 - Recorrências nos próximos meses ("Previsto"): [RECORRENCIAS.md](RECORRENCIAS.md)
 - Ler fatura ou boleto (PDF com senha, linha digitável e Pix): [FATURAS.md](FATURAS.md)
+- Lançamentos: reservas para meta como "guardado" e busca recolhível: [LANCAMENTOS-METAS-E-BUSCA.md](LANCAMENTOS-METAS-E-BUSCA.md)
 - Despesas compartilhadas (divisão, quem deve a quem, pagamentos e comprovante em PDF): [DESPESAS-COMPARTILHADAS.md](DESPESAS-COMPARTILHADAS.md)
 - Como o assistente decide cada coisa: [ASSISTENTE.md](ASSISTENTE.md)
 - Acesso pela rede (uso, certificado, segurança): [ACESSO-PELA-REDE.md](ACESSO-PELA-REDE.md) · auditoria: [AUDITORIA-LAN.md](AUDITORIA-LAN.md)

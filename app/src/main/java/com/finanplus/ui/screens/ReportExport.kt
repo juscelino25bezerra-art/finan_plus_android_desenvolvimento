@@ -64,6 +64,8 @@ fun ReportExportSheet(s: AppState, initialFrom: LocalDate?, initialTo: LocalDate
     var to by remember { mutableStateOf<LocalDate?>(initialTo ?: month.second) }
     var withTxs by remember { mutableStateOf(true) }
     var busy by remember { mutableStateOf(false) }
+    // opção "Acumular saldo entre os meses": o PDF traz o saldo anterior e o acumulado
+    val accumulate = com.finanplus.data.DevicePrefs.get(ctx).value.accumulateBalance
 
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         com.finanplus.security.AppLock.endExternal()
@@ -74,7 +76,7 @@ fun ReportExportSheet(s: AppState, initialFrom: LocalDate?, initialTo: LocalDate
             val ok = withContext(Dispatchers.IO) {
                 runCatching {
                     val st = Repo.state.value
-                    val report = Reports.build(st, a, b, LocalDate.now())
+                    val report = Reports.build(st, a, b, LocalDate.now(), accumulate)
                     ctx.contentResolver.openOutputStream(uri, "wt")!!.use { out ->
                         PdfReport.write(out, report, st, PdfReport.Options(includeTransactions = withTxs, appVersion = BuildConfig.VERSION_NAME))
                     }
@@ -106,10 +108,11 @@ fun ReportExportSheet(s: AppState, initialFrom: LocalDate?, initialTo: LocalDate
 
     val a = from; val b = to
     if (a != null && b != null && !b.isBefore(a)) {
-        val r = remember(s, a, b) { Reports.build(s, a, b, today) }
+        val r = remember(s, a, b, accumulate) { Reports.build(s, a, b, today, accumulate) }
         val m: (Long) -> String = { if (hide) "R$ ••••" else Money.format(it) }
         Text(
-            "${r.txs.size} lançamento(s) · receitas ${m(r.income)} · despesas ${m(r.expense)} · saldo ${m(r.balance)}",
+            "${r.txs.size} lançamento(s) · receitas ${m(r.income)} · despesas ${m(r.expense)} · saldo ${m(r.balance)}" +
+                (r.accumulated?.let { " · saldo acumulado ${m(it)}" } ?: ""),
             style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(vertical = 6.dp),
         )
     }

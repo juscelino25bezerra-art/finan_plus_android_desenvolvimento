@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +80,17 @@ fun ReportsScreen(s: AppState) {
     val categories = remember(s, f.from, f.to) { Finance.categoryTotals(s, f.from, f.to) }
     val months = remember(s, today) { Finance.lastMonths(s, today) }
     val hasHistory = months.any { it.second.income > 0L || it.second.expense > 0L }
+    // opção "Acumular saldo entre os meses" (Ajustes › Lançamentos): saldo que vem dos meses anteriores e o do fim do período
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val accumulate = com.finanplus.data.DevicePrefs.get(ctx).flow.collectAsStateWithLifecycle().value.accumulateBalance
+    val acc = remember(s, f.from, f.to, accumulate, today) {
+        if (!accumulate) null
+        else {
+            val carried = f.from?.let { Finance.balanceAt(s, it.minusDays(1)) } ?: s.accounts.sumOf { it.initial }
+            val until = f.to ?: maxOf(today, s.txs.maxOfOrNull { it.date } ?: today)
+            carried to Finance.balanceAt(s, until)
+        }
+    }
 
     LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
         item {
@@ -96,6 +108,21 @@ fun ReportsScreen(s: AppState) {
                 "Só valores realizados (pagos ou recebidos). O período é o mesmo da aba Lançamentos.",
                 style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(horizontal = 2.dp),
             )
+        }
+        if (acc != null) item {
+            val (carried, closing) = acc
+            Glass(Modifier.padding(top = 10.dp), radius = 20.dp, padding = 14.dp) {
+                Text("Saldo acumulado", style = MaterialTheme.typography.bodySmall, color = p.muted)
+                MoneyText(closing, color = if (closing < 0) p.red else p.accent, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold))
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Vindo dos meses anteriores", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = p.muted)
+                    MoneyText(carried, color = if (carried < 0) p.red else p.text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                }
+                Text(
+                    "Saldo das contas ao fim do período, com o saldo inicial e o que sobrou dos meses anteriores (opção em Ajustes › Lançamentos).",
+                    style = MaterialTheme.typography.labelSmall, color = p.muted, modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
         if (flow.income == 0L && flow.expense == 0L) item {
             // nada realizado: em vez de zeros, mostra o que está pendente e leva ao calendário

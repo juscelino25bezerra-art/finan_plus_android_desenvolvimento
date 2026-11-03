@@ -3,4 +3,15 @@
     <string name="app_name">Finan+</string>
     <string name="widget_name">Saldo Finan+</string>
     <string name="widget_description">Saldo atual, previsto no fim do mês e próximo vencimento</string>
+
+    <!-- Lançamentos: reservas para meta no total do dia (o valor já vem formatado, ex.: "R$ 100,00") -->
+    <string name="day_goals_saved">%1$s em metas</string>
+    <string name="day_goals_withdrawn">%1$s retirados de metas</string>
+
+    <!-- Lançamentos: busca recolhível -->
+    <string name="moves_search_open">Buscar descrição ou categoria</string>
+    <string name="moves_search_placeholder">Buscar descrição ou categoria</string>
+    <string name="moves_search_clear">Limpar e fechar a busca</string>
+    <string name="moves_search_empty">Nenhum lançamento encontrado</string>
+    <string name="moves_search_empty_hint">Tente outra palavra ou troque o mês. A busca procura na descrição e na categoria.</string>
 </resources>

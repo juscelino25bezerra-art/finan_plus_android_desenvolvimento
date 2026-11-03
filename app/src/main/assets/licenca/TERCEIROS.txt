@@ -455,7 +455,7 @@ DEALINGS IN THE SOFTWARE.
 Licença: Apache License 2.0.
 Alteração feita pelo Finan+: conversão de SVG para VectorDrawable (mesmo traçado, cor branca para receber a cor do tema).
 
-Ícones usados: account_balance, account_balance_wallet, add, arrow_downward, arrow_drop_down, arrow_upward, attach_file, attach_money, auto_awesome, backspace, bar_chart, calendar_month, check, checkroom, chevron_left, chevron_right, credit_card, directions_car, favorite, fingerprint, fitness_center, flag, group, home, local_gas_station, more_horiz, north_east, payments, pets, pie_chart, receipt_long, redeem, remove, repeat, restaurant, savings, school, search, settings, share, shield, shopping_bag, shopping_cart, south_west, spa, subscriptions, swap_horiz, theaters, track_changes, tune, view_list, warning, work.
+Ícones usados: account_balance, account_balance_wallet, add, arrow_downward, arrow_drop_down, arrow_upward, attach_file, attach_money, auto_awesome, backspace, bar_chart, calendar_month, check, checkroom, chevron_left, chevron_right, close, credit_card, directions_car, favorite, fingerprint, fitness_center, flag, group, home, local_gas_station, more_horiz, north_east, payments, pets, pie_chart, receipt_long, redeem, remove, repeat, restaurant, savings, school, search, settings, share, shield, shopping_bag, shopping_cart, south_west, spa, subscriptions, swap_horiz, theaters, track_changes, tune, view_list, warning, work.
 
 ## Finan+ web servido pelo Acesso pela rede
 

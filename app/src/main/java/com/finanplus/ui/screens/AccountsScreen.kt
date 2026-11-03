@@ -3,7 +3,6 @@
 
 package com.finanplus.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.foundation.clickable
+import com.finanplus.ui.components.AppIcon
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -85,8 +85,13 @@ fun AccountsScreen(s: AppState) {
         }
 
         item {
-            Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
-                AccountCardHeading(Ico.BANK, "Contas e cartões", "Saldo das contas e situação dos cartões")
+            val total = s.accounts.sumOf { Finance.accountBalance(s, it) }
+            val summary = listOf(
+                "${s.accounts.size} conta(s)",
+                if (s.cards.isEmpty()) "nenhum cartão" else "${s.cards.size} cartão(ões)",
+                "saldo " + if (hide) "R$ ••••" else Money.format(total),
+            ).joinToString(" · ")
+            MoneySection("contas", Ico.BANK, "Contas e cartões", summary, startOpen = true) {
                 s.accounts.forEach { account ->
                     val balance = if (hide) "R$ ••••" else Money.format(Finance.accountBalance(s, account))
                     Row(
@@ -150,8 +155,13 @@ fun AccountsScreen(s: AppState) {
         }
 
         item {
-            Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
-                AccountCardHeading(Ico.LIMIT, "Limites mensais", "Defina um limite por categoria")
+            val over = s.limits.count { (c, l) -> (usage[c] ?: 0L) > l }
+            val summary = when {
+                s.limits.isEmpty() -> "Defina um limite por categoria"
+                over > 0 -> "${s.limits.size} limite(s) · $over acima do limite"
+                else -> "${s.limits.size} limite(s) · todos dentro do limite"
+            }
+            MoneySection("limites", Ico.LIMIT, "Limites mensais", summary) {
                 if (s.limits.isEmpty()) {
                     Pill("Criar meu primeiro limite", Modifier.fillMaxWidth().padding(top = 8.dp), icon = Ico.ADD) { nav.open(Sheet.LimitEdit()) }
                 } else {
@@ -189,12 +199,12 @@ fun AccountsScreen(s: AppState) {
         }
 
         item {
-            Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
-                AccountCardHeading(
-                    Ico.GOAL, "Metas", "Organize objetivos como viagens e reservas",
-                    action = if (s.goals.isEmpty()) null else "Criar meta",
-                    onAction = { nav.open(Sheet.GoalEdit()) },
-                )
+            val summary = if (s.goals.isEmpty()) "Organize objetivos como viagens e reservas"
+            else "${s.goals.size} meta(s) · guardado " + if (hide) "R$ ••••" else Money.format(s.goals.sumOf { it.saved })
+            MoneySection("metas", Ico.GOAL, "Metas", summary) {
+                if (s.goals.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Pill("Criar meta", icon = Ico.ADD) { nav.open(Sheet.GoalEdit()) }
+                }
                 if (s.goals.isEmpty()) {
                     Pill("Criar minha primeira meta", Modifier.fillMaxWidth().padding(top = 8.dp), icon = Ico.ADD) { nav.open(Sheet.GoalEdit()) }
                 } else s.goals.forEach { goal ->
@@ -221,26 +231,9 @@ fun AccountsScreen(s: AppState) {
             }
         }
 
-        item {
-            Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 13.dp, onClick = { nav.open(Sheet.SharedList) }) {
-                AccountCardHeading(Ico.GROUP, "Despesas compartilhadas", sharedCardSubtitle(s, hide), "Nova") { nav.open(Sheet.SharedEdit()) }
-            }
-        }
-
-        item {
-            Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 13.dp) {
-                AccountCardHeading(Ico.ASSIST, "Simular meu dinheiro", "Teste cenários sem alterar seus dados")
-                OutlinedButton(
-                    onClick = { nav.open(Sheet.Simulator()) },
-                    modifier = Modifier.padding(top = 6.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, p.accent.copy(alpha = 0.65f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = p.accent),
-                ) {
-                    Text("Abrir simulação", fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
+        // estes dois abrem uma folha própria: a seta aponta para o lado, como os itens de Ajustes
+        item { MoneyLink(Ico.GROUP, "Despesas compartilhadas", sharedCardSubtitle(s, hide)) { nav.open(Sheet.SharedList) } }
+        item { MoneyLink(Ico.ASSIST, "Simular meu dinheiro", "Teste cenários sem alterar seus dados") { nav.open(Sheet.Simulator()) } }
 
         item {
             CategoryManager(s)
@@ -254,15 +247,9 @@ private fun CategoryManager(s: AppState) {
     val dialogs = LocalDialogs.current
     var newCategory by rememberSaveable { mutableStateOf("") }
     var newKind by rememberSaveable { mutableStateOf(Kind.EXPENSE) }
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 14.dp) {
-        AccountCardHeading(
-            Ico.TUNE, "Categorias", "Organize relatórios e lançamentos",
-            action = if (expanded) "Minimizar" else "Maximizar",
-            onAction = { expanded = !expanded },
-        )
-        if (expanded) {
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    MoneySection("categorias", Ico.TUNE, "Categorias", "${s.cats.expense.size} de despesa · ${s.cats.income.size} de receita") {
+        run {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Field("Nova categoria", newCategory, { newCategory = it }, Modifier.weight(1.3f), maxLength = 40)
                 SelectField("Tipo", listOf(Kind.EXPENSE to "Despesa", Kind.INCOME to "Receita"), newKind, { newKind = it }, Modifier.weight(1f))
             }
@@ -300,21 +287,43 @@ private fun CategoryManager(s: AppState) {
     }
 }
 
+/**
+ * Seção recolhível de Meu dinheiro, no mesmo estilo de Ajustes: toque no cabeçalho para abrir ou fechar.
+ * Fechada, o resumo ao lado do título já mostra o principal. "Contas e cartões" começa aberta.
+ */
 @Composable
-private fun AccountCardHeading(
-    icon: Ico,
-    title: String,
-    subtitle: String,
-    action: String? = null,
-    onAction: (() -> Unit)? = null,
-) {
-    val p = Fin.c
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        IconTile(icon, p.accent, p.accent2, size = 40.dp, iconSize = 20.dp)
-        Column(Modifier.weight(1f).padding(start = 10.dp, end = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = p.muted)
+private fun MoneySection(key: String, icon: Ico, title: String, summary: String, startOpen: Boolean = false, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    var open by rememberSaveable(key) { mutableStateOf(startOpen) }
+    Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 0.dp) {
+        Row(
+            Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { open = !open }
+                .semantics { stateDescription = if (open) "expandido" else "recolhido" }
+                .padding(horizontal = 14.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionHeader(icon, title, summary, if (open) Ico.DROPDOWN else Ico.NEXT)
         }
-        if (action != null && onAction != null) Pill(action, icon = if (action == "Minimizar" || action == "Expandir") Ico.DROPDOWN else Ico.ADD, onClick = onAction)
+        if (open) Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp), content = content)
     }
+}
+
+/** Item que abre outra folha (despesas compartilhadas, simulador): cabeçalho com a seta para o lado. */
+@Composable
+private fun MoneyLink(icon: Ico, title: String, summary: String, onClick: () -> Unit) {
+    Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 0.dp, onClick = onClick) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+            SectionHeader(icon, title, summary, Ico.NEXT)
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.SectionHeader(icon: Ico, title: String, summary: String, chevron: Ico) {
+    val p = Fin.c
+    IconTile(icon, p.accent, p.accent2, size = 40.dp, iconSize = 20.dp)
+    Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+    AppIcon(chevron, p.muted, size = 20.dp)
 }

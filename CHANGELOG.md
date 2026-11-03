@@ -1,5 +1,24 @@
 # Changelog
 
+## Em desenvolvimento
+
+### Lançamentos
+
+- **Reservas para meta como "guardado":** na lista, a reserva aparece sem o sinal "−", na cor primária do tema, e sai do total do dia. Se o dia tem reservas, aparece embaixo do total a linha "R$ X em metas". O calendário segue a mesma regra. A retirada da meta aparece em verde, porque o dinheiro volta para a conta. Só apresentação: saldos, previsto, "falta pagar", Receitas/Despesas e Resumo não mudaram.
+- **Busca recolhível:** o campo fixo virou um botão de lupa no cabeçalho. O campo abre com foco e teclado, o "X" limpa e recolhe, e o Voltar só recolhe. Com texto buscado, a lupa fica destacada. Sem resultado, aparece "Nenhum lançamento encontrado".
+- Detalhes e testes (`DayTotalTest`, `LancamentosVisualTest`) em [LANCAMENTOS-METAS-E-BUSCA.md](LANCAMENTOS-METAS-E-BUSCA.md).
+
+## 1.9.0 — Despesa compartilhada como imagem, saldo acumulado no Resumo e no PDF (02/11/2026)
+
+`versionCode 18`.
+
+- **Despesas compartilhadas › Compartilhar como imagem:** gera uma imagem bonita, na identidade do Finan+ (ícone e nome do app, fundo azul-claro com brilhos suaves, cartão com o total, quem pagou, recebido, pendente e quem deve e quanto), pronta para mandar no WhatsApp, Telegram ou e-mail. No rodapé, "Feito com Finan+" e o endereço do site. O PDF continua disponível ("Baixar PDF" e "PDF pelo WhatsApp").
+- **Meu dinheiro mais limpo:** as seções viram itens recolhíveis, como em Ajustes. Contas e cartões, Limites mensais, Metas e Categorias abrem e fecham com um toque (seta ao lado), e fechadas mostram um resumo: quantas contas e o saldo, limites estourados, quanto está guardado nas metas. Despesas compartilhadas e Simular meu dinheiro viram atalhos com seta, que abrem a tela deles. Contas e cartões começa aberta.
+- **Saldo acumulado no Resumo e no relatório em PDF:** com **Ajustes › Lançamentos › Acumular saldo entre os meses** ligada, o Resumo mostra o **saldo acumulado** do período e quanto veio dos meses anteriores. O PDF ganha os cartões **Saldo anterior** e **Saldo acumulado**, e a tabela mensal uma coluna **Acumulado**, com o saldo de cada mês levado para o seguinte. Desligada, nada muda. Testes em `AccumulatedReportTest`.
+- **Início:** com mais de um vencimento, os cartões de **Próximos vencimentos** ficavam colados um no outro. Agora têm espaço entre eles.
+
+**English:** a cleaner *My money* tab, with collapsible sections like in Settings. Shared expenses can now be shared as a branded image (Finan+ icon, total, who paid and who owes what). With *carry the balance over between months* turned on, the Summary and the PDF report now show the balance brought forward from previous months and the accumulated balance (including a per-month column in the PDF). Also fixes the spacing between the cards in *Upcoming bills* on the Home screen.
+
 ## 1.8.0 — Despesas compartilhadas, saldo acumulado e efeito vidro (02/11/2026)
 
 Mescla do trabalho feito no repositório de desenvolvimento ([finan_plus_android_desenvolvimento](https://github.com/juscelino25bezerra-art/finan_plus_android_desenvolvimento), PRs #21 a #25). `versionCode 17`.

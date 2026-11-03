@@ -44,6 +44,12 @@ data class Report(
     val txs: List<Tx>,
     val accounts: List<Pair<String, Cents>>,
     val goals: List<GoalRow>,
+    /**
+     * Opção "Acumular saldo entre os meses" ligada: saldo das contas no dia anterior ao período (saldo inicial +
+     * meses anteriores) e ao fim do período (Finance.balanceAt). null com a opção desligada.
+     */
+    val carried: Cents? = null,
+    val accumulated: Cents? = null,
 ) {
     val balance: Cents get() = income - expense
     /** % das receitas que sobrou (null sem receitas) */
@@ -66,7 +72,8 @@ data class CategoryRow(
     val overLimit: Boolean get() = monthlyLimit != null && monthlyAverage > monthlyLimit
 }
 
-data class MonthRow(val ym: YearMonth, val income: Cents, val expense: Cents) {
+/** [accumulated]: saldo das contas ao fim do mês (ou do período), com a opção de saldo acumulado ligada. */
+data class MonthRow(val ym: YearMonth, val income: Cents, val expense: Cents, val accumulated: Cents? = null) {
     val balance: Cents get() = income - expense
 }
 
@@ -82,7 +89,8 @@ object Reports {
     private fun inRange(t: Tx, from: LocalDate, to: LocalDate) = !t.date.isBefore(from) && !t.date.isAfter(to)
     private fun sum(l: List<Tx>): Cents = l.fold(0L) { a, t -> a + t.value }
 
-    fun build(s: AppState, from: LocalDate, to: LocalDate, today: LocalDate): Report {
+    /** [accumulate]: opção "Acumular saldo entre os meses" (Ajustes › Lançamentos); preenche [Report.carried] e [Report.accumulated]. */
+    fun build(s: AppState, from: LocalDate, to: LocalDate, today: LocalDate, accumulate: Boolean = false): Report {
         require(!to.isBefore(from)) { "período inválido" }
         val days = (ChronoUnit.DAYS.between(from, to) + 1).toInt()
         val period = s.txs.filter { inRange(it, from, to) }
@@ -119,7 +127,8 @@ object Reports {
         while (!m.isAfter(to.ym())) {
             val mm = m
             val l = done.filter { it.date.ym() == mm }
-            months += MonthRow(mm, sum(l.filter { it.kind == Kind.INCOME }), sum(l.filter { it.kind == Kind.EXPENSE }))
+            months += MonthRow(mm, sum(l.filter { it.kind == Kind.INCOME }), sum(l.filter { it.kind == Kind.EXPENSE }),
+                if (accumulate) Finance.balanceAt(s, minOf(to, mm.atEndOfMonth())) else null)
             m = m.plusMonths(1)
         }
 
@@ -138,6 +147,8 @@ object Reports {
             txs = period.sortedWith(compareBy<Tx>({ it.date }, { it.kind != Kind.INCOME }, { it.desc })),
             accounts = s.accounts.map { it.name to Finance.accountBalance(s, it) },
             goals = s.goals.map { GoalRow(it.name, it.saved, it.target, it.deadline) },
+            carried = if (accumulate) Finance.balanceAt(s, from.minusDays(1)) else null,
+            accumulated = if (accumulate) Finance.balanceAt(s, to) else null,
         )
     }
 

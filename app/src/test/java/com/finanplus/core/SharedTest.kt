@@ -142,5 +142,6 @@ class SharedTest {
 
     @Test fun nomeDoPdf() {
         assertEquals("comprovante-mercado-do-mes-2026-11-02.pdf", Shared.pdfName(mercadoIgual().shared.single().copy(name = "Mercado do Mês!")))
+        assertEquals("finanplus-mercado-do-mes-2026-11-02.png", Shared.imageName(mercadoIgual().shared.single().copy(name = "Mercado do Mês!")))
     }
 }
