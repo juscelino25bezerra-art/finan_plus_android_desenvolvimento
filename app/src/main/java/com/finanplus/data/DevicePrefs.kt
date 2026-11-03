@@ -42,6 +42,9 @@ data class DeviceSettings(
     val accumulateBalance: Boolean = false,
     /** efeito vidro (Ajustes › Aparência): opcional, desligado por padrão, vale para todos os temas */
     val glass: Boolean = false,
+    /** Meu dinheiro: seções Contas e Cartões abertas (padrão: as duas abertas; ver MEU-DINHEIRO.md) */
+    val moneyAccountsOpen: Boolean = true,
+    val moneyCardsOpen: Boolean = true,
 ) {
     val hasPin get() = pinHash.isNotEmpty()
     /** O app pede desbloqueio se houver PIN, digital, ou os dois. */
@@ -67,6 +70,8 @@ class DevicePrefs private constructor(context: Context) {
         dismissedTips = sp.getStringSet("dismissedTips", emptySet())?.toSet() ?: emptySet(),
         accumulateBalance = sp.getBoolean("accumulateBalance", false),
         glass = sp.getBoolean("glass", false),
+        moneyAccountsOpen = sp.getBoolean("moneyAccountsOpen", true),
+        moneyCardsOpen = sp.getBoolean("moneyCardsOpen", true),
     )
 
     fun update(f: (DeviceSettings) -> DeviceSettings) {
@@ -78,6 +83,7 @@ class DevicePrefs private constructor(context: Context) {
             putBoolean("assistCategory", n.assistCategory); putBoolean("assistTips", n.assistTips); putBoolean("assistAsk", n.assistAsk)
             putBoolean("accumulateBalance", n.accumulateBalance)
             putBoolean("glass", n.glass)
+            putBoolean("moneyAccountsOpen", n.moneyAccountsOpen); putBoolean("moneyCardsOpen", n.moneyCardsOpen)
             // guarda só as últimas 200 dicas dispensadas (os ids incluem o mês, então as antigas deixam de importar)
             putStringSet("dismissedTips", HashSet(n.dismissedTips.toList().takeLast(200)))
         }
