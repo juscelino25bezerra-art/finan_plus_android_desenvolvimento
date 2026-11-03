@@ -150,7 +150,7 @@ class LanService : Service() {
         val ui = Lan.ui.value
         if (!ui.running) return
         val text = "Abra ${ui.setupUrl} no navegador · código ${ui.code}" +
-            if (ui.devices.isNotEmpty()) " · ${ui.devices.size} aparelho(s)" else ""
+            if (ui.devices.isNotEmpty()) " · ${com.finanplus.core.Words.count(ui.devices.size, "aparelho", "aparelhos")}" else ""
         NotificationManagerCompat.from(this).notify(NOTIF_ID, statusNotification(text, ui.code))
     }
 

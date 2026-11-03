@@ -38,7 +38,8 @@ class MoneyTest {
     @Test fun formatNeverShowsMinusZero() {
         assertEquals("R$ 1.234.567,89", Money.format(123456789))
         assertEquals("R$ 0,00", Money.format(0))
-        assertEquals("-R$ 0,50", Money.format(-50))
+        assertEquals("− R$ 0,50", Money.format(-50))
+        assertEquals(-50L, Money.parse("− R$ 0,50"))
         assertEquals("1500,50", Money.input(150050))
     }
 }

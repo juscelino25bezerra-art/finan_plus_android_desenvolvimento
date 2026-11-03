@@ -293,6 +293,6 @@ class AskTest {
 
     @Test fun mediaPorDia() {
         val a = Ask.answer("média de gastos este mês", s, today, money)
-        assertTrue(a.text.contains("R$ 105,39 por dia") && a.text.contains("15 dia(s)"), a.text)
+        assertTrue(a.text.contains("R$ 105,39 por dia") && a.text.contains("15 dias"), a.text)
     }
 }

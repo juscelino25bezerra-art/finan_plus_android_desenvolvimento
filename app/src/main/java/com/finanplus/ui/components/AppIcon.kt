@@ -40,6 +40,19 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0) {
     GAMES(R.drawable.ms_sports_esports),
     TREND(R.drawable.ms_trending_up),
     EXPAND(R.drawable.ms_expand_more),
+    // tabela de ícones do redesign (REDESIGN-COERENCIA.md): um conceito, um ícone
+    PALETTE(R.drawable.ms_palette),
+    BELL(R.drawable.ms_notifications),
+    CALC(R.drawable.ms_calculate),
+    WIFI(R.drawable.ms_wifi),
+    DATABASE(R.drawable.ms_database),
+    SCIENCE(R.drawable.ms_science),
+    DEBT(R.drawable.ms_request_quote),
+    TAG(R.drawable.ms_sell),
+    SPEED(R.drawable.ms_speed),
+    DRAG(R.drawable.ms_drag_indicator),
+    ARCHIVE(R.drawable.ms_archive),
+    LOCK(R.drawable.ms_lock),
     ASSIST(R.drawable.ms_auto_awesome),
     FINGERPRINT(R.drawable.ms_fingerprint),
     UP(R.drawable.ms_arrow_upward),
@@ -149,18 +162,19 @@ fun categoryIcon(category: String): Ico? {
 }
 
 /** Tom do ícone de um item nas listas (Início e Lançamentos): a cor diz o tipo, não a categoria. */
-enum class Tone { NEGATIVE, POSITIVE, PRIMARY, NEUTRAL }
+enum class Tone { NEGATIVE, POSITIVE, PRIMARY, NEUTRAL, GOAL, CARD }
 
 @Composable
-fun Tone.color(): Color = Fin.c.let { p -> when (this) { Tone.NEGATIVE -> p.red; Tone.POSITIVE -> p.green; Tone.PRIMARY -> p.accent; Tone.NEUTRAL -> p.muted } }
+fun Tone.color(): Color = Fin.c.let { p -> when (this) { Tone.NEGATIVE -> p.red; Tone.POSITIVE -> p.green; Tone.PRIMARY -> p.accent; Tone.NEUTRAL -> p.muted; Tone.GOAL -> p.goal; Tone.CARD -> p.card } }
 
 /**
  * Tom de um lançamento: despesa e conta a pagar = negativo; receita e valor a receber = positivo;
- * reserva para meta = cor primária; [neutral] = mês seguinte ou só informativo.
+ * reserva para meta = âmbar das metas; cartão (compra ou fatura) = lilás; [neutral] = mês seguinte ou só informativo.
  */
-fun txTone(kind: com.finanplus.core.Kind, goal: Boolean, neutral: Boolean = false): Tone = when {
+fun txTone(kind: com.finanplus.core.Kind, goal: Boolean, neutral: Boolean = false, card: Boolean = false): Tone = when {
     neutral -> Tone.NEUTRAL
-    goal -> Tone.PRIMARY
+    goal -> Tone.GOAL
+    card -> Tone.CARD
     kind == com.finanplus.core.Kind.INCOME -> Tone.POSITIVE
     else -> Tone.NEGATIVE
 }

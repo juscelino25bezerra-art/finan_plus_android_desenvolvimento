@@ -245,7 +245,7 @@ class LanRoutes(
         }
         if (normalized.dropped.total > 0) {
             log.warn("remote_save_rejected", "dropped=${normalized.dropped.total}")
-            return HttpResponse.error(422, "Dados recusados", "${normalized.dropped.total} item(ns) não passaram na validação do celular. Nada foi gravado.")
+            return HttpResponse.error(422, "Dados recusados", (if (normalized.dropped.total == 1) "1 item não passou" else "${normalized.dropped.total} itens não passaram") + " na validação do celular. Nada foi gravado.")
         }
         var conflict = false
         var newRev = 0L

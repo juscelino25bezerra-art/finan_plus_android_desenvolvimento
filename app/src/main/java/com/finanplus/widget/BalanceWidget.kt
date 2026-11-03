@@ -33,6 +33,7 @@ import androidx.glance.text.TextStyle
 import com.finanplus.MainActivity
 import com.finanplus.core.Finance
 import com.finanplus.core.Money
+import com.finanplus.core.ym
 import com.finanplus.data.DevicePrefs
 import com.finanplus.data.Repo
 import java.time.LocalDate
@@ -47,7 +48,7 @@ class BalanceWidget : GlanceAppWidget() {
         val show = DevicePrefs.get(context).value.widgetValues && !s.privacy
         val hidden = "R$ ••••"
         val balance = if (show) Money.format(Finance.currentBalance(s)) else hidden
-        val future = if (show) Money.format(Finance.futureBalance(s, today.withDayOfMonth(today.lengthOfMonth()), today)) else hidden
+        val future = if (show) Money.format(com.finanplus.core.Totals.month(s, today.ym(), today).closing) else hidden
         val next = Finance.nextDue(s, today)
         val nextText = when {
             next == null -> "Nenhuma conta pendente"

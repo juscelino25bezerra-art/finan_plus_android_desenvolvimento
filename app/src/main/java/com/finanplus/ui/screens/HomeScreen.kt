@@ -97,8 +97,10 @@ fun HomeScreen(s: AppState, listState: LazyListState = rememberLazyListState()) 
     val flow = Finance.monthFlow(s, ym)
     val balance = Finance.currentBalance(s)
     val projectionEnd = ym.atEndOfMonth()
-    val future = Finance.futureBalance(s, projectionEnd, today)
-    val pending = remember(s, ym, today) { Period.monthPending(s, ym, today) }
+    // glossário único (core/Totals.kt): o mesmo previsto, a receber e a pagar de Lançamentos e do widget
+    val totals = remember(s, ym, today) { com.finanplus.core.Totals.month(s, ym, today) }
+    val future = totals.closing
+    val pending = com.finanplus.core.Pending(totals.toReceive, totals.toPay)
     val bills = remember(s, ym, today) { HomeAdvice.monthBills(s, ym, today) }
     val nextIncome = remember(s, today) { HomeAdvice.nextIncome(s, today) }
     val groups = remember(s, today) { HomeAdvice.upcoming(s, today) }
@@ -333,7 +335,7 @@ private fun UpcomingCard(s: AppState, groups: List<HomeAdvice.DueGroup>) {
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CategoryTile(due.category, tone, size = 40.dp, icon = if (due.invoice) Ico.CARD else null)
+                    CategoryTile(due.category, if (due.invoice && !g.nextMonth) Tone.CARD else tone, size = 40.dp, icon = if (due.invoice) Ico.CARD else null)
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         Text(due.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(sub, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -356,17 +358,21 @@ fun ForecastInfoSheet(s: AppState) {
     val ym = today.ym()
     val end = ym.atEndOfMonth()
     val balance = Finance.currentBalance(s)
-    val future = Finance.futureBalance(s, end, today)
-    val pending = remember(s, ym, today) { Period.monthPending(s, ym, today) }
+    val totals = remember(s, ym, today) { com.finanplus.core.Totals.month(s, ym, today) }
+    val future = totals.closing
+    val pending = com.finanplus.core.Pending(totals.toReceive, totals.toPay)
     val money = rememberMoneyFmt()
     Text(stringResource(R.string.home_forecast_title, end.format(DM)), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
     MoneyText(future, color = if (future < 0) p.red else p.accent, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.padding(top = 4.dp))
     Text(stringResource(R.string.home_forecast_body), style = MaterialTheme.typography.bodyMedium, color = p.muted, modifier = Modifier.padding(top = 10.dp))
-    // a conta só aparece quando fecha com os números da tela (atrasados de outros meses entram no previsto)
-    if (balance + pending.toReceive - pending.toPay == future) Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(18.dp)).background(innerBg()).padding(14.dp)) {
+    // a conta fecha sempre: atrasados entram em "a pagar"/"a receber" e os aportes planejados em "metas"
+    if (balance + pending.toReceive - pending.toPay - totals.goalsPlanned == future) Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(18.dp)).background(innerBg()).padding(14.dp)) {
         Text(stringResource(R.string.home_forecast_math_title), style = MaterialTheme.typography.labelSmall, color = p.muted, fontWeight = FontWeight.Bold)
         Text(
-            styled(
+            if (totals.goalsPlanned > 0) styled(
+                R.string.home_forecast_math_goals,
+                money(balance) to p.text, money(pending.toReceive) to p.green, money(pending.toPay) to p.red, money(totals.goalsPlanned) to Fin.c.goal, money(future) to p.accent,
+            ) else styled(
                 R.string.home_forecast_math,
                 money(balance) to p.text, money(pending.toReceive) to p.green, money(pending.toPay) to p.red, money(future) to p.accent,
             ),

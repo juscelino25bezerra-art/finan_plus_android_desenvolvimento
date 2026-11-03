@@ -100,6 +100,11 @@ class DevicePrefs private constructor(context: Context) {
         get() = sp.getBoolean("welcomeSeen", false)
         set(v) = sp.edit(commit = true) { putBoolean("welcomeSeen", v) }
 
+    /** A migração das categorias (cartão e limite especial fora da lista, Empréstimo → Dívidas) já rodou neste aparelho. */
+    var categoriesMigrated: Boolean
+        get() = sp.getBoolean("categoriesMigrated", false)
+        set(v) = sp.edit(commit = true) { putBoolean("categoriesMigrated", v) }
+
     /** Marca o que já foi notificado hoje, para não repetir a mesma notificação. */
     var lastNotified: String
         get() = sp.getString("lastNotified", "") ?: ""

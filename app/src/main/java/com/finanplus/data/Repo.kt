@@ -130,6 +130,14 @@ object Repo {
         return added
     }
 
+    /** Categorias × formas de pagamento (core/TxForm.migrate): aplica uma vez por aparelho. true = mudou algo. */
+    fun migrateCategories(): Boolean {
+        var did = false
+        _state.update { s -> com.finanplus.core.TxForm.migrate(s)?.also { did = true } ?: s }
+        if (did) persist()
+        return did
+    }
+
     /** Só para as capturas de tela da documentação (testes): mostra um estado sem gravar nada. */
     internal fun showForScreenshots(s: AppState) { _state.value = s }
 

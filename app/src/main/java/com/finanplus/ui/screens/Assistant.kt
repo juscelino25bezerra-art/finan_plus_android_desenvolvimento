@@ -357,7 +357,7 @@ fun AssistantSettings(s: AppState, dev: DeviceSettings) {
     SwitchRow("Sugerir categoria", "Ao digitar a descrição de um lançamento novo", dev.assistCategory) { v -> prefs.update { it.copy(assistCategory = v) } }
     SwitchRow("Resumo e dicas", "No Início: resumo do mês, gastos fora do padrão, fixos, duplicados", dev.assistTips) { v -> prefs.update { it.copy(assistTips = v) } }
     SwitchRow("Perguntas rápidas", "Ex.: “quanto gastei com mercado em agosto?”", dev.assistAsk) { v -> prefs.update { it.copy(assistAsk = v) } }
-    if (dev.dismissedTips.isNotEmpty()) Pill("Restaurar ${dev.dismissedTips.size} dica(s) dispensada(s)", Modifier.padding(top = 6.dp)) {
+    if (dev.dismissedTips.isNotEmpty()) Pill("Restaurar " + (if (dev.dismissedTips.size == 1) "1 dica dispensada" else "${dev.dismissedTips.size} dicas dispensadas"), Modifier.padding(top = 6.dp)) {
         prefs.update { it.copy(dismissedTips = emptySet()) }
     }
 
@@ -377,7 +377,7 @@ fun AssistantSettings(s: AppState, dev: DeviceSettings) {
         for (k in listOf(Kind.EXPENSE, Kind.INCOME)) {
             val c = remember(s.txs, s.cats, k) { Categorizer.build(s, k, dict) }
             val words = c.learnedWords()
-            Eyebrow(if (k == Kind.EXPENSE) "Despesas · ${c.trainingSize} lançamento(s) analisado(s)" else "Receitas · ${c.trainingSize} lançamento(s) analisado(s)", Modifier.padding(top = 12.dp, bottom = 4.dp))
+            Eyebrow(if (k == Kind.EXPENSE) "Despesas · ${com.finanplus.core.Words.count(c.trainingSize, "lançamento analisado", "lançamentos analisados")}" else "Receitas · ${com.finanplus.core.Words.count(c.trainingSize, "lançamento analisado", "lançamentos analisados")}", Modifier.padding(top = 12.dp, bottom = 4.dp))
             if (words.isEmpty()) Text("Ainda não há palavras repetidas o suficiente.", style = MaterialTheme.typography.bodySmall, color = p.muted)
             words.forEach { (cat, ws) -> ManageItem(cat, ws.joinToString(", ") { (w, n) -> "$w ($n)" }) {} }
         }

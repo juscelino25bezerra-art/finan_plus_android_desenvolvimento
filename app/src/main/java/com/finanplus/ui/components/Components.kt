@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.semantics.selected
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -105,7 +110,8 @@ fun MoneyText(c: Cents, modifier: Modifier = Modifier, style: TextStyle = Materi
     Text(
         text,
         modifier.semantics { if (hide) contentDescription = "Valor oculto" }.drawWithContent { if (fits) drawContent() },
-        style = style.copy(fontSize = size), color = color, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
+        // algarismos de mesma largura (tnum): valores alinhados em colunas e listas
+        style = style.copy(fontSize = size, fontFeatureSettings = "tnum"), color = color, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
         onTextLayout = { r ->
             val w = r.layoutInput.constraints.maxWidth
             val grew = measuredAt in 0 until w && size.value < base.value
@@ -284,14 +290,106 @@ private fun TapField(label: String, value: String, modifier: Modifier, onTap: ()
     }
 }
 
+/**
+ * Seletor no padrão único (REDESIGN-COERENCIA.md): toque abre uma folha com as opções, a escolhida com check
+ * e busca quando há muitas. Substitui os menus nativos estreitos.
+ */
 @Composable
 fun <T> SelectField(label: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
         TapField(label, options.firstOrNull { it.first == selected }?.second ?: "", Modifier) { open = true }
-        DropdownMenu(open, { open = false }) {
-            options.forEach { (v, l) -> DropdownMenuItem(text = { Text(l) }, onClick = { onSelect(v); open = false }) }
+    }
+    if (open) OptionSheet(label, options, selected, onClose = { open = false }) { onSelect(it); open = false }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun <T> OptionSheet(title: String, options: List<Pair<T, String>>, selected: T?, onClose: () -> Unit, icon: ((T) -> Ico?)? = null, onPick: (T) -> Unit) {
+    val p = Fin.c
+    var query by remember { mutableStateOf("") }
+    val shown = if (query.isBlank()) options else {
+        val q = com.finanplus.core.assist.Text.fold(query)
+        options.filter { com.finanplus.core.assist.Text.fold(it.second).contains(q) }
+    }
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onClose, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface, modifier = Modifier.statusBarsPadding(),
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp).semantics { heading() })
+            if (options.size > 7) OutlinedTextField(
+                query, { query = it }, Modifier.fillMaxWidth().padding(bottom = 6.dp), placeholder = { Text("Buscar") }, singleLine = true,
+                leadingIcon = { AppIcon(Ico.SEARCH, p.muted, size = 20.dp) }, shape = RoundedCornerShape(16.dp), colors = fieldColors(),
+            )
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+                items(shown.size) { i ->
+                    val (v, l) = shown[i]
+                    val on = v == selected
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp))
+                            .background(if (on) p.accent2 else Color.Transparent)
+                            .clickable(role = Role.RadioButton) { onPick(v) }.semantics { this.selected = on }.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        icon?.invoke(v)?.let { IconTile(it, p.accent, p.accent2, size = 36.dp, iconSize = 20.dp); Spacer(Modifier.width(12.dp)) }
+                        Text(l, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
+                        if (on) AppIcon(Ico.CHECK, p.accent, size = 20.dp)
+                    }
+                }
+            }
         }
+    }
+}
+
+/** Número pequeno (parcelas, meses): − valor + (substitui o campo de texto). */
+@Composable
+fun Stepper(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit, modifier: Modifier = Modifier, format: (Int) -> String = { it.toString() }) {
+    val p = Fin.c
+    Column(modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = p.muted, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(p.accent2.copy(alpha = 0.6f)).padding(4.dp)
+                .semantics(mergeDescendants = true) { stateDescription = format(value) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            StepButton(Ico.REMOVE, "Diminuir $label", value > range.first) { onChange(value - 1) }
+            Text(format(value), Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            StepButton(Ico.ADD, "Aumentar $label", value < range.last) { onChange(value + 1) }
+        }
+    }
+}
+
+@Composable
+private fun StepButton(icon: Ico, description: String, enabled: Boolean, onClick: () -> Unit) {
+    val p = Fin.c
+    Box(
+        Modifier.size(48.dp).clip(CircleShape).clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) { AppIcon(icon, if (enabled) p.accent else p.disabled, size = 22.dp) }
+}
+
+/** 2–3 opções: controle segmentado (substitui os radios). */
+@Composable
+fun <T> SegmentedChoice(options: List<Pair<T, String>>, selected: T, modifier: Modifier = Modifier, onSelect: (T) -> Unit) {
+    val p = Fin.c
+    Row(modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(p.accent2.copy(alpha = 0.7f)).padding(4.dp)) {
+        options.forEach { (k, l) ->
+            val on = k == selected
+            Box(
+                Modifier.weight(1f).heightIn(min = 44.dp).clip(RoundedCornerShape(13.dp)).background(if (on) MaterialTheme.colorScheme.surface else Color.Transparent)
+                    .clickable(role = Role.RadioButton) { onSelect(k) }.semantics { this.selected = on },
+                contentAlignment = Alignment.Center,
+            ) { Text(l, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Normal, color = if (on) p.text else p.muted) }
+        }
+    }
+}
+
+/** Ação destrutiva no padrão único: texto discreto em vermelho; quem chama confirma antes de excluir. */
+@Composable
+fun DangerText(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    androidx.compose.material3.TextButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp)) {
+        Text(label, color = Fin.c.red, fontWeight = FontWeight.SemiBold)
     }
 }
 

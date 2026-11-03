@@ -30,7 +30,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.finanplus.R
 import com.finanplus.core.MoneyView
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
@@ -68,6 +67,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.finanplus.R
+import com.finanplus.core.Debts
+import com.finanplus.core.Words
+import com.finanplus.ui.components.BackLink
 import com.finanplus.core.AppState
 import com.finanplus.core.Finance
 import com.finanplus.core.Kind
@@ -96,199 +99,223 @@ import com.finanplus.ui.components.sensitive
 import com.finanplus.ui.screenPadding
 import com.finanplus.ui.theme.Fin
 
+/**
+ * Meu dinheiro (REDESIGN-COERENCIA.md): resumo no topo (saldo nas contas, fatura aberta e guardado em metas),
+ * alerta de meta fora do prazo e cards de navegação. Cada card abre a sua tela, com "‹ Meu dinheiro" para voltar.
+ */
 @Composable
 fun AccountsScreen(s: AppState) {
     val nav = LocalNav.current
+    val page = nav.moneyPage
+    androidx.activity.compose.BackHandler(enabled = page != null) { nav.moneyPage = null }
+    val list = rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(page) { list.scrollToItem(0) }
+    LazyColumn(state = list, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+        when (page) {
+            PAGE_ACCOUNTS -> accountsPage(s)
+            PAGE_DEBTS -> debtsPage(s)
+            PAGE_LIMITS -> item { PageHead(stringResource(R.string.money_limits), stringResource(R.string.limits_sheet_subtitle)); LimitsListContent(s) }
+            PAGE_GOALS -> item { PageHead(stringResource(R.string.money_goals), stringResource(R.string.goals_sheet_subtitle)); GoalsListContent(s) }
+            PAGE_CATEGORIES -> item { PageHead(stringResource(R.string.cats_title), stringResource(R.string.cats_subtitle)); CategoriesPage(s) }
+            else -> overview(s)
+        }
+    }
+}
+
+internal const val PAGE_ACCOUNTS = "contas"
+internal const val PAGE_DEBTS = "dividas"
+internal const val PAGE_LIMITS = "limites"
+internal const val PAGE_GOALS = "metas"
+internal const val PAGE_CATEGORIES = "categorias"
+
+/** Cabeçalho das telas de Meu dinheiro: "‹ Meu dinheiro", título e linha de apoio. */
+@Composable
+private fun PageHead(title: String, subtitle: String) {
+    val nav = LocalNav.current
+    BackLink(stringResource(R.string.money_title)) { nav.moneyPage = null }
+    Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+    if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Fin.c.muted, modifier = Modifier.padding(bottom = 6.dp))
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.overview(s: AppState) {
+    item {
+        Text(stringResource(R.string.money_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+        Text(stringResource(R.string.money_subtitle), style = MaterialTheme.typography.bodyMedium, color = Fin.c.muted)
+    }
+    item { SummaryCard(s) }
+    item { GoalAlert(s) }
+    item {
+        val nav = LocalNav.current
+        val hide = LocalPrivacy.current
+        val today = com.finanplus.ui.components.LocalToday.current
+        val usage = remember(s, today) { Finance.budgetUsage(s, today.ym()) }
+        val counts = Words.count(s.accounts.size, "conta", "contas") + " · " + Words.count(s.cards.size, "cartão", "cartões")
+        NavCard(Ico.BANK, stringResource(R.string.money_accounts_cards), counts) { nav.moneyPage = PAGE_ACCOUNTS }
+        NavCard(Ico.DEBT, stringResource(R.string.money_debts), Debts.summary(s, hide) ?: stringResource(R.string.money_debts_empty)) { nav.moneyPage = PAGE_DEBTS }
+        NavCard(Ico.SPEED, stringResource(R.string.money_limits), MoneyView.limitsSummary(s.limits, usage) ?: stringResource(R.string.money_limits_none)) { nav.moneyPage = PAGE_LIMITS }
+        val saved = if (hide) "R$ ••••" else Money.format(s.goals.sumOf { it.saved })
+        NavCard(Ico.GOAL, stringResource(R.string.money_goals), if (s.goals.isEmpty()) stringResource(R.string.money_goals_empty) else Words.count(s.goals.size, "meta", "metas") + " · $saved guardados") { nav.moneyPage = PAGE_GOALS }
+        NavCard(Ico.GROUP, stringResource(R.string.money_shared), sharedCardSubtitle(s, hide)) { nav.open(Sheet.SharedList) }
+        NavCard(Ico.SCIENCE, stringResource(R.string.money_whatif), stringResource(R.string.money_whatif_sub)) { nav.open(Sheet.Simulator()) }
+        NavCard(Ico.TAG, stringResource(R.string.cats_title), "${s.cats.expense.size} de despesa · ${s.cats.income.size} de receita") { nav.moneyPage = PAGE_CATEGORIES }
+    }
+}
+
+/** Resumo do topo: saldo nas contas (o mesmo do Início), fatura aberta e guardado em metas. */
+@Composable
+private fun SummaryCard(s: AppState) {
     val p = Fin.c
+    val today = com.finanplus.ui.components.LocalToday.current
+    val o = remember(s, today) { MoneyView.overview(s, today) }
+    Glass(Modifier.fillMaxWidth().padding(top = 12.dp), radius = 28.dp, padding = 16.dp) {
+        Text(stringResource(R.string.money_in_accounts_title), style = MaterialTheme.typography.bodyMedium, color = p.muted, fontWeight = FontWeight.SemiBold)
+        MoneyText(o.inAccounts, color = if (o.inAccounts < 0) p.red else p.text, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold))
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Tile(stringResource(R.string.money_open_invoice), o.openInvoices, p.card, p.cardContainer, Modifier.weight(1f))
+            Tile(stringResource(R.string.money_saved_goals), o.inGoals, p.goal, p.goalContainer, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun Tile(label: String, value: Long, color: androidx.compose.ui.graphics.Color, bg: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+    Column(modifier.clip(RoundedCornerShape(16.dp)).background(bg).padding(horizontal = 12.dp, vertical = 10.dp).semantics(mergeDescendants = true) {}) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Fin.c.text, maxLines = 1)
+        MoneyText(value, color = color, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold))
+    }
+}
+
+/** Meta fora do prazo vira alerta com ação ("Ajustar contribuição"). Mostra a mais urgente. */
+@Composable
+private fun GoalAlert(s: AppState) {
+    val p = Fin.c
+    val nav = LocalNav.current
     val hide = LocalPrivacy.current
     val today = com.finanplus.ui.components.LocalToday.current
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember(ctx) { com.finanplus.data.DevicePrefs.get(ctx) }
-    val dev by prefs.flow.collectAsStateWithLifecycle()
-    val accountsOpen = dev.moneyAccountsOpen
-    val cardsOpen = dev.moneyCardsOpen
-    val usage = remember(s, today) { Finance.budgetUsage(s, today.ym()) }
-    val overview = remember(s, today) { MoneyView.overview(s, today) }
-    val cards = remember(s, today) { MoneyView.cards(s, today) }
-    val firstDue = cards.firstOrNull { it.invoice != null }?.card?.id
-    val list = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    // índices fixos dos itens (os cartões vêm logo depois do cabeçalho de Cartões)
-    val cardsHeaderIndex = 4
-
-    LazyColumn(state = list, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        // 0: título (sem subtítulo)
-        item { Text(stringResource(R.string.money_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() }) }
-
-        // 1: visão geral em três colunas
-        item { OverviewCard(overview) }
-
-        // 2: cabeçalho de Contas (recolhível) com "+ Conta"
-        item {
-            CollapsibleHeader(
-                title = stringResource(R.string.money_accounts),
-                collapsedSummary = MoneyView.accountsCollapsed(s, hide),
-                open = accountsOpen,
-                onToggle = { prefs.update { it.copy(moneyAccountsOpen = !accountsOpen) } },
-                addLabel = stringResource(R.string.money_add_account), addDescription = stringResource(R.string.money_add_account_cd),
-                tag = "money_accounts_header",
-            ) { nav.open(Sheet.AccountEdit()) }
-        }
-        // 3: contas
-        item {
-            AnimatedVisibility(accountsOpen, enter = expandVertically(tween(200)) + fadeIn(tween(200)), exit = shrinkVertically(tween(180)) + fadeOut(tween(120))) {
-                Glass(Modifier.fillMaxWidth().padding(top = 4.dp), radius = 22.dp, padding = 0.dp) {
-                    if (s.accounts.isEmpty()) Text(
-                        stringResource(R.string.money_accounts_empty), style = MaterialTheme.typography.bodySmall, color = p.muted,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                    s.accounts.forEachIndexed { i, a ->
-                        if (i > 0) HorizontalDivider(Modifier.padding(start = 72.dp), thickness = 1.dp, color = p.border)
-                        val reserved = MoneyView.reservedFrom(s, a)
-                        ListRow(
-                            icon = Ico.BANK, title = a.name,
-                            support = if (reserved > 0) stringResource(R.string.money_account_reserved, if (hide) "R$ ••••" else Money.format(reserved))
-                            else stringResource(R.string.money_account_balance),
-                            value = Finance.accountBalance(s, a),
-                        ) { nav.open(Sheet.AccountEdit(a.id)) }
-                    }
-                }
+    val (goal, plan) = s.goals.asSequence().map { it to Finance.goalPlan(it, today) }
+        .filter { (_, pl) -> !pl.done && (pl.late || pl.pastDue) }.minByOrNull { (g, _) -> g.deadline ?: java.time.LocalDate.MAX } ?: return
+    Row(
+        Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(22.dp)).background(p.warningContainer).padding(14.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        AppIcon(Ico.WARNING, p.warning, size = 22.dp)
+        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Text(
+                if (plan.pastDue) stringResource(R.string.money_goal_past, goal.name) else stringResource(R.string.money_goal_late, goal.name),
+                style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = p.text,
+            )
+            val needed = plan.needed
+            if (needed != null && goal.deadline != null) Text(
+                stringResource(R.string.money_goal_needed, com.finanplus.core.MonthCalendar.monthName(goal.deadline.ym()) + " de " + goal.deadline.year, if (hide) "R$ ••••" else Money.format(needed)),
+                style = MaterialTheme.typography.bodyMedium, color = p.text,
+            )
+            androidx.compose.material3.TextButton(onClick = { nav.open(Sheet.GoalEdit(goal.id)) }, Modifier.heightIn(min = 48.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                Text(stringResource(R.string.money_goal_adjust), color = p.warning, fontWeight = FontWeight.Bold)
             }
         }
+    }
+}
 
-        // 4: cabeçalho de Cartões com "+ Cartão" e, recolhido, os alertas
-        item {
-            Column {
-                CollapsibleHeader(
-                    title = stringResource(R.string.money_cards),
-                    collapsedSummary = MoneyView.cardsCollapsed(s, today, hide),
-                    open = cardsOpen,
-                    onToggle = { prefs.update { it.copy(moneyCardsOpen = !cardsOpen) } },
-                    addLabel = stringResource(R.string.money_add_card), addDescription = stringResource(R.string.money_add_card_cd),
-                    tag = "money_cards_header",
-                ) { nav.open(Sheet.CardEdit()) }
-                AnimatedVisibility(!cardsOpen, enter = expandVertically(tween(200)) + fadeIn(tween(200)), exit = shrinkVertically(tween(180)) + fadeOut(tween(120))) {
-                    Column {
-                        cards.forEachIndexed { i, r ->
-                            if (r.alert) AlertRow(MoneyView.alertLine(r, hide)) {
-                                prefs.update { it.copy(moneyCardsOpen = true) }
-                                scope.launch { kotlinx.coroutines.delay(220); list.animateScrollToItem(cardsHeaderIndex + 1 + i) }
-                            }
-                        }
+/** Card de navegação: ícone, título, resumo e chevron; abre a tela do item. */
+@Composable
+private fun NavCard(icon: Ico, title: String, summary: String, onClick: () -> Unit) {
+    val p = Fin.c
+    Glass(Modifier.fillMaxWidth().padding(top = 10.dp), radius = 22.dp, padding = 0.dp, onClick = onClick) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconTile(icon, p.accent, p.accent2, size = 40.dp, iconSize = 22.dp)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            AppIcon(Ico.NEXT, p.muted, size = 22.dp)
+        }
+    }
+}
+
+/** Contas e cartões: contas em linhas tocáveis e um card por cartão com a fatura dentro. */
+private fun androidx.compose.foundation.lazy.LazyListScope.accountsPage(s: AppState) {
+    item { PageHead(stringResource(R.string.money_accounts_cards), "") }
+    item {
+        val nav = LocalNav.current
+        val p = Fin.c
+        val hide = LocalPrivacy.current
+        SectionAdd(stringResource(R.string.money_accounts), stringResource(R.string.money_add_account), stringResource(R.string.money_add_account_cd)) { nav.open(Sheet.AccountEdit()) }
+        Glass(Modifier.fillMaxWidth().padding(top = 4.dp), radius = 22.dp, padding = 0.dp) {
+            if (s.accounts.isEmpty()) Text(stringResource(R.string.money_accounts_empty), style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(16.dp))
+            s.accounts.forEachIndexed { i, a ->
+                if (i > 0) HorizontalDivider(Modifier.padding(start = 72.dp), thickness = 1.dp, color = p.border)
+                val reserved = MoneyView.reservedFrom(s, a)
+                ListRow(
+                    icon = Ico.BANK, title = a.name,
+                    support = if (reserved > 0) stringResource(R.string.money_account_reserved, if (hide) "R$ ••••" else Money.format(reserved)) else stringResource(R.string.money_account_balance),
+                    value = Finance.accountBalance(s, a),
+                ) { nav.open(Sheet.AccountEdit(a.id)) }
+            }
+        }
+    }
+    item {
+        val nav = LocalNav.current
+        SectionAdd(stringResource(R.string.money_cards), stringResource(R.string.money_add_card), stringResource(R.string.money_add_card_cd)) { nav.open(Sheet.CardEdit()) }
+        if (s.cards.isEmpty()) Text(stringResource(R.string.money_cards_empty), style = MaterialTheme.typography.bodySmall, color = Fin.c.muted, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+    }
+    item {
+        val nav = LocalNav.current
+        val today = com.finanplus.ui.components.LocalToday.current
+        val cards = remember(s, today) { MoneyView.cards(s, today) }
+        val firstDue = cards.firstOrNull { it.invoice != null }?.card?.id
+        cards.forEach { r -> CardCard(r, primaryPay = r.card.id == firstDue, onOpen = { nav.open(Sheet.CardDetail(r.card.id)) }, onPay = { nav.open(Sheet.PayInvoice(r.card.id)) }) }
+    }
+}
+
+/** Dívidas: empréstimos e financiamentos montados das parcelas da categoria Dívidas. */
+private fun androidx.compose.foundation.lazy.LazyListScope.debtsPage(s: AppState) {
+    item { PageHead(stringResource(R.string.money_debts), stringResource(R.string.debts_subtitle)) }
+    item {
+        val nav = LocalNav.current
+        val p = Fin.c
+        val hide = LocalPrivacy.current
+        val debts = remember(s) { Debts.list(s) }
+        Pill(stringResource(R.string.debts_new), Modifier.fillMaxWidth().padding(top = 6.dp), icon = Ico.ADD) { nav.open(Sheet.TxEdit(com.finanplus.core.Kind.EXPENSE, category = Debts.CATEGORY)) }
+        if (debts.isEmpty()) Text(stringResource(R.string.debts_empty), style = MaterialTheme.typography.bodyMedium, color = p.muted, modifier = Modifier.padding(top = 12.dp))
+        debts.forEach { d ->
+            val next = d.next
+            Glass(Modifier.fillMaxWidth().padding(top = 10.dp), radius = 22.dp, padding = 14.dp, onClick = { (next ?: d.parcels.last()).let { nav.open(Sheet.TxEdit(it.kind, it.id)) } }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconTile(Ico.DEBT, if (d.done) p.muted else p.red, if (d.done) p.accent2 else p.dangerContainer, size = 40.dp, iconSize = 22.dp)
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text(com.finanplus.core.Words.ordinal(d.name), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            if (next == null) stringResource(R.string.debts_done)
+                            else stringResource(R.string.debts_next, if (hide) "R$ ••••" else Money.format(next.value), next.date.br()),
+                            style = MaterialTheme.typography.bodySmall, color = if (next != null && next.date.isBefore(com.finanplus.ui.components.LocalToday.current)) p.red else p.muted,
+                        )
                     }
+                    if (!d.done) MoneyText(d.pendingTotal, color = p.red, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.End))
                 }
-                if (cardsOpen && s.cards.isEmpty()) Text(
-                    stringResource(R.string.money_cards_empty), style = MaterialTheme.typography.bodySmall, color = p.muted,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                Bar(if (d.totalCount > 0) d.paidCount.toFloat() / d.totalCount else 0f, if (d.done) p.green else p.accent, Modifier.padding(top = 12.dp).sensitive(hide))
+                Text(
+                    stringResource(R.string.debts_progress, d.paidCount, d.totalCount) + if (d.done) "" else " · " + stringResource(R.string.debts_left, if (hide) "R$ ••••" else Money.format(d.pendingTotal)),
+                    style = MaterialTheme.typography.labelMedium, color = p.muted, modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
-        // 5..: um card por cartão, com a fatura dentro
-        items(cards.size, key = { "card-" + cards[it].card.id }) { i ->
-            val r = cards[i]
-            AnimatedVisibility(cardsOpen, enter = expandVertically(tween(200)) + fadeIn(tween(200)), exit = shrinkVertically(tween(180)) + fadeOut(tween(120))) {
-                CardCard(r, primaryPay = r.card.id == firstDue, onOpen = { nav.open(Sheet.CardDetail(r.card.id)) }, onPay = { nav.open(Sheet.PayInvoice(r.card.id)) })
-            }
-        }
-
-        // Planejamento: metas e limites num card só
-        item {
-            SectionTitle(stringResource(R.string.money_planning))
-            Glass(Modifier.fillMaxWidth().padding(top = 4.dp), radius = 22.dp, padding = 0.dp) {
-                ListRow(Ico.GOAL, stringResource(R.string.money_goals), MoneyView.goalsSummary(s.goals, hide) ?: stringResource(R.string.money_goals_empty)) { nav.open(Sheet.GoalsList) }
-                HorizontalDivider(Modifier.padding(start = 72.dp), thickness = 1.dp, color = p.border)
-                ListRow(Ico.LIMIT, stringResource(R.string.money_limits), MoneyView.limitsSummary(s.limits, usage) ?: stringResource(R.string.money_limits_empty)) { nav.open(Sheet.LimitsList) }
-            }
-        }
-
-        // estes dois abrem uma folha própria: a seta aponta para o lado, como os itens de Ajustes
-        item { MoneyLink(Ico.GROUP, "Despesas compartilhadas", sharedCardSubtitle(s, hide)) { nav.open(Sheet.SharedList) } }
-        item { MoneyLink(Ico.ASSIST, "Simular meu dinheiro", "Teste cenários sem alterar seus dados") { nav.open(Sheet.Simulator()) } }
-
-        item { CategoryManager(s) }
     }
 }
 
-/** Visão geral: Na conta · Em metas · Faturas abertas, separadas por divisórias finas. */
+/** Título de seção com o botão "+" à direita (contentDescription "Adicionar …"). */
 @Composable
-private fun OverviewCard(o: MoneyView.Overview) {
+private fun SectionAdd(title: String, addLabel: String, addDescription: String, onAdd: () -> Unit) {
     val p = Fin.c
-    Glass(Modifier.fillMaxWidth().padding(top = 12.dp), radius = 22.dp, padding = 0.dp) {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(vertical = 14.dp)) {
-            OverviewCell(stringResource(R.string.money_in_accounts), o.inAccounts, if (o.inAccounts < 0) p.red else p.text)
-            VerticalDivider(thickness = 1.dp, color = p.border)
-            OverviewCell(stringResource(R.string.money_in_goals), o.inGoals, p.accent)
-            VerticalDivider(thickness = 1.dp, color = p.border)
-            OverviewCell(stringResource(R.string.money_open_invoices), o.openInvoices, if (o.openInvoices > 0) p.red else p.text)
-        }
-    }
-}
-
-@Composable
-private fun RowScope.OverviewCell(label: String, value: Long, color: androidx.compose.ui.graphics.Color) {
-    Column(Modifier.weight(1f).padding(horizontal = 12.dp).semantics(mergeDescendants = true) {}) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Fin.c.muted, maxLines = 2)
-        MoneyText(value, color = color, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.padding(top = 4.dp))
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) =
-    Text(text, Modifier.padding(top = 18.dp, bottom = 2.dp, start = 4.dp).semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-/**
- * Cabeçalho recolhível (Contas, Cartões): título e seta girando; recolhido mostra o resumo numa linha.
- * O botão "+" continua funcionando com a seção recolhida.
- */
-@Composable
-private fun CollapsibleHeader(
-    title: String, collapsedSummary: String, open: Boolean, onToggle: () -> Unit,
-    addLabel: String, addDescription: String, tag: String, onAdd: () -> Unit,
-) {
-    val p = Fin.c
-    val rotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "seta $title")
-    val state = stringResource(if (open) R.string.money_section_expanded else R.string.money_section_collapsed, title)
     Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp))
-                .clickable(role = Role.Button, onClick = onToggle)
-                .testTag(tag)
-                .semantics(mergeDescendants = true) { contentDescription = state; heading() }
-                .padding(start = 4.dp, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                if (open) title else collapsedSummary, Modifier.weight(1f, fill = false),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            AppIcon(Ico.EXPAND, p.muted, Modifier.padding(start = 4.dp).rotate(rotation), size = 22.dp)
-        }
+        Text(title, Modifier.weight(1f).padding(start = 4.dp).semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Row(
             Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(24.dp)).background(p.accent2)
-                .clickable(role = Role.Button, onClick = onAdd).semantics { contentDescription = addDescription }
-                .padding(horizontal = 14.dp),
+                .clickable(role = Role.Button, onClick = onAdd).semantics { contentDescription = addDescription }.padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AppIcon(Ico.ADD, p.accent, size = 18.dp)
             Text(addLabel, Modifier.padding(start = 4.dp), color = p.accent, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
-    }
-}
-
-/** Linha de alerta visível com Cartões recolhida (vence em até 7 dias ou uso >= 90%). */
-@Composable
-private fun AlertRow(text: String, onClick: () -> Unit) {
-    val p = Fin.c
-    val cd = stringResource(R.string.money_card_alert_cd, text)
-    Row(
-        Modifier.fillMaxWidth().padding(top = 6.dp).heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp))
-            .background(p.warningContainer).clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = cd }.padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIcon(Ico.WARNING, p.warning, size = 20.dp)
-        Text(text, Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = p.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        AppIcon(Ico.NEXT, p.muted, size = 20.dp)
     }
 }
 
@@ -362,89 +389,3 @@ private fun CardCard(r: MoneyView.CardRow, primaryPay: Boolean, onOpen: () -> Un
     }
 }
 
-@Composable
-private fun CategoryManager(s: AppState) {
-    val p = Fin.c
-    val dialogs = LocalDialogs.current
-    var newCategory by rememberSaveable { mutableStateOf("") }
-    var newKind by rememberSaveable { mutableStateOf(Kind.EXPENSE) }
-    MoneySection("categorias", Ico.TUNE, "Categorias", "${s.cats.expense.size} de despesa · ${s.cats.income.size} de receita") {
-        run {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Field("Nova categoria", newCategory, { newCategory = it }, Modifier.weight(1.3f), maxLength = 40)
-                SelectField("Tipo", listOf(Kind.EXPENSE to "Despesa", Kind.INCOME to "Receita"), newKind, { newKind = it }, Modifier.weight(1f))
-            }
-            PrimaryButton("Adicionar categoria") {
-                when (val result = Ops.addCategory(com.finanplus.data.Repo.state.value, newKind, newCategory)) {
-                    is Outcome.Err -> dialogs.notice(result.title, result.message)
-                    is Outcome.Ok -> { com.finanplus.data.Repo.replace(result.state); newCategory = "" }
-                }
-            }
-            listOf(Kind.EXPENSE to "Despesas", Kind.INCOME to "Receitas").forEach { (kind, label) ->
-                Eyebrow(label, Modifier.padding(top = 14.dp, bottom = 4.dp))
-                s.cats.of(kind).forEach { category ->
-                    ManageItem(category, if (kind == Kind.EXPENSE) "Despesa" else "Receita") {
-                        Pill("Renomear") {
-                            dialogs.input("Renomear categoria", "Lançamentos, recorrências e limites de “$category” passam a usar o novo nome.", "Novo nome", category) { name ->
-                                com.finanplus.data.Repo.commit(Ops.renameCategory(com.finanplus.data.Repo.state.value, kind, category, name))?.let { dialogs.notice(it.title, it.message) }
-                            }
-                        }
-                        Pill("Excluir", danger = true) {
-                            when (val check = Ops.checkDeleteCategory(com.finanplus.data.Repo.state.value, kind, category)) {
-                                is Outcome.Err -> dialogs.notice(check.title, check.message)
-                                is Outcome.Ok -> {
-                                    val count = Ops.categoryUseCount(com.finanplus.data.Repo.state.value, kind, category)
-                                    val message = if (count > 0) "Excluir “$category” da lista? $count lançamento(s) antigo(s) continuará(ão) com essa categoria no histórico." else "Excluir a categoria “$category”?"
-                                    dialogs.confirm("Excluir categoria", message, ok = "Excluir", danger = true) {
-                                        com.finanplus.data.Repo.replace(Ops.deleteCategory(com.finanplus.data.Repo.state.value, kind, category))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Seção recolhível de Meu dinheiro, no mesmo estilo de Ajustes: toque no cabeçalho para abrir ou fechar.
- * Fechada, o resumo ao lado do título já mostra o principal. "Contas e cartões" começa aberta.
- */
-@Composable
-private fun MoneySection(key: String, icon: Ico, title: String, summary: String, startOpen: Boolean = false, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
-    var open by rememberSaveable(key) { mutableStateOf(startOpen) }
-    Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 0.dp) {
-        Row(
-            Modifier.fillMaxWidth().clickable(role = androidx.compose.ui.semantics.Role.Button) { open = !open }
-                .semantics { stateDescription = if (open) "expandido" else "recolhido" }
-                .padding(horizontal = 14.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SectionHeader(icon, title, summary, if (open) Ico.DROPDOWN else Ico.NEXT)
-        }
-        if (open) Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp), content = content)
-    }
-}
-
-/** Item que abre outra folha (despesas compartilhadas, simulador): cabeçalho com a seta para o lado. */
-@Composable
-private fun MoneyLink(icon: Ico, title: String, summary: String, onClick: () -> Unit) {
-    Glass(Modifier.padding(top = 10.dp), radius = 24.dp, padding = 0.dp, onClick = onClick) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
-            SectionHeader(icon, title, summary, Ico.NEXT)
-        }
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.SectionHeader(icon: Ico, title: String, summary: String, chevron: Ico) {
-    val p = Fin.c
-    IconTile(icon, p.accent, p.accent2, size = 40.dp, iconSize = 20.dp)
-    Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() }, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    }
-    AppIcon(chevron, p.muted, size = 20.dp)
-}

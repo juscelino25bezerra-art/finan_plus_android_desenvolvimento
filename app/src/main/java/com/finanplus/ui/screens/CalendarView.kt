@@ -88,14 +88,14 @@ import java.time.LocalDate
 
 /** Cor das marcas de cartão (compras, faturas e pagamentos de fatura). */
 @Composable
-private fun cardColor(): Color = if (Fin.c.dark) Color(0xFFC3A6FF) else Color(0xFF7446D0)
+private fun cardColor(): Color = Fin.c.card
 
 @Composable
 private fun markColor(m: DayMark): Color = when (m) {
     DayMark.INCOME -> Fin.c.green
     DayMark.EXPENSE -> Fin.c.red
     DayMark.CARD -> cardColor()
-    DayMark.GOAL -> Fin.c.accent
+    DayMark.GOAL -> Fin.c.goal
 }
 
 /** Seletor compacto de ícones no cabeçalho de Lançamentos.
@@ -152,7 +152,7 @@ fun MovesViewSwitch(nav: Nav) {
 /** Itens da visão Calendário, dentro da LazyColumn da aba Lançamentos. */
 fun LazyListScope.calendarItems(s: AppState, nav: Nav, days: Map<LocalDate, CalDay>, today: LocalDate, hide: Boolean) {
     item(key = "cal-grid") { CalendarCard(nav, days, today, hide) }
-    item(key = "cal-totals") { MonthTotals(days) }
+    item(key = "cal-totals") { MonthTotals(s, nav.calMonth, today) }
     val sel = nav.calDay?.takeIf { it.ym() == nav.calMonth }
     if (sel == null) {
         item(key = "cal-hint") {
@@ -323,7 +323,7 @@ private fun DayCell(d: LocalDate, day: CalDay?, today: LocalDate, selected: Bool
                 }
                 ShrinkText(MonthCalendar.signed(day.flowNet), color)
             } else if (day != null && !hide && day.goals != 0L) {
-                ShrinkText(MonthCalendar.compact(kotlin.math.abs(day.goals)), if (selected) p.onAccent else if (day.goals > 0) p.accent else p.green)
+                ShrinkText(MonthCalendar.signed(-day.goals), if (selected) p.onAccent else if (day.goals > 0) p.goal else p.green)
             }
             if (day != null && day.marks.isNotEmpty()) Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 day.marks.forEach { m ->
@@ -360,16 +360,13 @@ private fun ShrinkText(text: String, color: Color) {
 
 // ------------------------------------------------------------------ totais do mês
 @Composable
-private fun MonthTotals(days: Map<LocalDate, CalDay>) {
+private fun MonthTotals(s: AppState, ym: java.time.YearMonth, today: LocalDate) {
     val p = Fin.c
-    val t = remember(days) { MonthCalendar.totals(days) }
-    Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        TotalTile("Entradas", t.income, p.green, Modifier.weight(1f))
-        TotalTile("Saídas", t.expense, p.red, Modifier.weight(1f))
-        TotalTile("Resultado", t.net, if (t.net < 0) p.red else p.accent, Modifier.weight(1f))
-    }
+    // os mesmos números da lista (core/Totals.kt): a receber, a pagar (+ metas) e previsto
+    val t = remember(s, ym, today) { com.finanplus.core.Totals.month(s, ym, today) }
+    MonthTotalsRow(t)
     Text(
-        "Inclui o que ainda está pendente, as faturas no dia do vencimento e, nos próximos meses, as recorrências previstas. Compras no cartão aparecem no dia, mas só contam na fatura.",
+        "Inclui o que ainda está pendente, as faturas no vencimento e, nos próximos meses, as recorrências previstas. Compras no cartão aparecem no dia, mas só contam na fatura.",
         style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp),
     )
 }
@@ -397,7 +394,7 @@ private fun DayHeader(s: AppState, nav: Nav, d: LocalDate, day: CalDay?, today: 
                 " · resultado das movimentações deste dia " + (if (net > 0) "+ " else if (net < 0) "− " else "") + Money.format(kotlin.math.abs(net))
             Text(countText + netText, style = MaterialTheme.typography.bodySmall, color = p.muted)
             if (!hide && day != null && day.goals != 0L) Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                val color = if (day.goals > 0) p.accent else p.green
+                val color = if (day.goals > 0) p.goal else p.green
                 AppIcon(Ico.GOAL, color, size = 14.dp)
                 Text(
                     androidx.compose.ui.res.stringResource(if (day.goals > 0) com.finanplus.R.string.day_goals_saved else com.finanplus.R.string.day_goals_withdrawn, Money.format(kotlin.math.abs(day.goals))),
@@ -413,7 +410,7 @@ private fun DayHeader(s: AppState, nav: Nav, d: LocalDate, day: CalDay?, today: 
     }
     // hoje ou depois: quanto deve sobrar nas contas ao fim do dia (mesma conta do "Saldo previsto" do Início)
     if (!d.isBefore(today)) {
-        val forecast = remember(s, d, today) { Finance.futureBalance(s, d, today) }
+        val forecast = remember(s, d, today) { com.finanplus.core.Totals.forecastAt(s, d, today) }
         Glass(Modifier.padding(bottom = 6.dp), radius = 20.dp, padding = 14.dp) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Saldo previsto ao fim do dia", Modifier.weight(1f), color = p.muted, style = MaterialTheme.typography.bodyMedium)

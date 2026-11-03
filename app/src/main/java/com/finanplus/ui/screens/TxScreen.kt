@@ -96,6 +96,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finanplus.R
+import com.finanplus.ui.components.SwitchRow
+import com.finanplus.ui.components.Stepper
+import com.finanplus.ui.components.SegmentedChoice
+import com.finanplus.core.Words
+import androidx.compose.ui.graphics.graphicsLayer
 import com.finanplus.core.AmountInput
 import com.finanplus.core.AppState
 import com.finanplus.core.Kind
@@ -158,7 +163,9 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
     val initialKind = tx?.kind ?: sheet.kind
     val initialDate = tx?.date ?: sheet.date ?: today
     val initialAmount = tx?.let { AmountInput.fromCents(it.value) } ?: ""
-    val initialCategory = tx?.category ?: ""     // novo: sem categoria escolhida ("Escolher categoria")
+    // novo: pré-seleção = última categoria usada do tipo (ou a pedida por quem abriu, ex.: Dívidas)
+    val initialCategory = tx?.category ?: sheet.category
+        ?: TxForm.recentCategories(s.txs, initialKind, TxForm.choices(s.cats.of(initialKind)), 1).firstOrNull() ?: ""
     val initialPaid = tx?.paid ?: Ops.defaultPaid(initialDate, today)
     val initialAccount = tx?.accountId ?: s.accounts[0].id
     val initialCard = tx?.cardId?.ifEmpty { null } ?: s.cards.firstOrNull()?.id ?: ""
@@ -174,21 +181,23 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
     var useCard by rememberSaveable { mutableStateOf(initialUseCard) }
     var accountId by rememberSaveable { mutableStateOf(initialAccount) }
     var cardId by rememberSaveable { mutableStateOf(initialCard) }
-    var reps by rememberSaveable { mutableStateOf("1") }
+    var reps by rememberSaveable { mutableStateOf(1) }
     var repsMode by rememberSaveable { mutableStateOf(RepsMode.TOTAL) }
     var recurring by rememberSaveable { mutableStateOf(false) }
     var moreOpen by rememberSaveable(sheet.id) { mutableStateOf(false) }
     var drawer by rememberSaveable { mutableStateOf(false) }
     var payPicker by rememberSaveable { mutableStateOf(false) }
     var datePicker by rememberSaveable { mutableStateOf(false) }
+    val nav = com.finanplus.ui.LocalNav.current
 
     val dirty = kind != initialKind || amount != initialAmount || category != initialCategory || date != initialDate ||
         desc != (tx?.desc ?: "") || paid != initialPaid || useCard != initialUseCard || accountId != initialAccount || cardId != initialCard ||
-        (tx == null && (reps != "1" || repsMode != RepsMode.TOTAL || recurring))
-    val leave: () -> Unit = {
-        if (dirty) dialogs.confirm("Descartar alterações?", "O que você digitou neste formulário será perdido.", ok = "Descartar", cancel = "Continuar editando", danger = true) { close() }
-        else close()
+        (tx == null && (reps != 1 || repsMode != RepsMode.TOTAL || recurring))
+    fun leaveThen(after: () -> Unit) {
+        if (dirty) dialogs.confirm("Descartar alterações?", "O que você digitou neste formulário será perdido.", ok = "Descartar", cancel = "Continuar editando", danger = true) { close(); after() }
+        else { close(); after() }
     }
+    val leave: () -> Unit = { leaveThen { } }
     BackHandler(onBack = leave)
 
     val isExpense = kind == Kind.EXPENSE
@@ -204,17 +213,22 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
 
     val savedExpense = stringResource(R.string.tx_saved_expense)
     val savedIncome = stringResource(R.string.tx_saved_income)
+    val undoLabel = stringResource(R.string.cats_undo)
     fun save() {
         // sem categoria escolhida, salva em "Outros" (ou na primeira do tipo, se não houver "Outros")
         val cats = s.cats.of(kind)
         val cat = category.ifBlank { cats.firstOrNull { it == TxForm.OTHERS } ?: cats[0] }
-        val draft = TxDraft(kind, desc, amount, cat, date, paid, accountId, if (card) cardId else "", reps.toIntOrNull() ?: 1, repsMode, recurring)
-        val err = Repo.commit(Ops.saveTx(Repo.state.value, tx?.id, draft))
+        val draft = TxDraft(kind, desc, amount, cat, date, paid, accountId, if (card) cardId else "", reps, repsMode, recurring)
+        val before = Repo.state.value
+        val err = Repo.commit(Ops.saveTx(before, tx?.id, draft))
         if (err == null) {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             val msg = if (isExpense) savedExpense else savedIncome
             close()
-            uiScope?.launch { snackbar.showSnackbar(msg) }
+            // aviso com "Desfazer": volta ao estado de antes de salvar
+            uiScope?.launch {
+                if (snackbar.showSnackbar(msg, actionLabel = undoLabel, withDismissAction = true) == androidx.compose.material3.SnackbarResult.ActionPerformed) Repo.replace(before)
+            }
         } else dialogs.notice(err.title, err.message)
     }
 
@@ -223,33 +237,43 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
         color = p.bg,
     ) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-            // ---- barra superior: fechar e título centralizado (sem outros botões)
-            Box(Modifier.fillMaxWidth().height(56.dp)) {
+            // ---- barra superior: fechar, título e "Ler boleto" (despesa nova)
+            Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val closeLabel = stringResource(R.string.tx_close)
                 Box(
-                    Modifier.align(Alignment.CenterStart).padding(start = 4.dp).size(48.dp).clip(RoundedCornerShape(24.dp))
+                    Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
                         .clickable(role = Role.Button, onClick = leave).semantics { contentDescription = closeLabel },
                     contentAlignment = Alignment.Center,
                 ) { AppIcon(Ico.CLOSE, p.text, size = 24.dp) }
                 Text(
-                    stringResource(if (tx == null) R.string.tx_title_new else R.string.tx_title_edit),
-                    Modifier.align(Alignment.Center).padding(horizontal = 64.dp).semantics { heading() },
-                    style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                    stringResource(if (tx != null) R.string.tx_title_edit else if (isExpense) R.string.tx_title_new_expense else R.string.tx_title_new_income),
+                    Modifier.weight(1f).padding(horizontal = 6.dp).semantics { heading() },
+                    style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
+                if (tx == null && isExpense) Row(
+                    Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(24.dp)).background(p.accent2)
+                        .clickable(role = Role.Button) { leaveThen { nav.open(Sheet.BillImport()) } }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AppIcon(Ico.RECEIPT, p.accent, size = 18.dp)
+                    Text(stringResource(R.string.tx_read_bill), Modifier.padding(start = 6.dp), color = p.accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                }
             }
 
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-                // ---- Receita / Despesa em duas metades
+                // ---- Despesa / Receita (segmentado)
                 KindSwitch(kind) { k ->
                     if (k != kind) {
                         kind = k
                         category = TxForm.categoryAfterKindChange(category, TxForm.choices(s.cats.of(k)))
+                            .ifBlank { TxForm.recentCategories(s.txs, k, TxForm.choices(s.cats.of(k)), 1).firstOrNull() ?: "" }
                         if (k == Kind.INCOME) useCard = false
                     }
                 }
 
-                // ---- valor em destaque
-                AmountEntry(amount, { amount = it }, tone, autoFocus = tx == null, modifier = Modifier.padding(top = 18.dp))
+                // ---- valor: o herói da tela
+                Text(stringResource(R.string.tx_amount_title), Modifier.fillMaxWidth().padding(top = 16.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge, color = p.muted)
+                AmountEntry(amount, { amount = it }, tone, autoFocus = tx == null)
                 Box(Modifier.fillMaxWidth().heightIn(min = 22.dp), contentAlignment = Alignment.Center) {
                     if (AmountInput.isZeroTyped(amount)) Text(
                         stringResource(R.string.tx_amount_error), style = MaterialTheme.typography.bodySmall, color = p.red,
@@ -257,45 +281,48 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
                     )
                 }
 
-                // ---- lista: categoria, pagar com / receber em, data
-                Glass(Modifier.padding(top = 8.dp), radius = 22.dp, padding = 0.dp) {
-                    FieldRow(
-                        icon = TxIcons.forCategory(category), tint = tone, tile = tone.copy(alpha = if (p.dark) 0.18f else 0.13f),
-                        label = stringResource(R.string.tx_category),
-                        value = if (category.isBlank()) stringResource(R.string.tx_choose_category) else TxForm.displayCategory(category),
-                        placeholder = category.isBlank(), chevron = true, modifier = Modifier.testTag(TxTags.CATEGORY_ROW),
-                    ) { focus.clearFocus(); keyboard?.hide(); drawer = true }
-                    HorizontalDivider(Modifier.padding(start = 72.dp), thickness = 1.dp, color = p.border)
-                    val payName = if (card) s.card(cardId)?.name ?: "" else s.account(accountId)?.name ?: ""
-                    FieldRow(
-                        icon = if (card) Ico.CARD else Ico.WALLET, tint = p.accent, tile = p.accent2,
-                        label = stringResource(if (isExpense) R.string.tx_pay_with else R.string.tx_receive_in), value = payName, chevron = true,
-                    ) { focus.clearFocus(); keyboard?.hide(); payPicker = true }
-                    HorizontalDivider(Modifier.padding(start = 72.dp), thickness = 1.dp, color = p.border)
-                    FieldRow(
-                        icon = Ico.CALENDAR, tint = p.accent, tile = p.accent2,
-                        label = stringResource(R.string.tx_date),
-                        value = date?.let { if (it == today) stringResource(R.string.tx_today) + " · " + it.br() else it.br() } ?: "—", chevron = false,
-                    ) { focus.clearFocus(); keyboard?.hide(); datePicker = true }
+                // ---- categoria: chips das mais usadas + "Todas ›"
+                FormLabel(stringResource(R.string.tx_category))
+                val chips = remember(s.txs, kind, choices, category) {
+                    val recent = TxForm.recentCategories(s.txs, kind, choices, 4)
+                    val base = (recent + choices).distinct().take(4)
+                    val cur = TxForm.displayCategory(category)
+                    if (category.isNotBlank() && cur !in base) listOf(cur) + base.take(3) else base
                 }
-
-                // ---- descrição e sugestões
-                Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 0.dp) {
-                    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AppIcon(Ico.EDIT, p.muted, size = 22.dp)
-                        val hint = stringResource(R.string.tx_description_hint)
-                        TextField(
-                            desc, { desc = it.take(Ops.TX_DESC_MAX) }, Modifier.weight(1f).semantics { contentDescription = hint },
-                            placeholder = { Text(hint) }, singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                                focusedTextColor = p.text, unfocusedTextColor = p.text, cursorColor = tone,
-                                focusedPlaceholderColor = p.muted, unfocusedPlaceholderColor = p.muted,
-                            ),
-                        )
+                FlowRow(Modifier.fillMaxWidth().testTag(TxTags.CATEGORY_ROW), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    chips.forEach { c ->
+                        val on = category.isNotBlank() && TxForm.displayCategory(category) == c
+                        FormChip(Words.ordinal(c), on, TxIcons.forCategory(c), Modifier.testTag(TxTags.chip(c))) { category = c }
+                    }
+                    FormChip(stringResource(R.string.tx_all_categories), false, null, Modifier.testTag(TxTags.ALL_CATEGORIES), trailing = Ico.NEXT) {
+                        focus.clearFocus(); keyboard?.hide(); drawer = true
                     }
                 }
+
+                // ---- data: Hoje, Ontem, Escolher
+                FormLabel(stringResource(R.string.tx_date))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val yesterday = today.minusDays(1)
+                    fun pick(d: LocalDate) { date = d; if (tx == null && !paidTouched) paid = Ops.defaultPaid(d, today) }
+                    FormChip(stringResource(R.string.tx_today), date == today, null) { pick(today) }
+                    FormChip(stringResource(R.string.tx_yesterday), date == yesterday, null) { pick(yesterday) }
+                    val other = date != null && date != today && date != yesterday
+                    FormChip(if (other) date!!.br() else stringResource(R.string.tx_pick_date), other, Ico.CALENDAR) { focus.clearFocus(); keyboard?.hide(); datePicker = true }
+                }
+
+                // ---- descrição (opcional) e sugestões
+                FormLabel(stringResource(R.string.tx_description_hint))
+                val hint = stringResource(R.string.tx_description_placeholder)
+                TextField(
+                    desc, { desc = it.take(Ops.TX_DESC_MAX) }, Modifier.fillMaxWidth().semantics { contentDescription = hint },
+                    placeholder = { Text(hint) }, singleLine = true, shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = p.surface, unfocusedContainerColor = p.surface,
+                        focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = p.text, unfocusedTextColor = p.text, cursorColor = p.accent,
+                        focusedPlaceholderColor = p.muted, unfocusedPlaceholderColor = p.muted,
+                    ),
+                )
                 val suggestions = remember(s.txs, kind) { TxForm.descriptionSuggestions(s.txs, kind) }
                 if (suggestions.isNotEmpty()) {
                     val sugLabel = stringResource(R.string.tx_description_suggestions)
@@ -304,49 +331,54 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(suggestions) { d ->
-                            SuggestionChip(onClick = { desc = d.take(Ops.TX_DESC_MAX) }, label = { Text(d, maxLines = 1) })
+                            SuggestionChip(onClick = { desc = d.take(Ops.TX_DESC_MAX) }, label = { Text(Words.ordinal(d), maxLines = 1) })
                         }
                     }
                 }
                 // Assistente: sugere categoria com base na descrição (como antes)
                 CategoryHint(s, kind, desc, category, enabled = tx == null || desc != tx.desc) { category = it }
 
-                // ---- mais opções: situação, parcelas e repetição (continuam disponíveis, como antes)
-                TextButton(onClick = { moreOpen = !moreOpen }, Modifier.padding(top = 4.dp).heightIn(min = 48.dp)) {
-                    Text(stringResource(if (moreOpen) R.string.tx_less else R.string.tx_more))
-                    AppIcon(Ico.DROPDOWN, p.accent, size = 18.dp)
-                }
-                AnimatedVisibility(visible = moreOpen) {
-                    Column {
-                        if (tx == null && isExpense) {
-                            val nav = com.finanplus.ui.LocalNav.current
-                            // atalho: preencher a partir de uma fatura em PDF, linha digitável do boleto ou Pix copia e cola (FATURAS.md)
-                            com.finanplus.ui.components.Pill("Ler fatura ou boleto", Modifier.fillMaxWidth(), icon = Ico.RECEIPT) { nav.open(Sheet.BillImport()) }
+                // ---- mais opções, recolhido com resumo: forma de pagamento, situação, parcelas e repetição
+                val payName = if (card) s.card(cardId)?.name ?: "" else s.account(accountId)?.name ?: ""
+                val status = when { card -> stringResource(R.string.tx_more_card); paid -> stringResource(if (isExpense) R.string.tx_paid else R.string.tx_received); else -> stringResource(if (isExpense) R.string.tx_to_pay else R.string.tx_to_receive) }
+                val parts = if (reps > 1) "${reps}x" else stringResource(R.string.tx_single)
+                val rot by androidx.compose.animation.core.animateFloatAsState(if (moreOpen) 180f else 0f, tween(200), label = "mais opções")
+                Glass(Modifier.fillMaxWidth().padding(top = 14.dp), radius = 18.dp, padding = 0.dp) {
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(role = Role.Button) { moreOpen = !moreOpen }.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.tx_more), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(listOf(payName, status, parts).filter { it.isNotBlank() }.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        if (!card) {
-                            val settled = if (kind == Kind.INCOME) "Já recebida" else "Já paga"
-                            val pending = if (kind == Kind.INCOME) "A receber" else "A pagar"
-                            Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 14.dp) {
-                                Text(if (kind == Kind.INCOME) "Situação da receita" else "Situação da despesa", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                                PaymentStatusChoice(settled, paid) { paid = true; paidTouched = true }
-                                PaymentStatusChoice(pending, !paid) { paid = false; paidTouched = true }
-                                Text(
-                                    if (paid) "O valor será considerado no saldo realizado da conta." else "O valor ficará pendente até ser recebido ou pago.",
-                                    style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                                )
+                        AppIcon(Ico.EXPAND, p.muted, Modifier.graphicsLayer { rotationZ = rot }, size = 22.dp)
+                    }
+                    AnimatedVisibility(visible = moreOpen) {
+                        Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+                            FieldRow(
+                                icon = if (card) Ico.CARD else Ico.WALLET, tint = if (card) p.card else p.accent, tile = if (card) p.cardContainer else p.accent2,
+                                label = stringResource(if (isExpense) R.string.tx_pay_with else R.string.tx_receive_in), value = payName, chevron = true,
+                                modifier = Modifier.testTag(TxTags.PAY_ROW),
+                            ) { focus.clearFocus(); keyboard?.hide(); payPicker = true }
+                            if (!card) {
+                                FormLabel(stringResource(if (isExpense) R.string.tx_status_expense else R.string.tx_status_income))
+                                SegmentedChoice(
+                                    listOf(true to stringResource(if (isExpense) R.string.tx_paid_cap else R.string.tx_received_cap), false to stringResource(if (isExpense) R.string.tx_to_pay_cap else R.string.tx_to_receive_cap)),
+                                    paid,
+                                ) { paid = it; paidTouched = true }
                             }
-                        }
-                        if (tx?.scheduledDate != null) Text(
-                            "Data prevista original: ${tx.scheduledDate.br()}. Ela será restaurada se o lançamento voltar a ficar pendente.",
-                            style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 8.dp),
-                        )
-                        if (tx == null) Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 14.dp) {
-                            Text("Parcelamento e repetição", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                            Field("Número de parcelas", reps, { reps = it.filter(Char::isDigit) }, keyboard = KeyboardType.Number, maxLength = 2)
-                            if ((reps.toIntOrNull() ?: 1) > 1) SelectField(
-                                "O valor informado é", listOf(RepsMode.TOTAL to "O total da compra (divide entre as parcelas)", RepsMode.EACH to "O valor de cada parcela"), repsMode, { repsMode = it },
+                            if (tx?.scheduledDate != null) Text(
+                                "Data prevista original: ${tx.scheduledDate.br()}. Ela será restaurada se o lançamento voltar a ficar pendente.",
+                                style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 8.dp),
                             )
-                            CheckRow(if (kind == Kind.INCOME) "Repetir esta receita mensalmente" else "Repetir esta despesa mensalmente", recurring) { recurring = it }
+                            if (tx == null) {
+                                Stepper(stringResource(R.string.tx_parcels), reps, 1..48, { reps = it }, Modifier.padding(top = 8.dp)) { if (it == 1) "À vista" else "${it}x" }
+                                if (reps > 1) SegmentedChoice(
+                                    listOf(RepsMode.TOTAL to stringResource(R.string.tx_reps_total), RepsMode.EACH to stringResource(R.string.tx_reps_each)), repsMode,
+                                ) { repsMode = it }
+                                SwitchRow(stringResource(if (kind == Kind.INCOME) R.string.tx_repeat_income else R.string.tx_repeat_expense), null, recurring) { recurring = it }
+                            }
                         }
                     }
                 }
@@ -355,7 +387,7 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
                         val later = Ops.laterParcels(Repo.state.value, tx.id)
                         if (later.isEmpty()) { Repo.replace(Ops.deleteTx(Repo.state.value, tx.id, false)); close() }
                         else dialogs.confirm(
-                            "Parcelas", "Excluir também as ${later.size} parcela(s) seguinte(s)?", ok = "Excluir também", cancel = "Só esta",
+                            "Parcelas", "Excluir também " + (if (later.size == 1) "a parcela seguinte?" else "as ${later.size} parcelas seguintes?"), ok = "Excluir também", cancel = "Só esta",
                             onCancel = { Repo.replace(Ops.deleteTx(Repo.state.value, tx.id, false)); close() },
                         ) { Repo.replace(Ops.deleteTx(Repo.state.value, tx.id, true)); close() }
                     }
@@ -363,25 +395,25 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
             }
 
-            // ---- Salvar: fixo no rodapé, 56dp, cor do tipo; desabilitado (mais transparente) com valor zero ou vazio
-            val fg = onFill(toneTarget)
+            // ---- Salvar: botão principal (cor primária), fixo no rodapé; desabilitado até haver valor
             Button(
                 onClick = { save() }, enabled = canSave,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp).height(56.dp).testTag(TxTags.SAVE),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = tone, contentColor = fg,
-                    disabledContainerColor = tone.copy(alpha = 0.38f), disabledContentColor = fg.copy(alpha = 0.7f),
+                    containerColor = p.accent, contentColor = p.onAccent,
+                    disabledContainerColor = p.accent.copy(alpha = 0.38f), disabledContentColor = p.onAccent.copy(alpha = 0.7f),
                 ),
             ) { Text(stringResource(if (isExpense) R.string.tx_save_expense else R.string.tx_save_income), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium) }
         }
     }
 
-    // ---- gaveta de categorias
+    // ---- seletor de categoria (folha com busca e check)
     if (drawer) CategoryDrawer(
-        choices = choices, recent = remember(s.txs, kind, choices) { TxForm.recentCategories(s.txs, kind, choices) },
-        current = TxForm.displayCategory(category).takeIf { category.isNotBlank() }, tone = tone,
+        kind = kind, choices = choices,
+        current = TxForm.displayCategory(category).takeIf { category.isNotBlank() },
         onPick = { category = it; drawer = false }, onClose = { drawer = false },
+        onManage = { drawer = false; leaveThen { nav.tab = com.finanplus.ui.Tab.ACCOUNTS; nav.moneyPage = PAGE_CATEGORIES } },
     )
     // ---- pagar com / receber em
     if (payPicker) PayWithSheet(s, isExpense, canCard, card, cardId, accountId, onClose = { payPicker = false }) { isCard, id ->

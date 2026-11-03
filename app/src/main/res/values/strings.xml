@@ -18,8 +18,9 @@
     <string name="home_forecast_label">Previsto em %1$s</string>
     <string name="home_forecast_info">Como o saldo previsto é calculado</string>
     <string name="home_forecast_title">Saldo previsto em %1$s</string>
-    <string name="home_forecast_body">Considera valores pendentes, faturas e recorrências até esta data.</string>
+    <string name="home_forecast_body">Considera valores pendentes (inclusive atrasados), faturas, recorrências e os aportes planejados nas metas que ainda faltam neste mês. O que você já guardou numa meta já saiu do saldo e não é descontado de novo.</string>
     <string name="home_forecast_math">Hoje %1$s + %2$s a receber − %3$s a pagar = %4$s</string>
+    <string name="home_forecast_math_goals">Hoje %1$s + %2$s a receber − %3$s a pagar − %4$s para metas = %5$s</string>
     <string name="home_forecast_math_title">Como chegamos a esse valor</string>
     <string name="home_vs_month">%1$s vs. %2$s</string>
     <string name="home_to_receive">Falta receber</string>
@@ -185,4 +186,94 @@
     <string name="limits_sheet_title">Limites mensais</string>
     <string name="limits_sheet_subtitle">Inclui lançamentos pendentes deste mês.</string>
     <string name="limits_sheet_new">Adicionar limite</string>
+
+    <!-- Glossário único de valores (core/Totals.kt, REDESIGN-COERENCIA.md) -->
+    <string name="ms_forecast_end">Previsto no fim do mês</string>
+    <string name="ms_balance_end">Saldo no fim do mês</string>
+    <string name="ms_result">Resultado do mês</string>
+    <string name="ms_result_forecast">Resultado previsto do mês</string>
+    <string name="ms_balance_now">Saldo atual</string>
+    <string name="ms_forecast_start">Previsto no início do mês</string>
+    <string name="ms_balance_start">Saldo no início do mês</string>
+    <string name="ms_in">Entrou</string>
+    <string name="ms_out">Saiu</string>
+    <string name="ms_goals_saved">Guardado em metas</string>
+    <string name="ms_to_receive">A receber</string>
+    <string name="ms_to_pay">A pagar</string>
+    <string name="ms_to_pay_goals">A pagar + metas</string>
+    <string name="ms_goals_planned">Reservado para metas</string>
+    <string name="ms_left_to_receive">Ficou a receber</string>
+    <string name="ms_left_to_pay">Ficou a pagar</string>
+    <string name="ms_forecast_short">Previsto</string>
+    <string name="ms_balance_end_short">Saldo final</string>
+    <string name="ms_note_out_goals">Já saíram %1$s este mês e %2$s foram para metas.</string>
+    <string name="ms_note_out">Já saíram %1$s este mês.</string>
+    <string name="ms_note_goals">%1$s foram para metas este mês.</string>
+    <string name="ms_note_card">As compras no cartão contam pela fatura.</string>
+    <string name="ms_note_goal_once">O que já foi guardado em metas já está fora do saldo atual.</string>
+
+    <!-- Redesign: Meu dinheiro, Dívidas e Categorias (REDESIGN-COERENCIA.md) -->
+    <string name="money_subtitle">Contas, metas e planos em um só lugar.</string>
+    <string name="money_in_accounts_title">Saldo nas contas</string>
+    <string name="money_open_invoice">Fatura aberta</string>
+    <string name="money_saved_goals">Guardado em metas</string>
+    <string name="money_accounts_cards">Contas e cartões</string>
+    <string name="money_debts">Dívidas</string>
+    <string name="money_debts_empty">Nenhuma dívida em aberto</string>
+    <string name="money_limits_none">Nenhum limite ainda</string>
+    <string name="money_shared">Despesas compartilhadas</string>
+    <string name="money_whatif">E se…?</string>
+    <string name="money_whatif_sub">Teste decisões sem mudar seus dados</string>
+    <string name="money_goal_late">A meta %1$s vai passar do prazo</string>
+    <string name="money_goal_past">O prazo da meta %1$s já passou</string>
+    <string name="money_goal_needed">Para chegar em %1$s, guarde %2$s por mês.</string>
+    <string name="money_goal_adjust">Ajustar contribuição</string>
+    <string name="debts_subtitle">Empréstimos e financiamentos em parcelas, montados a partir dos lançamentos da categoria Dívidas.</string>
+    <string name="debts_new">Nova dívida</string>
+    <string name="debts_empty">Nenhuma dívida por aqui. Ao lançar uma parcela de empréstimo ou financiamento, use a categoria Dívidas.</string>
+    <string name="debts_done">Quitada</string>
+    <string name="debts_next">Próxima parcela: %1$s em %2$s</string>
+    <string name="debts_progress">%1$d de %2$d parcelas pagas</string>
+    <string name="debts_left">faltam %1$s</string>
+    <string name="cats_title">Categorias</string>
+    <string name="cats_subtitle">Toque para editar, arraste para ordenar.</string>
+    <string name="cats_tab_expense">Despesas · %1$d</string>
+    <string name="cats_tab_income">Receitas · %1$d</string>
+    <string name="cats_migration_note">Cartões e limite especial agora ficam em Contas e cartões. Empréstimos ficam em Dívidas.</string>
+    <string name="cats_new">Nova categoria</string>
+    <string name="cats_archived">Categoria “%1$s” arquivada</string>
+    <string name="cats_undo">Desfazer</string>
+    <string name="cats_archive">Arquivar</string>
+    <string name="cats_move_up">Mover para cima</string>
+    <string name="cats_move_down">Mover para baixo</string>
+
+    <!-- Redesign: formulário de lançamento (REDESIGN-COERENCIA.md) -->
+    <string name="tx_title_new_expense">Nova despesa</string>
+    <string name="tx_title_new_income">Nova receita</string>
+    <string name="tx_read_bill">Ler boleto</string>
+    <string name="tx_amount_title">Valor</string>
+    <string name="tx_all_categories">Todas</string>
+    <string name="tx_yesterday">Ontem</string>
+    <string name="tx_pick_date">Escolher</string>
+    <string name="tx_description_placeholder">Ex.: mercado da semana</string>
+    <string name="tx_more_card">no cartão</string>
+    <string name="tx_paid">já paga</string>
+    <string name="tx_received">já recebida</string>
+    <string name="tx_to_pay">a pagar</string>
+    <string name="tx_to_receive">a receber</string>
+    <string name="tx_single">à vista</string>
+    <string name="tx_status_expense">Situação da despesa</string>
+    <string name="tx_status_income">Situação da receita</string>
+    <string name="tx_paid_cap">Já paga</string>
+    <string name="tx_received_cap">Já recebida</string>
+    <string name="tx_to_pay_cap">A pagar</string>
+    <string name="tx_to_receive_cap">A receber</string>
+    <string name="tx_parcels">Parcelas</string>
+    <string name="tx_reps_total">Valor total</string>
+    <string name="tx_reps_each">Valor de cada parcela</string>
+    <string name="tx_repeat_expense">Repetir esta despesa todo mês</string>
+    <string name="tx_repeat_income">Repetir esta receita todo mês</string>
+    <string name="tx_drawer_expenses">DESPESAS</string>
+    <string name="tx_drawer_incomes">RECEITAS</string>
+    <string name="tx_manage_categories">Gerenciar categorias</string>
 </resources>

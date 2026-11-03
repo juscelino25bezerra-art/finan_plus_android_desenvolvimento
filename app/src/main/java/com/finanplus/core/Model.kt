@@ -162,7 +162,7 @@ data class AppState(
 
     companion object {
         const val MAIN_ACCOUNT = "main"
-        val DEFAULT_EXPENSE = listOf("Alimentação", "Transporte", "Moradia", "Saúde", "Lazer", "Educação", "Outros")
+        val DEFAULT_EXPENSE = listOf("Alimentação", "Transporte", "Moradia", "Saúde", "Lazer", "Educação", "Dívidas", "Outros")
         val DEFAULT_INCOME = listOf("Salário", "Extra", "Investimentos", "Outros")
         val AUTOLOCK_OPTIONS = listOf(0, 1, 5, 15, 30)
         const val CARD_PAYMENT_CAT = "Pagamento de fatura"

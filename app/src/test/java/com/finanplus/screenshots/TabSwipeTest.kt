@@ -44,7 +44,7 @@ class TabSwipeTest {
     /** algo que só existe na tela de cada aba (texto ou descrição para leitores de tela) */
     private val marker: Map<String, SemanticsMatcher> = mapOf(
         "Início" to hasText("Saldo atual"), "Lançamentos" to hasContentDescription("Visualização em calendário"),
-        "Meu dinheiro" to hasText("Contas, cartões e seus planos financeiros em um só lugar."),
+        "Meu dinheiro" to hasText("Contas, metas e planos em um só lugar."),
         "Resumo" to hasContentDescription("Exportar relatório em PDF"), "Ajustes" to hasText("Aparência"),
     )
 

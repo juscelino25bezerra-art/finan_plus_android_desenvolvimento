@@ -175,7 +175,7 @@ object Ask {
         val sum = done.fold(0L) { a, t -> a + t.value }
         val verb = if (p.kind == Kind.INCOME) "recebeu" else "gastou"
         val pendNote = if (pending.isNotEmpty() && p.intent != Intent.BALANCE)
-            " Há ainda ${money(pending.fold(0L) { a, t -> a + t.value })} pendente(s) em ${Br.plural(pending.size, "lançamento", "lançamentos")}." else ""
+            " Há ainda ${money(pending.fold(0L) { a, t -> a + t.value })} pendente em ${Br.plural(pending.size, "lançamento", "lançamentos")}." else ""
 
         val text = when (p.intent) {
             Intent.TOTAL ->
@@ -194,7 +194,7 @@ object Ask {
                 val end = minOf(p.period.to, today)
                 val days = (end.toEpochDay() - p.period.from.toEpochDay() + 1).coerceAtLeast(1)
                 if (done.isEmpty()) "Não encontrei $what realizadas$scope."
-                else "Média de ${money(sum / days)} por dia$scope (${money(sum)} em $days dia(s) até ${Br.date(end)})."
+                else "Média de ${money(sum / days)} por dia$scope (${money(sum)} em ${Br.plural(days.toInt(), "dia", "dias")} até ${Br.date(end)})."
             }
             Intent.BALANCE -> {
                 val inc = done.filter { it.kind == Kind.INCOME }.fold(0L) { a, t -> a + t.value }

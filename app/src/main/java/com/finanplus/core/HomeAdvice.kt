@@ -22,29 +22,34 @@ data class RiskAdvice(val day: LocalDate, val bills: Cents, val balance: Cents, 
 
 /**
  * Regras da tela Início que cruzam informações (sem Android: testado em JVM, HomeAdviceTest).
- * Nada aqui muda os números da tela: saldo, previsto, "falta receber" e "falta pagar" seguem vindo de
- * Finance e Period, como antes. Ver INICIO.md.
+ * Nada aqui muda os números da tela: saldo, previsto, "falta receber" e "falta pagar" vêm do glossário
+ * único em core/Totals.kt. Ver INICIO.md.
  */
 object HomeAdvice {
     /**
      * Contas a pagar pendentes do mês [ym]: despesas fora do cartão ainda não pagas e faturas em aberto
-     * que vencem no mês: as mesmas que formam o "Falta pagar" (Period.monthPending).
+     * que vencem no mês (no mês atual, também as atrasadas): as mesmas que formam o "A pagar" de [Totals].
      */
     fun monthBills(s: AppState, ym: YearMonth, today: LocalDate): List<Due> {
-        val bills = s.txs.filter { !it.paid && !it.isCard && it.kind == Kind.EXPENSE && it.date.ym() == ym }
+        // no mês atual, as atrasadas também (são as mesmas do "A pagar" de core/Totals.kt)
+        val current = ym == today.ym()
+        val bills = s.txs.filter { !it.paid && !it.isCard && it.kind == Kind.EXPENSE && (it.date.ym() == ym || (current && it.date.isBefore(ym.atDay(1)))) }
             .map { Due(it.desc, it.value, it.date, it.category, it.id) }
-        val invs = MonthCalendar.invoicesDue(s, ym, today).map { Due("Fatura ${it.cardName}", it.amount, it.due, AppState.CARD_PAYMENT_CAT, it.cardId, invoice = true) }
+        val invs = if (current) s.cards.flatMap { c ->
+            Finance.cardStatus(s, c, today).invoices.filter { it.open > 0 && !it.due.isAfter(ym.atEndOfMonth()) }
+                .map { Due("Fatura ${c.name}", it.open, it.due, AppState.CARD_PAYMENT_CAT, c.id, invoice = true) }
+        } else MonthCalendar.invoicesDue(s, ym, today).map { Due("Fatura ${it.cardName}", it.amount, it.due, AppState.CARD_PAYMENT_CAT, it.cardId, invoice = true) }
         return (bills + invs).sortedWith(compareBy<Due> { it.date }.thenBy { it.title })
     }
 
     /** Valores a receber pendentes do mês [ym] (os mesmos do "Falta receber"), do mais antigo para o mais novo. */
-    fun monthIncome(s: AppState, ym: YearMonth): List<Due> =
-        s.txs.filter { !it.paid && !it.isCard && it.kind == Kind.INCOME && it.date.ym() == ym }
+    fun monthIncome(s: AppState, ym: YearMonth, today: LocalDate? = null): List<Due> =
+        s.txs.filter { !it.paid && !it.isCard && it.kind == Kind.INCOME && (it.date.ym() == ym || (today != null && ym == today.ym() && it.date.isBefore(ym.atDay(1)))) }
             .map { Due(it.desc, it.value, it.date, it.category, it.id) }
             .sortedWith(compareBy<Due> { it.date }.thenByDescending { it.amount })
 
     /** Próximo recebimento pendente do mês, para o cartão "Falta receber" (null = tudo recebido). */
-    fun nextIncome(s: AppState, today: LocalDate): Due? = monthIncome(s, today.ym()).firstOrNull()
+    fun nextIncome(s: AppState, today: LocalDate): Due? = monthIncome(s, today.ym(), today).firstOrNull()
 
     /**
      * Risco no próximo dia com contas: some as contas pendentes até esse dia (atrasadas contam como de hoje);
@@ -59,7 +64,7 @@ object HomeAdvice {
         val c = bills.filter { !eff(it.date).isAfter(day) }.sumOf { it.amount }
         val balance = Finance.currentBalance(s)
         if (balance >= c) return null
-        val income = monthIncome(s, ym).filter { !eff(it.date).isAfter(day) }
+        val income = monthIncome(s, ym, today).filter { !eff(it.date).isAfter(day) }
             .maxWithOrNull(compareBy<Due> { it.amount }.thenBy { it.date })
             ?.let { it.copy(date = eff(it.date)) }
         return RiskAdvice(day, c, balance, c - balance, income)

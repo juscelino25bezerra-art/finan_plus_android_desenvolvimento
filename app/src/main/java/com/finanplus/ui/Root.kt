@@ -111,14 +111,14 @@ import java.time.LocalDate
 
 enum class Tab(val label: String, val icon: com.finanplus.ui.components.Ico) {
     HOME("Início", com.finanplus.ui.components.Ico.HOME), MOVES("Lançamentos", com.finanplus.ui.components.Ico.MOVES),
-    ACCOUNTS("Meu dinheiro", com.finanplus.ui.components.Ico.BANK), REPORTS("Resumo", com.finanplus.ui.components.Ico.REPORTS), PREFS("Ajustes", com.finanplus.ui.components.Ico.SETTINGS),
+    ACCOUNTS("Meu dinheiro", com.finanplus.ui.components.Ico.WALLET), REPORTS("Resumo", com.finanplus.ui.components.Ico.REPORTS), PREFS("Ajustes", com.finanplus.ui.components.Ico.SETTINGS),
 }
 
 /** Folhas (formulários) abertas. Serializable para sobreviver a girar a tela e ao bloqueio. */
 sealed interface Sheet : java.io.Serializable {
     /** [date]: data inicial de um lançamento novo (ex.: o dia escolhido no calendário) */
     data object AddChoice : Sheet
-    data class TxEdit(val kind: Kind, val id: String? = null, val date: LocalDate? = null) : Sheet
+    data class TxEdit(val kind: Kind, val id: String? = null, val date: LocalDate? = null, val category: String? = null) : Sheet
     /** [name]/[target]/[monthly]: valores iniciais de uma meta nova (ex.: vindos do simulador) */
     data class GoalEdit(val id: String? = null, val name: String = "", val target: Long = 0, val monthly: Long = 0) : Sheet
     data class AccountEdit(val id: String? = null) : Sheet
@@ -128,9 +128,6 @@ sealed interface Sheet : java.io.Serializable {
     data class PayInvoice(val cardId: String) : Sheet
     /** Meu dinheiro: detalhe do cartão (fatura, compras, histórico e editar) */
     data class CardDetail(val id: String) : Sheet
-    /** Meu dinheiro › Planejamento: lista de metas e lista de limites mensais */
-    data object GoalsList : Sheet
-    data object LimitsList : Sheet
     /** assistente: perguntas, resumo e todas as dicas */
     data object Assistant : Sheet
     /** Início: como o saldo previsto do fim do mês é calculado */
@@ -183,12 +180,14 @@ class Nav {
     /** calendário: mês mostrado e dia escolhido (null = nenhum) */
     var calMonth by mutableStateOf(java.time.YearMonth.now())
     var calDay by mutableStateOf<LocalDate?>(LocalDate.now())
+    /** Meu dinheiro: tela aberta (contas, dividas, limites, metas, categorias; null = visão geral) */
+    var moneyPage by mutableStateOf<String?>(null)
     fun open(s: Sheet) { sheet = s }
 
     companion object {
         /** Aba, folha aberta e filtros sobrevivem a girar a tela, mudar a fonte e ao bloqueio do app. */
         val Saver = listSaver<Nav, Any?>(
-            save = { n -> listOf(n.tab.name, n.sheet, n.filters.from, n.filters.to, n.filters.query, n.filters.kind?.name, n.filters.paid, n.movesView.name, n.calMonth, n.calDay) },
+            save = { n -> listOf(n.tab.name, n.sheet, n.filters.from, n.filters.to, n.filters.query, n.filters.kind?.name, n.filters.paid, n.movesView.name, n.calMonth, n.calDay, n.moneyPage) },
             restore = { l ->
                 Nav().apply {
                     tab = runCatching { Tab.valueOf(l[0] as String) }.getOrDefault(Tab.HOME)
@@ -201,6 +200,7 @@ class Nav {
                     movesView = runCatching { MovesView.valueOf(l.getOrNull(7) as String) }.getOrDefault(MovesView.LIST)
                     calMonth = l.getOrNull(8) as java.time.YearMonth? ?: java.time.YearMonth.now()
                     calDay = if (l.size > 9) l[9] as LocalDate? else LocalDate.now()
+                    moneyPage = l.getOrNull(10) as String?
                 }
             },
         )
@@ -289,6 +289,9 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
             askNotif.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
+    // cartão e limite especial deixam de ser categorias; Empréstimo vira Dívidas. Roda sempre que as categorias
+    // mudam (abrir o app, desbloquear, restaurar um backup): os dados podem chegar depois da primeira composição.
+    LaunchedEffect(s.cats) { if (com.finanplus.core.TxForm.migrate(Repo.state.value) != null) Repo.migrateCategories() }
 
     // "hoje" dinâmico: muda na meia-noite, ao voltar ao app e se a data do aparelho mudar
     val today = com.finanplus.ui.components.rememberToday()
@@ -476,18 +479,19 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
         else -> "Paga"
     }
     val statusColor = when {
-        t.isGoal -> p.accent
+        t.isGoal -> p.goal
         !t.paid && t.date.isBefore(today) -> p.red
         t.paid && t.kind == Kind.INCOME -> p.green
         t.paid && t.kind == Kind.EXPENSE -> p.green
-        t.isCard -> p.accent
+        t.isCard -> p.card
         else -> p.muted
     }
     val dateLabel = buildString {
         append(t.date.br())
         if (t.paid && t.scheduledDate != null) append(" · previsto ").append(t.scheduledDate.br())
     }
-    val where = if (t.isCard) "Cartão " + (s.card(t.cardId)?.name ?: "") else s.account(t.accountId)?.name ?: "Conta"
+    // a conta só aparece quando existe mais de uma; o cartão aparece sempre (é a forma de pagamento)
+    val where = if (t.isCard) "Cartão " + (s.card(t.cardId)?.name ?: "") else if (s.accounts.size > 1) s.account(t.accountId)?.name ?: "Conta" else null
     Row(
         Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(20.dp)).background(p.surface).glassBorder(p, RoundedCornerShape(20.dp)),
         verticalAlignment = Alignment.CenterVertically,
@@ -497,17 +501,17 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // ícone da categoria num quadrado na cor do tipo (despesa, receita, meta; previsto = neutro)
-            com.finanplus.ui.components.CategoryTile(com.finanplus.core.TxForm.displayCategory(t.category), com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected))
+            com.finanplus.ui.components.CategoryTile(com.finanplus.core.TxForm.displayCategory(t.category), com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected, card = t.isCard || t.cardPayment.isNotEmpty()))
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(t.desc, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                // duas linhas fixas: data e situação nunca são cortadas, mesmo com nomes longos
-                Text("${com.finanplus.core.TxForm.displayCategory(t.category)} · $where", style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // nome em até duas linhas, sem cortar no meio (PDF de redesign)
+                Text(com.finanplus.core.Words.ordinal(t.desc), fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(listOfNotNull(com.finanplus.core.Words.ordinal(com.finanplus.core.TxForm.displayCategory(t.category)), where).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$status · $dateLabel", style = MaterialTheme.typography.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            // reserva para meta: sem sinal e na cor primária (o dinheiro continua seu, separado na meta);
+            // reserva para meta: sai do saldo ("−"), no âmbar das metas; nunca é chamada de despesa;
             // retirada da meta: volta para a conta, então "+" em verde, como uma entrada
-            MoneyText(t.value, prefix = when { t.isGoal && t.kind == Kind.EXPENSE -> ""; t.kind == Kind.EXPENSE -> "− "; else -> "+ " },
-                color = when { t.isGoal && t.kind == Kind.EXPENSE -> p.accent; t.kind == Kind.EXPENSE -> p.red; else -> p.green },
+            MoneyText(t.value, prefix = when { t.kind == Kind.EXPENSE -> "− "; else -> "+ " },
+                color = when { t.isGoal && t.kind == Kind.EXPENSE -> p.goal; t.kind == Kind.EXPENSE -> p.red; else -> p.green },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold))
         }
         // compra no cartão e pagamento de fatura não alternam pago/pendente (ver Ops.canTogglePaid)
@@ -643,7 +647,7 @@ private fun ProblemNotice(reask: Int) {
                 com.finanplus.security.AppLock.allowExternalOnce()
                 saveCopy.launch("finan-plus-dados-danificados-${LocalDate.now()}.json")
             }
-            is LoadProblem.Dropped -> { dialogs.notice("Dados revisados", "${p.count} registro(s) inválido(s) foram ignorados ao abrir os dados."); Repo.dismissProblem() }
+            is LoadProblem.Dropped -> { dialogs.notice("Dados revisados", "${com.finanplus.core.Words.count(p.count, "registro inválido foi ignorado", "registros inválidos foram ignorados")} ao abrir os dados."); Repo.dismissProblem() }
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -85,13 +86,7 @@ fun SimulatorSheet(s: AppState, sheet: Sheet.Simulator, close: () -> Unit) {
     val m: (Cents) -> String = { if (hide) "R$ ••••" else Money.format(it) }
     val current = Scen.entries.firstOrNull { it.key == scen }
 
-    if (current != null) Row(
-        Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button) { scen = null }.padding(vertical = 6.dp, horizontal = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIcon(Ico.PREV, p.accent, size = 20.dp)
-        Text("E se…?", color = p.accent, fontWeight = FontWeight.Bold)
-    }
+    if (current != null) com.finanplus.ui.components.BackLink("E se…?") { scen = null }
     Text(current?.title?.removeSuffix("…")?.let { if (current == Scen.BUY) "Quanto tempo para comprar?" else "$it…?" } ?: "E se…?",
         style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
     if (current == null) Text("Teste decisões antes de tomá-las.", color = p.muted)
@@ -115,12 +110,13 @@ fun SimulatorSheet(s: AppState, sheet: Sheet.Simulator, close: () -> Unit) {
 private fun SafeBadge() {
     val p = Fin.c
     Row(
-        Modifier.padding(top = 8.dp).clip(RoundedCornerShape(99.dp)).background(p.green.copy(alpha = 0.14f)).padding(horizontal = 12.dp, vertical = 7.dp),
+        // selo em tom neutro (não é um "sucesso", só informa)
+        Modifier.padding(top = 8.dp).clip(RoundedCornerShape(99.dp)).background(p.accent2).padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(Ico.SHIELD, p.green, size = 15.dp)
+        AppIcon(Ico.SHIELD, p.muted, size = 15.dp)
         Spacer(Modifier.width(6.dp))
-        Text("Só simulação: seus dados não mudam", color = p.green, style = MaterialTheme.typography.labelLarge)
+        Text("Simulação: seus dados não mudam", color = p.text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -134,7 +130,7 @@ private fun Box2(content: @Composable () -> Unit) {
 private fun BaseCard(base: Simulator.Base, auto: Simulator.Base, m: (Cents) -> String, hide: Boolean) {
     val p = Fin.c
     Box2 {
-        Eyebrow(if (auto.months > 0) "Sua base · média dos últimos ${auto.months} ${if (auto.months == 1) "mês" else "meses"}" else "Sua base")
+        Eyebrow(if (auto.months > 0) (if (auto.months == 1) "Sua base · média do último mês" else "Sua base · média dos últimos ${auto.months} meses") else "Sua base")
         if (auto.months == 0 && base.income == 0L && base.expense == 0L)
             Text("Ainda não há meses completos com valores realizados. Informe abaixo quanto entra e sai num mês típico.", style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 4.dp))
         Row(Modifier.padding(top = 6.dp)) {
@@ -209,23 +205,43 @@ private fun SaveScenario(base: Simulator.Base, m: (Cents) -> String, close: () -
     val p = Fin.c
     val nav = LocalNav.current
     var per by rememberSaveable { mutableStateOf("200,00") }
-    var months by rememberSaveable { mutableStateOf("12") }
+    var months by rememberSaveable { mutableStateOf(12) }
     MoneyField("Guardar por mês (R$)", per, { per = it }, Modifier.padding(top = 10.dp))
-    Field("Por quantos meses", months, { months = it.filter(Char::isDigit) }, keyboard = KeyboardType.Number, maxLength = 3)
+    com.finanplus.ui.components.Stepper("Por quantos meses", months, 1..600, { months = it }) { if (it == 1) "1 mês" else "$it meses" }
     val v = Money.parse(per)?.takeIf { it > 0 }
-    val n = months.toIntOrNull()?.takeIf { it in 1..600 }
+    val n = months
+    val r = v?.let { Simulator.save(base, it, n) }
     Box2 {
-        if (v == null || n == null) { Text("Informe o valor por mês e por quantos meses.", color = p.muted); return@Box2 }
-        val r = Simulator.save(base, v, n)
-        Result(m(r.total), "juntados em ${plural(n, "mês", "meses")}.")
-        Line("Sobra por mês hoje", m(base.left))
-        Line("Sobra por mês guardando ${m(v)}", m(r.newLeft), if (r.newLeft < 0) p.red else Color.Unspecified)
-        if (r.overLeft) Text("Esse valor é maior do que sobra por mês: faltaria dinheiro para as despesas de sempre.", color = p.red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        if (v == null || r == null) { Text("Informe quanto guardar por mês.", color = p.muted); return@Box2 }
+        Eyebrow("Em ${plural(n, "mês", "meses")} você juntaria")
+        Text(m(r.total), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = p.goal)
         listOf(6, 12, 24).filter { it != n }.forEach { k -> Line("Em $k meses", m(v * k)) }
-        Why("Conta: ${m(v)} × $n meses. Não considera rendimento: o Finan+ não sabe quanto o dinheiro guardado renderia.")
+        Line("Sobra por mês guardando", m(r.newLeft), if (r.newLeft < 0) p.red else Color.Unspecified)
+        if (r.overLeft) Row(
+            Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(16.dp)).background(p.warningContainer).padding(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            AppIcon(Ico.WARNING, p.warning, size = 20.dp)
+            Text(
+                (if (base.left < 0) "Hoje já sai mais do que entra. " else "Esse valor é maior do que sobra por mês. ") +
+                    "Para guardar ${m(v)}, seria preciso reduzir ${m(v - base.left)} nas saídas do mês.",
+                Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyMedium, color = p.text,
+            )
+        }
+        Why("Não considera rendimento do dinheiro guardado.")
     }
-    if (v != null) PrimaryButton("Transformar em meta", Modifier.padding(top = 12.dp)) {
-        close(); nav.open(Sheet.GoalEdit(name = "Reserva", target = v * (n ?: 12), monthly = v))
+    if (v != null && r != null) {
+        if (r.overLeft) {
+            // plano que não fecha: a ação principal é testar outro valor; virar meta fica como ação secundária
+            PrimaryButton("Testar outro valor", Modifier.padding(top = 12.dp)) { per = Money.input(maxOf(0L, base.left).coerceAtLeast(0L)).takeIf { base.left > 0 } ?: "" }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.TextButton(onClick = { close(); nav.open(Sheet.GoalEdit(name = "Reserva", target = v * n, monthly = v)) }, Modifier.heightIn(min = 48.dp)) {
+                    Text("Transformar em meta mesmo assim", color = p.accent, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        } else PrimaryButton("Transformar em meta", Modifier.padding(top = 12.dp)) {
+            close(); nav.open(Sheet.GoalEdit(name = "Reserva", target = v * n, monthly = v))
+        }
     }
 }
 

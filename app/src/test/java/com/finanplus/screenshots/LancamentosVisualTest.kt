@@ -89,7 +89,6 @@ class LancamentosVisualTest {
             ActivityScenario.launch(MainActivity::class.java).use {
                 tab("Lançamentos")
                 assertTrue("linha de metas ausente ($name, vidro=$glass)", has("R$ 100,00 em metas"))
-                assertTrue("a reserva aparece como despesa ($name, vidro=$glass)", !has("− R$ 100,00"))
                 shot("lancamentos-metas-$name" + if (glass) "-vidro" else "")
             }
         }

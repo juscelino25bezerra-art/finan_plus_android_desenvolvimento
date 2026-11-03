@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import com.finanplus.ui.components.sensitive
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -111,8 +114,9 @@ private fun money(hide: Boolean): (Long) -> String = { if (hide) "R$ •••�
 @Composable
 private fun stateColor(st: SharedSummary.State) = when (st) {
     SharedSummary.State.SETTLED -> Fin.c.green
-    SharedSummary.State.PARTIAL -> Fin.c.accent
-    SharedSummary.State.OPEN -> Fin.c.red
+    // pendência é atenção (âmbar), não erro (vermelho)
+    SharedSummary.State.PARTIAL -> Fin.c.warning
+    SharedSummary.State.OPEN -> Fin.c.warning
 }
 
 /** Resumo do card em Meu dinheiro. */
@@ -120,7 +124,7 @@ fun sharedCardSubtitle(s: AppState, hide: Boolean): String {
     if (s.shared.isEmpty()) return "Divida contas com amigos e família e acompanhe quem já pagou"
     val (pending, _) = Shared.totals(s.shared)
     val open = s.shared.count { Shared.summary(it).state != SharedSummary.State.SETTLED }
-    return if (open == 0) "${s.shared.size} despesa(s) · tudo quitado"
+    return if (open == 0) "${com.finanplus.core.Words.count(s.shared.size, "despesa", "despesas")} · tudo quitado"
     else "$open em aberto · a receber ${if (hide) "R$ ••••" else Money.format(pending)}"
 }
 
@@ -204,7 +208,7 @@ fun SharedListSheet(s: AppState) {
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(e.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        "${e.date.br()} · pago por ${e.payer?.name ?: "—"} · ${e.people.size} pessoas",
+                        "${e.date.br()} · " + (if (e.payer?.let { isMe(it.name) } == true) "você pagou" else "pago por ${e.payer?.name ?: "—"}") + " · ${e.people.size} pessoas",
                         style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     Text(
@@ -266,7 +270,7 @@ fun SharedEditor(s: AppState, id: String?, close: () -> Unit) {
     // participantes novos ganham um id provisório ("n1", "n2"…); ao salvar viram ids definitivos
     val rows = rememberSaveable(saver = RowsSaver) {
         (old?.people?.map { SharedPersonDraft(it.id, it.name, Money.input(it.share)) }
-            ?: listOf(SharedPersonDraft("n-me", "Eu"), SharedPersonDraft("n-0", ""))).toMutableStateList()
+            ?: listOf(SharedPersonDraft("n-me", "Você"), SharedPersonDraft("n-0", ""))).toMutableStateList()
     }
     var payer by rememberSaveable { mutableStateOf(old?.payerId ?: "n-me") }
     var busy by rememberSaveable { mutableStateOf(false) }
@@ -441,51 +445,78 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
         }
     }
 
-    Pill("Todas as despesas", icon = Ico.PREV) { nav.open(Sheet.SharedList) }
-    Spacer(Modifier.height(8.dp))
-    SharedHeader(e.name, "${e.date.br()} · pago por ${e.payer?.name ?: "—"} · " + if (e.split == SplitMode.EQUAL) "dividida igualmente" else "valor de cada um")
+    com.finanplus.ui.components.BackLink("Despesas compartilhadas") { nav.open(Sheet.SharedList) }
+    val payerIsMe = e.payer?.let { isMe(it.name) } == true
+    SharedHeader(
+        e.name,
+        listOf(
+            com.finanplus.core.MonthCalendar.dayTitle(e.date, today).substringAfter(", ").ifBlank { e.date.br() },
+            if (payerIsMe) "você pagou" else "pago por ${e.payer?.name ?: "—"}",
+            if (e.split == SplitMode.EQUAL) "dividida igualmente" else "valor de cada um",
+        ).joinToString(" · "),
+    )
 
-    Glass(radius = 22.dp, padding = 14.dp) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(Triple("Total", e.total, p.text), Triple("Recebido", st.received, p.green), Triple("Pendente", st.pending, if (st.pending > 0) p.red else p.text)).forEach { (l, v, c) ->
-                Column(Modifier.weight(1f)) {
-                    Text(l, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1)
-                    MoneyText(v, color = c, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
-                }
+    // resumo: falta receber em destaque (atenção, não erro), total e progresso
+    val me = st.people.firstOrNull { isMe(it.person.name) }
+    val debtors = st.people.count { !it.isPayer && it.remaining > 0 }
+    Glass(radius = 24.dp, padding = 16.dp) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(if (st.pending > 0) "Falta receber" else "Tudo recebido", style = MaterialTheme.typography.bodyMedium, color = p.muted, fontWeight = FontWeight.SemiBold)
+                MoneyText(st.pending, color = if (st.pending > 0) p.warning else p.green, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold))
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("Total", style = MaterialTheme.typography.bodySmall, color = p.muted)
+                MoneyText(e.total, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold))
             }
         }
-        if (st.toReceive > 0) Bar(st.received.toFloat() / st.toReceive, p.green, Modifier.padding(top = 10.dp))
-        Text(
-            st.state.label + " · a receber de ${st.people.count { it.owed > 0 }} pessoa(s): ${m(st.toReceive)}",
-            style = MaterialTheme.typography.bodySmall, color = stateColor(st.state), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp),
-        )
+        if (st.toReceive > 0) Bar(st.received.toFloat() / st.toReceive, p.green, Modifier.padding(top = 10.dp).sensitive(hide))
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Text(if (me != null) "Sua parte · ${m(me.person.share)}" else st.state.label, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = p.muted)
+            Text(if (debtors == 0) "Ninguém deve" else com.finanplus.core.Words.count(debtors, "pessoa deve", "pessoas devem"), style = MaterialTheme.typography.bodySmall, color = p.muted)
+        }
     }
 
-    Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 14.dp) {
-        Text("Quem deve e quanto", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-        st.people.forEach { ps ->
-            Column(
-                Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(16.dp)).background(p.accent2.copy(alpha = 0.55f)).padding(12.dp),
-            ) {
+    Text("Quem participa", Modifier.padding(top = 16.dp, bottom = 6.dp, start = 4.dp).semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Glass(radius = 22.dp, padding = 0.dp) {
+        st.people.forEachIndexed { i, ps ->
+            if (i > 0) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 64.dp), thickness = 1.dp, color = p.border)
+            val mine = isMe(ps.person.name)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(ps.person.name + if (ps.isPayer) " · pagou a despesa" else "", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Box(Modifier.size(38.dp).clip(CircleShape).background(if (ps.remaining > 0) p.warningContainer else p.accent2), contentAlignment = Alignment.Center) {
+                        Text(ps.person.name.trim().take(1).uppercase().ifEmpty { "?" }, color = if (ps.remaining > 0) p.warning else p.accent, fontWeight = FontWeight.ExtraBold)
+                    }
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text(if (mine) "Você" else ps.person.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            if (ps.isPayer) "Parte dele: ${m(ps.person.share)} · recebe ${m(st.toReceive)} dos outros"
-                            else "Parte: ${m(ps.owed)} · devolveu ${m(ps.paid)}" + if (ps.remaining > 0) " · falta ${m(ps.remaining)}" else "",
+                            if (mine) "Sua parte: ${m(ps.person.share)}"
+                            else if (ps.isPayer) "Pagou a despesa · parte: ${m(ps.person.share)}"
+                            else "Parte: ${m(ps.owed)} · devolveu ${m(ps.paid)}",
                             style = MaterialTheme.typography.bodySmall, color = p.muted,
                         )
                     }
-                    val c = when (ps.state) { PersonStatus.State.PAID -> p.green; PersonStatus.State.PENDING -> p.red; PersonStatus.State.PARTIAL -> p.accent; else -> p.muted }
-                    Text(ps.state.label, color = c, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                }
-                if (!ps.isPayer && ps.remaining > 0) FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill("Registrar pagamento") { nav.open(Sheet.SharedPay(e.id, ps.person.id)) }
-                    Pill("Quitar tudo", icon = Ico.CHECK) {
-                        dialogs.confirm("Quitar", "Registrar que ${ps.person.name} devolveu ${m(ps.remaining)} hoje?", ok = "Quitar") {
-                            Repo.commit(Shared.settle(Repo.state.value, e.id, ps.person.id, today))?.let { dialogs.notice(it.title, it.message) }
-                        }
+                    val (label, fg, bg) = when {
+                        ps.isPayer || ps.state == PersonStatus.State.PAID -> Triple(if (ps.isPayer) "Pagou tudo" else "Quitado", p.green, p.successContainer)
+                        ps.remaining > 0 -> Triple("Deve ${m(ps.remaining)}", p.warning, p.warningContainer)
+                        else -> Triple(ps.state.label, p.muted, p.accent2)
                     }
+                    Text(label, Modifier.clip(RoundedCornerShape(10.dp)).background(bg).padding(horizontal = 8.dp, vertical = 4.dp), color = fg, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
+                if (!ps.isPayer && ps.remaining > 0) Row(Modifier.fillMaxWidth().padding(top = 10.dp, start = 50.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilledTonalButton(
+                        onClick = { nav.open(Sheet.SharedPay(e.id, ps.person.id)) }, Modifier.weight(1f).heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(containerColor = p.accent2, contentColor = p.accent),
+                    ) { Text("Registrar", fontWeight = FontWeight.Bold) }
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            dialogs.confirm("Quitar", "Registrar que ${ps.person.name} devolveu ${m(ps.remaining)} hoje?", ok = "Quitar") {
+                                Repo.commit(Shared.settle(Repo.state.value, e.id, ps.person.id, today))?.let { dialogs.notice(it.title, it.message) }
+                            }
+                        },
+                        Modifier.weight(1f).heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = p.onAccent),
+                    ) { AppIcon(Ico.CHECK, p.onAccent, size = 18.dp); Spacer(Modifier.width(6.dp)); Text("Quitar", fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -497,12 +528,12 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
             val who = e.person(pay.personId)?.name ?: "Participante"
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(who, fontWeight = FontWeight.SemiBold)
+                    Text(if (isMe(who)) "Você" else who, fontWeight = FontWeight.SemiBold)
                     Text(pay.date.br(), style = MaterialTheme.typography.bodySmall, color = p.muted)
                 }
                 MoneyText(pay.value, color = p.green, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 Box(
-                    Modifier.padding(start = 4.dp).size(40.dp).clip(CircleShape).clickable(role = Role.Button) {
+                    Modifier.padding(start = 4.dp).size(48.dp).clip(CircleShape).clickable(role = Role.Button) {
                         dialogs.confirm("Excluir pagamento", "Excluir o pagamento de ${m(pay.value)} de $who? O valor volta a ficar pendente.", ok = "Excluir", danger = true) {
                             Repo.update { Shared.deletePayment(it, e.id, pay.id) }
                         }
@@ -530,14 +561,14 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
         }
     }
 
-    Glass(Modifier.padding(top = 10.dp), radius = 22.dp, padding = 14.dp) {
-        Text("Compartilhar", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+    Text("Cobrar", Modifier.padding(top = 16.dp, bottom = 6.dp, start = 4.dp).semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Glass(radius = 22.dp, padding = 14.dp) {
         Text(
-            "Uma imagem com a marca do Finan+ para mandar no grupo, ou o comprovante completo em PDF: a parte de cada pessoa, quem já pagou e o que falta. Os dois mostram os valores mesmo com “Ocultar valores” ligado.",
-            style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 2.dp),
+            "Envie a parte de cada pessoa e o que falta. Os valores aparecem mesmo com “Ocultar valores” ligado.",
+            style = MaterialTheme.typography.bodySmall, color = p.muted,
         )
-        FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(if (busy) "Gerando…" else "Compartilhar como imagem", icon = Ico.SHARE) {
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Pill(if (busy) "Gerando…" else "Imagem", Modifier.weight(1f), icon = Ico.SHARE) {
                 if (busy) return@Pill
                 busy = true
                 scope.launch {
@@ -552,10 +583,7 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
                     else shareImage(ctx, uri, shareText(e, st))
                 }
             }
-            Pill(if (busy) "Gerando…" else "Baixar PDF", icon = Ico.RECEIPT) {
-                if (!busy) { AppLock.allowExternalOnce(); save.launch(Shared.pdfName(e)) }
-            }
-            Pill("PDF pelo WhatsApp", icon = Ico.SHARE) {
+            Pill(if (busy) "Gerando…" else "PDF", Modifier.weight(1f), icon = Ico.RECEIPT) {
                 if (busy) return@Pill
                 busy = true
                 scope.launch {
@@ -572,14 +600,23 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
                 }
             }
         }
+        androidx.compose.material3.TextButton(onClick = { if (!busy) { AppLock.allowExternalOnce(); save.launch(Shared.pdfName(e)) } }, Modifier.heightIn(min = 48.dp)) {
+            Text("Salvar o PDF no aparelho", color = p.accent, fontWeight = FontWeight.SemiBold)
+        }
     }
 
-    Spacer(Modifier.height(12.dp))
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Editar despesa") { nav.open(Sheet.SharedEdit(e.id)) }
-        Pill("Excluir", danger = true) { confirmDelete(dialogs, ctx, e, close) }
+    // ações no rodapé: editar (texto) e excluir (texto discreto, com confirmação)
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.material3.TextButton(onClick = { nav.open(Sheet.SharedEdit(e.id)) }, Modifier.heightIn(min = 48.dp)) {
+            Text("Editar despesa", color = p.accent, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.weight(1f))
+        com.finanplus.ui.components.DangerText("Excluir") { confirmDelete(dialogs, ctx, e, close) }
     }
 }
+
+/** "Eu" e "Você" são a própria pessoa: o texto fala com "você" (nunca "pago por Eu"). */
+internal fun isMe(name: String): Boolean = com.finanplus.core.assist.Text.fold(name.trim()) in setOf("eu", "voce")
 
 /** Mensagem que acompanha o PDF no WhatsApp. */
 private fun shareText(e: SharedExpense, st: SharedSummary): String = buildString {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,6 +65,7 @@ import com.finanplus.security.AppLock
 import com.finanplus.security.Pin
 import com.finanplus.ui.LocalNav
 import com.finanplus.ui.Sheet
+import com.finanplus.ui.components.BackLink
 import com.finanplus.ui.components.Eyebrow
 import com.finanplus.ui.components.Glass
 import com.finanplus.ui.components.LocalDialogs
@@ -127,7 +129,7 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
         dialogs.confirm(
             "Revisar restauração",
             "Backup com ${st.txs.size} lançamentos, ${st.accounts.size} contas, ${st.cards.size} cartões e ${st.goals.size} metas." +
-                (if (bad > 0) "\n$bad item(ns) inválido(s) será(ão) ignorado(s)." else "") +
+                (if (bad > 0) "\n" + (if (bad == 1) "1 item inválido será ignorado." else "$bad itens inválidos serão ignorados.") else "") +
                 (if (n.newer) "\nEste backup foi feito por uma versão mais nova do Finan+: dados de recursos que esta versão não conhece serão ignorados." else "") +
                 "\nSubstituir os dados atuais? O PIN e o bloqueio deste aparelho são mantidos.",
             ok = "Substituir", danger = true,
@@ -169,13 +171,23 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
         if (!granted) dialogs.notice("Notificações desativadas", "Para receber avisos de vencimento, permita as notificações do Finan+ nas configurações do Android.")
     }
 
-    LazyColumn(contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
-        item { PageTitle("Configurações", "Ajustes", "Tudo fica salvo e criptografado neste aparelho.") }
+    // cada item abre a sua tela (o padrão "card de navegação"); Voltar ou "‹ Ajustes" retornam à lista
+    val page = rememberSaveable { mutableStateOf<String?>(null) }
+    androidx.activity.compose.BackHandler(enabled = page.value != null) { page.value = null }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(page.value) { listState.scrollToItem(0) }
+    androidx.compose.runtime.CompositionLocalProvider(LocalSettingsPage provides page) {
+    LazyColumn(state = listState, contentPadding = screenPadding(), modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
+        if (page.value == null) item {
+            Text("Ajustes", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+            Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.LOCK, p.green, size = 16.dp)
+                Text("Tudo fica criptografado neste aparelho.", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.bodyMedium, color = p.muted)
+            }
+        }
 
-        item { SettingsGroupHeader("Personalização") }
-
-        item {
-            Collapsible("Aparência", "Tema: ${s.theme.label}" + if (dev.glass) " · efeito vidro" else "") {
+        item { SettingsGroup("Personalização") {
+            Collapsible("Aparência", first = true, summary =  "Tema: ${s.theme.label}" + if (dev.glass) " · efeito vidro" else "") {
                 SwitchRow(
                     "Efeito vidro",
                     "Cartões translúcidos sobre um fundo com brilhos suaves nas cores do tema. Vale para todos os temas.",
@@ -206,9 +218,6 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                 }
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) Text("Material You usa as cores do papel de parede a partir do Android 12.", style = MaterialTheme.typography.bodySmall, color = p.muted)
             }
-        }
-
-        item {
             Collapsible("Notificações e widget", if (dev.notifications && Reminders.canNotify(ctx)) "Avisos de vencimento ligados" else "Avisos de vencimento desligados") {
                 SwitchRow("Avisar vencimentos", "Contas a pagar, valores a receber e faturas, por volta das 9h", dev.notifications && Reminders.canNotify(ctx)) { v ->
                     if (v && Build.VERSION.SDK_INT >= 33 && !Reminders.canNotify(ctx)) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -219,12 +228,10 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                     scope.launch { com.finanplus.widget.BalanceWidget.refresh(ctx) }
                 }
             }
-        }
+        } }
 
-        item { SettingsGroupHeader("Planejamento e automação") }
-
-        item {
-            Collapsible("Lançamentos", if (dev.accumulateBalance) "Saldo acumulado entre os meses" else "Cada mês com o seu saldo") {
+        item { SettingsGroup("Planejamento e automação") {
+            Collapsible("Cálculo do saldo", first = true, summary = if (dev.accumulateBalance) "Saldo acumulado entre os meses" else "Cada mês com o seu saldo") {
                 SwitchRow(
                     "Acumular saldo entre os meses",
                     "Ligado, o saldo de cada mês em Lançamentos soma o saldo inicial das contas e o que sobrou dos meses anteriores. " +
@@ -232,13 +239,8 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                     dev.accumulateBalance,
                 ) { v -> prefs.update { it.copy(accumulateBalance = v) } }
             }
-        }
-        item {
             Collapsible("Assistente", "${listOf(dev.assistCategory, dev.assistTips, dev.assistAsk).count { it }} de 3 funções ligadas") { AssistantSettings(s, dev) }
-        }
-
-        item {
-            Collapsible("Recorrências", if (s.recurring.isEmpty()) "Nenhuma recorrência cadastrada" else "${s.recurring.size} recorrência(s) cadastrada(s)") {
+            Collapsible("Recorrências", if (s.recurring.isEmpty()) "Nenhuma recorrência cadastrada" else (if (s.recurring.size == 1) "1 recorrência cadastrada" else "${s.recurring.size} recorrências cadastradas")) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Pill("Nova", icon = com.finanplus.ui.components.Ico.ADD) { nav.open(Sheet.RecurringEdit()) } }
                 if (s.recurring.isEmpty()) Text("Você também pode marcar “Repetir mensalmente” ao criar um lançamento.", style = MaterialTheme.typography.bodySmall, color = p.muted)
                 s.recurring.forEach { r ->
@@ -249,12 +251,10 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                     }
                 }
             }
-        }
+        } }
 
-        item { SettingsGroupHeader("Segurança e dados") }
-
-        item {
-            Collapsible("Privacidade e segurança", (if (dev.lockEnabled) "Bloqueio ativo" else "Bloqueio desativado") + if (s.privacy) " · valores ocultos" else "") {
+        item { SettingsGroup("Segurança e dados") {
+            Collapsible("Privacidade e segurança", first = true, summary = (if (dev.lockEnabled) "Bloqueio ativo" else "Bloqueio desativado") + if (s.privacy) " · valores ocultos" else "") {
                 Text("Bloqueio do app", fontWeight = FontWeight.SemiBold)
                 Text(
                     when {
@@ -331,18 +331,19 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                     style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 6.dp),
                 )
             }
-        }
-
-        item {
+            if (page.value == null && !dev.lockEnabled && activity.canUseBiometric()) BiometricInvite {
+                activity.promptBiometric(
+                    title = "Ativar desbloqueio por digital", withPinFallback = false,
+                    onSuccess = { prefs.update { it.copy(biometric = true, widgetValues = false) }; scope.launch { com.finanplus.widget.BalanceWidget.refresh(ctx) } },
+                    onFail = { dialogs.notice("Digital", it) },
+                )
+            }
             val lan by com.finanplus.lan.Lan.ui.collectAsState()
-            Collapsible("Acesso pela rede", if (lan.running) "Ligado · ${lan.devices} aparelho(s) conectado(s)" else "Lançar e exportar pelo navegador de outro aparelho") {
+            Collapsible("Acesso pela rede", if (lan.running) "Ligado · " + (if (lan.devices.size == 1) "1 aparelho conectado" else "${lan.devices.size} aparelhos conectados") else "Lançar e exportar pelo navegador de outro aparelho") {
                 com.finanplus.lan.LanSettings(lan)
             }
-        }
-
-        item {
             val auto by com.finanplus.data.AutoBackup.state.collectAsState()
-            Collapsible("Dados", if (auto.enabled) "Backup automático ligado · restauração, CSV e PDF" else "Backup, backup automático, restauração, CSV e PDF") {
+            Collapsible("Dados e backup", if (auto.enabled) "Backup automático ligado · restauração, CSV e PDF" else "Backup, backup automático, restauração, CSV e PDF") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill("Exportar CSV", Modifier.weight(1f)) { AppLock.allowExternalOnce(); exportCsv.launch("lancamentos-${LocalDate.now()}.csv") }
                     Pill("Backup JSON", Modifier.weight(1f)) { AppLock.allowExternalOnce(); exportJson.launch("backup-finan-plus-${LocalDate.now()}.json") }
@@ -365,17 +366,16 @@ fun SettingsScreen(s: AppState, dev: DeviceSettings, activity: MainActivity) {
                 Text("O backup JSON é compatível com o Finan+ web: dá para levar os dados de um para o outro.", style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 8.dp))
                 AutoBackupSettings()
             }
-        }
+        } }
 
-        item { SettingsGroupHeader("Aplicativo") }
-
-        item {
-            Collapsible("Sobre", "Conheça o Finan+ · versão ${BuildConfig.VERSION_NAME}") {
+        item { SettingsGroup("Aplicativo") {
+            Collapsible("Sobre", first = true, summary = "Conheça o Finan+ · versão ${BuildConfig.VERSION_NAME}") {
                 Pill("Ver apresentação", Modifier.fillMaxWidth().padding(bottom = 8.dp), icon = com.finanplus.ui.components.Ico.ASSIST) { Welcome.reopen.value = true }
                 AboutText()
             }
-        }
+        } }
 
+    }
     }
 }
 
@@ -391,40 +391,74 @@ private fun SettingsGroupHeader(title: String) {
     )
 }
 
-/** Linha compacta de Ajustes que abre e fecha com uma seta de navegação. */
+/** Tela aberta em Ajustes (null = lista). */
+private val LocalSettingsPage = androidx.compose.runtime.compositionLocalOf<androidx.compose.runtime.MutableState<String?>> { mutableStateOf(null) }
+
+/** Grupo de Ajustes: na lista, título e um card com as linhas; com uma tela aberta, só a tela. */
 @Composable
-private fun Collapsible(title: String, summary: String, content: @Composable ColumnScope.() -> Unit) {
-    var open by rememberSaveable(title) { mutableStateOf(false) }
+private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    val page = LocalSettingsPage.current
+    if (page.value != null) { Column(content = content); return }
+    SettingsGroupHeader(title)
+    Glass(Modifier.padding(bottom = 8.dp), radius = 22.dp, padding = 0.dp) { content() }
+}
+
+/** Convite discreto para ativar a digital (só quando não há bloqueio e o aparelho tem biometria forte). */
+@Composable
+private fun BiometricInvite(onEnable: () -> Unit) {
+    val p = Fin.c
+    Row(
+        Modifier.fillMaxWidth().padding(start = 64.dp, end = 13.dp, bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(p.accent2).padding(start = 12.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Proteja o app com sua digital.", Modifier.weight(1f).padding(vertical = 8.dp), style = MaterialTheme.typography.bodySmall, color = p.text)
+        androidx.compose.material3.Button(onClick = onEnable, Modifier.heightIn(min = 48.dp).padding(vertical = 4.dp), shape = RoundedCornerShape(14.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = p.onAccent)) { Text("Ativar", fontWeight = FontWeight.Bold) }
+    }
+}
+
+/**
+ * Item de Ajustes no padrão "card de navegação": na lista, ícone, título, resumo e chevron; tocar abre a tela
+ * do item, com "‹ Ajustes" para voltar. Um conceito, um ícone (REDESIGN-COERENCIA.md).
+ */
+@Composable
+private fun Collapsible(title: String, summary: String, first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val page = LocalSettingsPage.current
     val p = Fin.c
     val icon = when (title) {
-        "Aparência" -> com.finanplus.ui.components.Ico.SETTINGS
+        "Aparência" -> com.finanplus.ui.components.Ico.PALETTE
         "Privacidade e segurança" -> com.finanplus.ui.components.Ico.SHIELD
-        "Notificações e widget" -> com.finanplus.ui.components.Ico.WARNING
+        "Notificações e widget" -> com.finanplus.ui.components.Ico.BELL
+        "Cálculo do saldo" -> com.finanplus.ui.components.Ico.CALC
         "Assistente" -> com.finanplus.ui.components.Ico.ASSIST
         "Recorrências" -> com.finanplus.ui.components.Ico.REPEAT
-        "Acesso pela rede" -> com.finanplus.ui.components.Ico.MOVES
-        "Dados" -> com.finanplus.ui.components.Ico.WALLET
-        else -> com.finanplus.ui.components.Ico.NEXT
+        "Acesso pela rede" -> com.finanplus.ui.components.Ico.WIFI
+        "Dados e backup" -> com.finanplus.ui.components.Ico.DATABASE
+        else -> com.finanplus.ui.components.Ico.INFO
     }
-    Glass(Modifier.padding(bottom = 8.dp), radius = 19.dp, padding = 0.dp) {
-        Row(
-            Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }
-                .semantics { stateDescription = if (open) "expandido" else "recolhido" }
-                .padding(horizontal = 13.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            com.finanplus.ui.components.IconTile(icon, p.accent, p.accent2, size = 38.dp, iconSize = 20.dp)
-            Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() }, maxLines = 1)
-                Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2)
+    when (page.value) {
+        null -> {
+            if (!first) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 64.dp), thickness = 1.dp, color = p.border)
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(role = Role.Button) { page.value = title }
+                    .padding(horizontal = 13.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                com.finanplus.ui.components.IconTile(icon, p.accent, p.accent2, size = 38.dp, iconSize = 20.dp)
+                Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                    Text(summary, style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 2)
+                }
+                com.finanplus.ui.components.AppIcon(com.finanplus.ui.components.Ico.NEXT, p.muted, size = 20.dp)
             }
-            com.finanplus.ui.components.AppIcon(
-                if (open) com.finanplus.ui.components.Ico.DROPDOWN else com.finanplus.ui.components.Ico.NEXT,
-                p.muted,
-                size = 20.dp,
-            )
         }
-        if (open) Column(Modifier.padding(start = 13.dp, end = 13.dp, bottom = 13.dp), content = content)
+        title -> {
+            BackLink("Ajustes") { page.value = null }
+            Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+            Text(summary, style = MaterialTheme.typography.bodyMedium, color = p.muted, modifier = Modifier.padding(bottom = 10.dp))
+            Glass(radius = 22.dp, padding = 14.dp) { content() }
+        }
+        else -> Unit
     }
 }
 
