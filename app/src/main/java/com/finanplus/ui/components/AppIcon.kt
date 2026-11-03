@@ -39,6 +39,7 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0) {
     EDIT(R.drawable.ms_edit),
     GAMES(R.drawable.ms_sports_esports),
     TREND(R.drawable.ms_trending_up),
+    EXPAND(R.drawable.ms_expand_more),
     ASSIST(R.drawable.ms_auto_awesome),
     FINGERPRINT(R.drawable.ms_fingerprint),
     UP(R.drawable.ms_arrow_upward),

@@ -17,6 +17,7 @@ Esta é a versão nativa para Android, em **Kotlin + Jetpack Compose**: dados cr
 - Início: saldo e previsto num cartão, aviso de risco do Assistente e próximos vencimentos agrupados: [INICIO.md](INICIO.md)
 - Resumo: resultado com previsto, fluxo "Entrou/Saiu", categorias e evolução: [RESUMO.md](RESUMO.md)
 - Nova tela de lançamento (Receita e Despesa): [LANCAMENTO.md](LANCAMENTO.md)
+- Meu dinheiro: visão geral, cartões com fatura e seções recolhíveis: [MEU-DINHEIRO.md](MEU-DINHEIRO.md)
 - Despesas compartilhadas (divisão, quem deve a quem, pagamentos e comprovante em PDF): [DESPESAS-COMPARTILHADAS.md](DESPESAS-COMPARTILHADAS.md)
 - Como o assistente decide cada coisa: [ASSISTENTE.md](ASSISTENTE.md)
 - Acesso pela rede (uso, certificado, segurança): [ACESSO-PELA-REDE.md](ACESSO-PELA-REDE.md) · auditoria: [AUDITORIA-LAN.md](AUDITORIA-LAN.md)

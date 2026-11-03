@@ -92,14 +92,15 @@ class ScreenshotTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             tab("Meu dinheiro")
             for (label in listOf(
-                "Conta principal · Saldo: R$ 0,00",
+                "Conta principal",
+                "R$ 0,00",
                 "Adicione um cartão para acompanhar faturas e vencimentos.",
                 "Adicionar conta",
                 "Adicionar cartão",
             )) {
                 assertTrue(
                     "Texto ou ação ausente em Meu dinheiro: $label",
-                    compose.onAllNodes(hasText(label, substring = true)).fetchSemanticsNodes().isNotEmpty(),
+                    compose.onAllNodes(hasText(label, substring = true) or androidx.compose.ui.test.hasContentDescription(label), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
                 )
             }
         }

@@ -126,6 +126,11 @@ sealed interface Sheet : java.io.Serializable {
     data class RecurringEdit(val id: String? = null) : Sheet
     data class LimitEdit(val category: String? = null) : Sheet
     data class PayInvoice(val cardId: String) : Sheet
+    /** Meu dinheiro: detalhe do cartão (fatura, compras, histórico e editar) */
+    data class CardDetail(val id: String) : Sheet
+    /** Meu dinheiro › Planejamento: lista de metas e lista de limites mensais */
+    data object GoalsList : Sheet
+    data object LimitsList : Sheet
     /** assistente: perguntas, resumo e todas as dicas */
     data object Assistant : Sheet
     /** Início: como o saldo previsto do fim do mês é calculado */

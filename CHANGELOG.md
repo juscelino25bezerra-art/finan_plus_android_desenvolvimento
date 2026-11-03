@@ -29,6 +29,15 @@
 - **Descrição com sugestões** das mais usadas e botão Salvar fixo no rodapé com snackbar "Despesa salva"/"Receita salva".
 - Nenhum cálculo nem dado salvo mudou. Detalhes e decisões em [LANCAMENTO.md](LANCAMENTO.md).
 
+### Meu dinheiro
+
+- **Visão geral em três colunas:** Na conta, Em metas e Faturas abertas. Saiu o subtítulo e o "1 conta(s) · 3 cartão(ões)".
+- **Contas e cartões em linhas e cards tocáveis**, com "+ Conta" e "+ Cartão". A conta mostra "+ R$ X guardados em metas" quando houver reserva.
+- **Fatura dentro do cartão:** vencimento ("· daqui a N dias" com 15 dias ou menos), barra de uso do limite com faixas de alerta, "Pagar fatura" em destaque só no que vence primeiro. Tocar abre o detalhe do cartão.
+- **Planejamento:** Metas e Limites mensais num card só.
+- **Contas e Cartões recolhíveis**, com resumo, alertas visíveis e estado salvo.
+- Nenhum cálculo mudou. Detalhes e a investigação das diferenças entre telas em [MEU-DINHEIRO.md](MEU-DINHEIRO.md).
+
 ## 1.9.0 — Despesa compartilhada como imagem, metas como "guardado" em Lançamentos e busca recolhível (02/11/2026)
 
 `versionCode 18`.
