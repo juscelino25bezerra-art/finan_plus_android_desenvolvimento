@@ -138,8 +138,11 @@ object Repo {
         return did
     }
 
+    /** Capturas de tela e testes de interface: nada é gravado (sem isso, o aviso "Não foi possível salvar" aparecia nas capturas). */
+    @Volatile private var preview = false
+
     /** Só para as capturas de tela da documentação (testes): mostra um estado sem gravar nada. */
-    internal fun showForScreenshots(s: AppState) { _state.value = s }
+    internal fun showForScreenshots(s: AppState) { preview = true; _saveError.value = null; _state.value = s }
 
     fun update(f: (AppState) -> AppState) { _state.update(f); persist() }
 
@@ -166,6 +169,7 @@ object Repo {
     }
 
     private fun persist() {
+        if (preview) return
         if (saveBlocked) { _saveError.value = BLOCKED_MSG; return }
         scope.launch {
             val ok = writeLock.withLock {
