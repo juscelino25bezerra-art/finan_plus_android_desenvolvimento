@@ -1,0 +1,1 @@
+Novo visual: Início com saldo e previsto num cartão, aviso do Assistente e vencimentos agrupados. Resumo com resultado, previsto, fluxo e evolução. Nova tela de lançamento com valor em destaque, gaveta de categorias e sugestões. Meu dinheiro com visão geral, cartões com a fatura dentro, uso do limite e seções recolhíveis. Nenhum cálculo mudou.
