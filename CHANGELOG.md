@@ -1,5 +1,16 @@
 # Changelog
 
+## Em desenvolvimento
+
+### Redesign premium e coerente
+
+- **Um número, um nome, uma regra:** Início, Lançamentos (lista e calendário), Resumo e widget usam o mesmo cálculo de A receber, A pagar, Reservado para metas e Previsto. A meta já guardada não é descontada duas vezes; os aportes mensais planejados que faltam no mês passam a entrar no previsto; atrasados aparecem no "A pagar".
+- **Meu dinheiro** com resumo no topo, alerta de meta fora do prazo e telas próprias para Contas e cartões, Dívidas (nova), Limites, Metas e Categorias.
+- **Nova despesa** com categorias e data em chips, "Mais opções" recolhido com resumo e aviso com "Desfazer" ao salvar.
+- **Categorias** em tela própria (arrastar para ordenar, deslizar para arquivar). Cartão de Crédito e Limite Especial deixam de ser categorias; Empréstimo vira Dívidas.
+- **Ajustes** agrupado, com cada item abrindo a sua tela; **Despesa compartilhada** e **E se…?** redesenhados.
+- Plurais corretos, sinal de menos tipográfico, ícones distintos por conceito e cores próprias para metas (âmbar) e cartão (lilás). Detalhes em [REDESIGN-COERENCIA.md](REDESIGN-COERENCIA.md).
+
 ## 1.10.0 — Início, Resumo, Meu dinheiro e tela de lançamento redesenhados (03/11/2026)
 
 ### Início

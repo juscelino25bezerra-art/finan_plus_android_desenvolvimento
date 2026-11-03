@@ -138,7 +138,7 @@ class MeuDinheiroVisualTest {
 
                 openCard("Categorias")
                 assertTrue("categorias ($tag)", has("Despesas ·") && has("Cartões e limite especial agora ficam em Contas e cartões") && has("Nova categoria"))
-                assertFalse("Empréstimo continua ($tag)", has("Empréstimo"))
+                assertFalse("Empréstimo continua ($tag)", compose.onAllNodes(hasText("Empréstimo"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
                 shot("meu-dinheiro-categorias-$suffix")
                 back()
             }
