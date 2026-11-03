@@ -85,7 +85,6 @@ class MeuDinheiroVisualTest {
                 Tx("meta", Kind.EXPENSE, 10000, today, "Meta › Notebook", AppState.GOAL_CAT, true, "main", goalId = "g1"),
                 Tx("s1", Kind.EXPENSE, 48851, today, "Compras", "Outros", true, "main", "sofisa"),
                 Tx("t1", Kind.EXPENSE, 49088, today, "Compras", "Lazer", true, "main", "santander"),
-                Tx("l1", Kind.EXPENSE, 17000, today, "Cinema", "Lazer", true, "main"),
             ),
         )
     }
