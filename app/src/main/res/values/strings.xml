@@ -14,4 +14,41 @@
     <string name="moves_search_clear">Limpar e fechar a busca</string>
     <string name="moves_search_empty">Nenhum lançamento encontrado</string>
     <string name="moves_search_empty_hint">Tente outra palavra ou troque o mês. A busca procura na descrição e na categoria.</string>
+    <!-- Início -->
+    <string name="home_forecast_label">Previsto em %1$s</string>
+    <string name="home_forecast_info">Como o saldo previsto é calculado</string>
+    <string name="home_forecast_title">Saldo previsto em %1$s</string>
+    <string name="home_forecast_body">Considera valores pendentes, faturas e recorrências até esta data.</string>
+    <string name="home_forecast_math">Hoje %1$s + %2$s a receber − %3$s a pagar = %4$s</string>
+    <string name="home_forecast_math_title">Como chegamos a esse valor</string>
+    <string name="home_vs_month">%1$s vs. %2$s</string>
+    <string name="home_to_receive">Falta receber</string>
+    <string name="home_to_pay">Falta pagar</string>
+    <string name="home_next_income">Próximo: %1$s em %2$s</string>
+    <string name="home_all_received">Tudo recebido este mês</string>
+    <string name="home_nothing_to_receive">Nada a receber este mês</string>
+    <string name="home_received_pct">%1$s%% recebido</string>
+    <string name="home_progress_hidden">Progresso oculto</string>
+    <plurals name="home_bills_until">
+        <item quantity="one">%1$d conta até %2$s</item>
+        <item quantity="other">%1$d contas até %2$s</item>
+    </plurals>
+    <string name="home_all_paid">Tudo pago neste mês</string>
+    <string name="home_open_receive">Abrir os valores a receber deste mês em Lançamentos</string>
+    <string name="home_open_pay">Abrir as contas a pagar deste mês em Lançamentos</string>
+    <string name="home_assistant">Assistente</string>
+    <string name="home_open_assistant">Abrir assistente</string>
+    <string name="home_ask">Pergunte sobre seus gastos.</string>
+    <string name="home_risk_same_day">No dia %1$s vencem %2$s e o %3$s de %4$s cai no mesmo dia. Se ele atrasar, seu saldo de %5$s não cobre: faltariam %6$s.</string>
+    <string name="home_risk_before">No dia %1$s vencem %2$s e o %3$s de %4$s cai antes, no dia %7$s. Se ele atrasar, seu saldo de %5$s não cobre: faltariam %6$s.</string>
+    <string name="home_risk_no_income">No dia %1$s vencem %2$s e seu saldo hoje é %3$s. Faltam %4$s para cobrir essas contas.</string>
+    <string name="home_risk_label">Atenção ao dia %1$s</string>
+    <string name="home_upcoming">Próximos vencimentos</string>
+    <string name="home_see_all">Ver todos</string>
+    <string name="home_next_month_group">Próximo mês · %1$s</string>
+    <string name="home_overdue_group">Em atraso · %1$s</string>
+    <string name="home_invoice_subtitle">Fatura do cartão</string>
+    <string name="home_no_dues_title">Nenhum pagamento pendente</string>
+    <string name="home_no_dues_hint">Quando houver uma conta ou fatura, ela aparecerá aqui.</string>
+    <string name="home_due_row">%1$s, %2$s, %3$s. Abrir o pagamento</string>
 </resources>

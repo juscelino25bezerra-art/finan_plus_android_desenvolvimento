@@ -128,6 +128,8 @@ sealed interface Sheet : java.io.Serializable {
     data class PayInvoice(val cardId: String) : Sheet
     /** assistente: perguntas, resumo e todas as dicas */
     data object Assistant : Sheet
+    /** Início: como o saldo previsto do fim do mês é calculado */
+    data object ForecastInfo : Sheet
     /** exportar relatório em PDF (período inicial opcional) */
     data class ReportPdf(val from: java.time.LocalDate? = null, val to: java.time.LocalDate? = null) : Sheet
     /** Lançamentos › Lista: período livre e situação (o ícone de ajuste ao lado do mês) */
@@ -477,10 +479,8 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
             Modifier.weight(1f).clickable(role = Role.Button, onClick = open).padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(p.accent2), contentAlignment = Alignment.Center) {
-                // ícone da categoria; sem ícone próprio, mostra a inicial (ex.: "E" de Empréstimo)
-                com.finanplus.ui.components.CategoryGlyph(t.category, p.text)
-            }
+            // ícone da categoria num quadrado na cor do tipo (despesa, receita, meta; previsto = neutro)
+            com.finanplus.ui.components.CategoryTile(t.category, com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected))
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(t.desc, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // duas linhas fixas: data e situação nunca são cortadas, mesmo com nomes longos
