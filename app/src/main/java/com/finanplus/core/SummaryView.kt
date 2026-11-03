@@ -92,7 +92,8 @@ object SummaryView {
      */
     fun categories(s: AppState, list: List<Tx>, max: Int = MAX_CATEGORIES): Categories {
         val exp = list.filter { it.kind == Kind.EXPENSE && it.paid && it.isFlow }
-        val rows = exp.groupBy { it.category.trim().ifBlank { NO_CATEGORY } }.map { (name, g) ->
+        // "Cartão de Crédito" e "Limite Especial" antigos aparecem como "Outros" (o dado não muda; REDESIGN-COERENCIA.md)
+        val rows = exp.groupBy { TxForm.displayCategory(it.category.trim()).ifBlank { NO_CATEGORY } }.map { (name, g) ->
             CatRow(name, g.totalOf(), g.filter { it.isCard }.mapNotNull { s.card(it.cardId)?.name }.distinct().sorted())
         }.sortedWith(compareByDescending<CatRow> { it.value }.thenBy { it.name })
         val total = rows.sumOf { it.value }

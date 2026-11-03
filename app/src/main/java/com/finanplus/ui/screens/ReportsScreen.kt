@@ -106,7 +106,7 @@ fun ReportsScreen(s: AppState) {
     val categories = remember(s, inRange) { SummaryView.categories(s, inRange) }
     val nextIncome = remember(inRange) { SummaryView.nextIncome(inRange) }
     val cardSpend = remember(s, inRange, today) { SummaryView.cardSpend(s, inRange, today) }
-    // opção "Acumular saldo entre os meses" (Ajustes › Lançamentos): saldo que vem dos meses anteriores e o do fim do período
+    // opção "Acumular saldo entre os meses" (Ajustes › Cálculo do saldo): saldo que vem dos meses anteriores e o do fim do período
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val accumulate = com.finanplus.data.DevicePrefs.get(ctx).flow.collectAsStateWithLifecycle().value.accumulateBalance
     val acc = remember(s, f.from, f.to, accumulate, today) {
@@ -147,7 +147,7 @@ fun ReportsScreen(s: AppState) {
                     MoneyText(carried, color = if (carried < 0) p.red else p.text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                 }
                 Text(
-                    "Saldo das contas ao fim do período, com o saldo inicial e o que sobrou dos meses anteriores (opção em Ajustes › Lançamentos).",
+                    "Saldo das contas ao fim do período, com o saldo inicial e o que sobrou dos meses anteriores (opção em Ajustes › Cálculo do saldo).",
                     style = MaterialTheme.typography.labelSmall, color = p.muted, modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -352,16 +352,15 @@ private fun EvolutionChart(months: List<SummaryView.EvoMonth>, hide: Boolean, on
                     .semantics(mergeDescendants = true) { contentDescription = itemDesc }.padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(Modifier.height(barArea + 14.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom) {
+                // valores empilhados acima do par de barras (lado a lado eles se sobrepunham: "1,5 mil,7 mil")
+                Column(Modifier.height(26.dp).clearAndSetSemantics { }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
+                    if (m.income > 0) Text(if (hide) "••" else SummaryView.short(m.income), fontSize = 9.sp, lineHeight = 11.sp, color = p.green, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
+                    if (m.expense > 0) Text(if (hide) "••" else SummaryView.short(m.expense), fontSize = 9.sp, lineHeight = 11.sp, color = p.red, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
+                }
+                Row(Modifier.height(barArea + 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom) {
                     listOf(m.income to inc, m.expense to exp).forEach { (v, color) ->
-                        Column(Modifier.width(22.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
-                            if (v > 0) Text(
-                                if (hide) "••" else SummaryView.short(v), fontSize = 9.sp, color = p.muted, maxLines = 1, softWrap = false,
-                                modifier = Modifier.wrapContentWidth(unbounded = true).clearAndSetSemantics { },
-                            )
-                            // mês sem valor não ganha barra; valor pequeno ganha um traço mínimo
-                            if (v > 0) Box(Modifier.padding(top = 2.dp).width(18.dp).height(maxOf(3f, barArea.value * v / max).dp).sensitive(hide).clip(RoundedCornerShape(6.dp)).background(color))
-                        }
+                        // mês sem valor não ganha barra; valor pequeno ganha um traço mínimo
+                        Box(Modifier.width(18.dp).height(if (v > 0) maxOf(3f, barArea.value * v / max).dp else 0.dp).sensitive(hide).clip(RoundedCornerShape(6.dp)).background(color))
                     }
                 }
                 Text(m.ym.format(DateTimeFormatter.ofPattern("MMM", com.finanplus.ui.components.BR)), style = MaterialTheme.typography.labelSmall, color = p.muted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))

@@ -94,7 +94,7 @@ fun MovesScreen(s: AppState, listState: LazyListState = rememberLazyListState())
     }
     val flow = androidx.compose.runtime.remember(list) { Finance.flow(list) }
     val pending = androidx.compose.runtime.remember(list) { com.finanplus.core.Period.pending(list) }
-    // opção "Acumular saldo entre os meses" (Ajustes › Lançamentos; desligada por padrão)
+    // opção "Acumular saldo entre os meses" (Ajustes › Cálculo do saldo; desligada por padrão)
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val accumulate = com.finanplus.data.DevicePrefs.get(ctx).flow.collectAsStateWithLifecycle().value.accumulateBalance
     // com filtro de tipo, situação ou busca o saldo acumulado não faria sentido: fica a visão do período
