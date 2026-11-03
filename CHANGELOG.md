@@ -11,6 +11,16 @@
 - **Ícones por tipo (Início e Lançamentos):** despesa em vermelho, receita em verde, meta na cor primária e itens do mês seguinte em cor neutra. Os ícones de letra viraram ícones de categoria.
 - Nenhum cálculo mudou. Detalhes e testes (`HomeAdviceTest`, `InicioVisualTest`) em [INICIO.md](INICIO.md).
 
+### Resumo
+
+- **Frase fixa virou botão "info":** explica o que entra no resumo. Novo selo "Mês em andamento · dia X de Y" ou "Mês encerrado".
+- **Resultado com o previsto:** "Resultado até agora" em destaque (verde ou vermelho), "Saldo previsto em dd/MM" ao lado (o mesmo cálculo do Início) e "Guardado em metas" com a legenda "Não entra nas despesas".
+- **Receitas e Despesas:** a comparação "+R$ X vs. mês anterior" só aparece se o mês anterior tiver dados. Sem recebimento, mostra a próxima entrada. Com compras no cartão, "Inclui R$ X no cartão · fatura em dd/MM".
+- **Fluxo do dinheiro:** "Entrou" e "Saiu ou foi para o cartão". A barra de saída divide Despesas e Guardado em metas, com percentuais que somam 100%.
+- **Despesas por categoria:** até 5 categorias com ícone e "Outras" que abre a lista completa. O cartão virou subtítulo, e compra sem categoria vai para "Sem categoria".
+- **Evolução:** só meses com lançamentos, valor sobre cada barra, toque abre o detalhe do mês, verde escuro e vermelho claro, e "até dia X" no mês em andamento.
+- Nenhum cálculo mudou. Detalhes, decisões em aberto e testes em [RESUMO.md](RESUMO.md).
+
 ## 1.9.0 — Despesa compartilhada como imagem, metas como "guardado" em Lançamentos e busca recolhível (02/11/2026)
 
 `versionCode 18`.

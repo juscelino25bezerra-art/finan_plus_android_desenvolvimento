@@ -62,7 +62,7 @@ class InicioVisualTest {
 
     /** Rola a lista do Início até o item [index] (0 topo, 1 saldo, 2 pendências, 3 assistente, 4 vencimentos). */
     private fun scrollToItem(index: Int) {
-        compose.onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Saldo atual"))).performScrollToIndex(index)
+        compose.onNode(hasScrollToIndexAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).performScrollToIndex(index)
         compose.waitForIdle()
     }
 

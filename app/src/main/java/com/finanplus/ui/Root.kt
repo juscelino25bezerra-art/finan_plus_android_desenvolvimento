@@ -130,6 +130,12 @@ sealed interface Sheet : java.io.Serializable {
     data object Assistant : Sheet
     /** Início: como o saldo previsto do fim do mês é calculado */
     data object ForecastInfo : Sheet
+    /** Resumo: o que entra neste resumo (botão "info" do cabeçalho) */
+    data object SummaryInfo : Sheet
+    /** Resumo: todas as categorias de despesa do período (toque em "Outras") */
+    data class AllCategories(val from: java.time.LocalDate?, val to: java.time.LocalDate?) : Sheet
+    /** Resumo › Evolução: detalhe de um mês (receitas, despesas, metas) */
+    data class MonthDetail(val year: Int, val month: Int) : Sheet
     /** exportar relatório em PDF (período inicial opcional) */
     data class ReportPdf(val from: java.time.LocalDate? = null, val to: java.time.LocalDate? = null) : Sheet
     /** Lançamentos › Lista: período livre e situação (o ícone de ajuste ao lado do mês) */
