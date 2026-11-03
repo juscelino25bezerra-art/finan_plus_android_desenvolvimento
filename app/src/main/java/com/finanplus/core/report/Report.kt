@@ -89,7 +89,7 @@ object Reports {
     private fun inRange(t: Tx, from: LocalDate, to: LocalDate) = !t.date.isBefore(from) && !t.date.isAfter(to)
     private fun sum(l: List<Tx>): Cents = l.fold(0L) { a, t -> a + t.value }
 
-    /** [accumulate]: opção "Acumular saldo entre os meses" (Ajustes › Lançamentos); preenche [Report.carried] e [Report.accumulated]. */
+    /** [accumulate]: opção "Acumular saldo entre os meses" (Ajustes › Cálculo do saldo); preenche [Report.carried] e [Report.accumulated]. */
     fun build(s: AppState, from: LocalDate, to: LocalDate, today: LocalDate, accumulate: Boolean = false): Report {
         require(!to.isBefore(from)) { "período inválido" }
         val days = (ChronoUnit.DAYS.between(from, to) + 1).toInt()
