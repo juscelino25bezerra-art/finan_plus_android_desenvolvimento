@@ -1,6 +1,6 @@
 # Changelog
 
-## Em desenvolvimento
+## 1.10.0 — Início, Resumo, Meu dinheiro e tela de lançamento redesenhados (03/11/2026)
 
 ### Início
 

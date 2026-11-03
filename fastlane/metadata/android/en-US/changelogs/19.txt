@@ -1,0 +1,1 @@
+New look: Home shows balance and forecast in one card, an Assistant warning and grouped due dates. Summary with result, forecast, flow and history. New transaction screen with a large amount, category drawer and suggestions. My money with an overview, cards with the bill inside, limit usage and collapsible sections. No calculation changed.
