@@ -111,7 +111,7 @@ import java.time.LocalDate
 
 enum class Tab(val label: String, val icon: com.finanplus.ui.components.Ico) {
     HOME("Início", com.finanplus.ui.components.Ico.HOME), MOVES("Lançamentos", com.finanplus.ui.components.Ico.MOVES),
-    ACCOUNTS("Meu dinheiro", com.finanplus.ui.components.Ico.BANK), REPORTS("Resumo", com.finanplus.ui.components.Ico.REPORTS), PREFS("Ajustes", com.finanplus.ui.components.Ico.SETTINGS),
+    ACCOUNTS("Meu dinheiro", com.finanplus.ui.components.Ico.WALLET), REPORTS("Resumo", com.finanplus.ui.components.Ico.REPORTS), PREFS("Ajustes", com.finanplus.ui.components.Ico.SETTINGS),
 }
 
 /** Folhas (formulários) abertas. Serializable para sobreviver a girar a tela e ao bloqueio. */
@@ -501,8 +501,8 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
             com.finanplus.ui.components.CategoryTile(com.finanplus.core.TxForm.displayCategory(t.category), com.finanplus.ui.components.txTone(t.kind, t.isGoal, neutral = projected, card = t.isCard || t.cardPayment.isNotEmpty()))
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 // nome em até duas linhas, sem cortar no meio (PDF de redesign)
-                Text(t.desc, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(listOfNotNull(com.finanplus.core.TxForm.displayCategory(t.category), where).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(com.finanplus.core.Words.ordinal(t.desc), fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(listOfNotNull(com.finanplus.core.Words.ordinal(com.finanplus.core.TxForm.displayCategory(t.category)), where).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$status · $dateLabel", style = MaterialTheme.typography.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             // reserva para meta: sem sinal e no âmbar das metas (o dinheiro continua seu, separado na meta);
@@ -644,7 +644,7 @@ private fun ProblemNotice(reask: Int) {
                 com.finanplus.security.AppLock.allowExternalOnce()
                 saveCopy.launch("finan-plus-dados-danificados-${LocalDate.now()}.json")
             }
-            is LoadProblem.Dropped -> { dialogs.notice("Dados revisados", "${p.count} registro(s) inválido(s) foram ignorados ao abrir os dados."); Repo.dismissProblem() }
+            is LoadProblem.Dropped -> { dialogs.notice("Dados revisados", "${com.finanplus.core.Words.count(p.count, "registro inválido foi ignorado", "registros inválidos foram ignorados")} ao abrir os dados."); Repo.dismissProblem() }
         }
     }
 }

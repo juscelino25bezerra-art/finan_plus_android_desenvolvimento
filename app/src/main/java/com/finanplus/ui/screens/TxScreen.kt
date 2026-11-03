@@ -355,7 +355,7 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
                         val later = Ops.laterParcels(Repo.state.value, tx.id)
                         if (later.isEmpty()) { Repo.replace(Ops.deleteTx(Repo.state.value, tx.id, false)); close() }
                         else dialogs.confirm(
-                            "Parcelas", "Excluir também as ${later.size} parcela(s) seguinte(s)?", ok = "Excluir também", cancel = "Só esta",
+                            "Parcelas", "Excluir também " + (if (later.size == 1) "a parcela seguinte?" else "as ${later.size} parcelas seguintes?"), ok = "Excluir também", cancel = "Só esta",
                             onCancel = { Repo.replace(Ops.deleteTx(Repo.state.value, tx.id, false)); close() },
                         ) { Repo.replace(Ops.deleteTx(Repo.state.value, tx.id, true)); close() }
                     }

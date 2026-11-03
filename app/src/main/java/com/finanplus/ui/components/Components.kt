@@ -105,7 +105,8 @@ fun MoneyText(c: Cents, modifier: Modifier = Modifier, style: TextStyle = Materi
     Text(
         text,
         modifier.semantics { if (hide) contentDescription = "Valor oculto" }.drawWithContent { if (fits) drawContent() },
-        style = style.copy(fontSize = size), color = color, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
+        // algarismos de mesma largura (tnum): valores alinhados em colunas e listas
+        style = style.copy(fontSize = size, fontFeatureSettings = "tnum"), color = color, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
         onTextLayout = { r ->
             val w = r.layoutInput.constraints.maxWidth
             val grew = measuredAt in 0 until w && size.value < base.value

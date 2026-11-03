@@ -394,7 +394,7 @@ private fun CategoryManager(s: AppState) {
                                 is Outcome.Err -> dialogs.notice(check.title, check.message)
                                 is Outcome.Ok -> {
                                     val count = Ops.categoryUseCount(com.finanplus.data.Repo.state.value, kind, category)
-                                    val message = if (count > 0) "Excluir “$category” da lista? $count lançamento(s) antigo(s) continuará(ão) com essa categoria no histórico." else "Excluir a categoria “$category”?"
+                                    val message = if (count > 0) "Excluir “$category” da lista? " + (if (count == 1) "1 lançamento antigo continuará" else "$count lançamentos antigos continuarão") + " com essa categoria no histórico." else "Excluir a categoria “$category”?"
                                     dialogs.confirm("Excluir categoria", message, ok = "Excluir", danger = true) {
                                         com.finanplus.data.Repo.replace(Ops.deleteCategory(com.finanplus.data.Repo.state.value, kind, category))
                                     }

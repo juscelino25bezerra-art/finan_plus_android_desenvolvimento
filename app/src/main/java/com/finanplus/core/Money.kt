@@ -7,14 +7,14 @@ import kotlin.math.abs
 import kotlin.math.roundToLong
 
 object Money {
-    /** "R$ 1.234,56" / "-R$ 0,50". Formatação própria: não depende do Locale do aparelho. */
+    /** "R$ 1.234,56" / "− R$ 0,50" (sinal de menos tipográfico). Formatação própria: não depende do Locale do aparelho. */
     fun format(c: Cents): String {
         val neg = c < 0
         val a = abs(c)
         val reais = (a / 100).toString()
         val sb = StringBuilder()
         reais.forEachIndexed { i, ch -> if (i > 0 && (reais.length - i) % 3 == 0) sb.append('.'); sb.append(ch) }
-        return (if (neg) "-" else "") + "R$ " + sb + "," + (a % 100).toString().padStart(2, '0')
+        return (if (neg) "− " else "") + "R$ " + sb + "," + (a % 100).toString().padStart(2, '0')
     }
 
     /** Valor para campo de edição: "1500,50". */
@@ -56,6 +56,7 @@ object Money {
     fun parse(input: String?): Cents? {
         var s = (input ?: "").replace("R$", "", ignoreCase = true).filterNot { it.isWhitespace() }
         if (s.isEmpty()) return null
+        if (s.startsWith('−')) s = "-" + s.substring(1)
         val neg = s.startsWith('-')
         if (neg || s.startsWith('+')) s = s.substring(1)
         // só algarismos ASCII: isDigit() aceitaria "١٢٣" (árabes) e outros sistemas

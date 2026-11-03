@@ -120,7 +120,7 @@ fun sharedCardSubtitle(s: AppState, hide: Boolean): String {
     if (s.shared.isEmpty()) return "Divida contas com amigos e família e acompanhe quem já pagou"
     val (pending, _) = Shared.totals(s.shared)
     val open = s.shared.count { Shared.summary(it).state != SharedSummary.State.SETTLED }
-    return if (open == 0) "${s.shared.size} despesa(s) · tudo quitado"
+    return if (open == 0) "${com.finanplus.core.Words.count(s.shared.size, "despesa", "despesas")} · tudo quitado"
     else "$open em aberto · a receber ${if (hide) "R$ ••••" else Money.format(pending)}"
 }
 
@@ -456,7 +456,7 @@ fun SharedDetailSheet(s: AppState, id: String, close: () -> Unit) {
         }
         if (st.toReceive > 0) Bar(st.received.toFloat() / st.toReceive, p.green, Modifier.padding(top = 10.dp))
         Text(
-            st.state.label + " · a receber de ${st.people.count { it.owed > 0 }} pessoa(s): ${m(st.toReceive)}",
+            st.state.label + " · a receber de ${com.finanplus.core.Words.count(st.people.count { it.owed > 0 }, "pessoa", "pessoas")}: ${m(st.toReceive)}",
             style = MaterialTheme.typography.bodySmall, color = stateColor(st.state), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp),
         )
     }

@@ -129,7 +129,7 @@ class Categorizer private constructor(
         val totalW = wordDocs[word]!!.values.sum()
         return Suggestion(
             cat, Source.LEARNED,
-            "A palavra “$word” aparece em $wd lançamento(s) seus de $cat" +
+            "A palavra “$word” aparece em ${Br.plural(wd, "lançamento seu", "lançamentos seus")} de $cat" +
                 (if (totalW > wd) " (de $totalW com essa palavra)" else "") + ". Confiança: ${Br.pct(p * 100)}.",
             p,
         )

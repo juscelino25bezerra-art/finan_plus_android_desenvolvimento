@@ -155,7 +155,7 @@ object PdfReport {
         accountsAndGoals(pen, r)
 
         if (opt.includeTransactions) {
-            section(pen, "Lançamentos do período", "${r.txs.size} lançamento(s), incluindo pendentes. Pagamentos de fatura aparecem, mas não contam como despesa.")
+            section(pen, "Lançamentos do período", "${com.finanplus.core.Words.count(r.txs.size, "lançamento", "lançamentos")}, incluindo pendentes. Pagamentos de fatura aparecem, mas não contam como despesa.")
             if (r.txs.isEmpty()) note(pen, "Nenhum lançamento no período.") else txTable(pen, r, s)
         }
         section(pen, "Como ler este relatório", "", keep = 40f)
@@ -171,7 +171,7 @@ object PdfReport {
         pen.rect(0f, 0f, W, 112f, ACCENT)
         pen.text("FINAN+", M, 40f, 10f, 0xCCFFFFFF.toInt(), b = true)
         pen.text("Relatório financeiro", M, 68f, 24f, WHITE, b = true)
-        pen.text("${Br.date(r.from)} a ${Br.date(r.to)} · ${r.days} dia(s)", M, 92f, 12f, WHITE)
+        pen.text("${Br.date(r.from)} a ${Br.date(r.to)} · ${com.finanplus.core.Words.count(r.days, "dia", "dias")}", M, 92f, 12f, WHITE)
         val now = LocalDateTime.now()
         pen.text("Gerado em ${Br.date(now.toLocalDate())} às %02d:%02d".format(now.hour, now.minute), W - M, 40f, 9f, 0xDDFFFFFF.toInt(), align = Paint.Align.RIGHT)
         pen.y = 132f

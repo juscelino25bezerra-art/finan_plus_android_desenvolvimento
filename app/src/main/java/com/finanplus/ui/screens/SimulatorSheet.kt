@@ -134,7 +134,7 @@ private fun Box2(content: @Composable () -> Unit) {
 private fun BaseCard(base: Simulator.Base, auto: Simulator.Base, m: (Cents) -> String, hide: Boolean) {
     val p = Fin.c
     Box2 {
-        Eyebrow(if (auto.months > 0) "Sua base · média dos últimos ${auto.months} ${if (auto.months == 1) "mês" else "meses"}" else "Sua base")
+        Eyebrow(if (auto.months > 0) (if (auto.months == 1) "Sua base · média do último mês" else "Sua base · média dos últimos ${auto.months} meses") else "Sua base")
         if (auto.months == 0 && base.income == 0L && base.expense == 0L)
             Text("Ainda não há meses completos com valores realizados. Informe abaixo quanto entra e sai num mês típico.", style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(top = 4.dp))
         Row(Modifier.padding(top = 6.dp)) {

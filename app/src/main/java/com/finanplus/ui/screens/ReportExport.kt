@@ -111,7 +111,7 @@ fun ReportExportSheet(s: AppState, initialFrom: LocalDate?, initialTo: LocalDate
         val r = remember(s, a, b, accumulate) { Reports.build(s, a, b, today, accumulate) }
         val m: (Long) -> String = { if (hide) "R$ ••••" else Money.format(it) }
         Text(
-            "${r.txs.size} lançamento(s) · receitas ${m(r.income)} · despesas ${m(r.expense)} · saldo ${m(r.balance)}" +
+            "${com.finanplus.core.Words.count(r.txs.size, "lançamento", "lançamentos")} · receitas ${m(r.income)} · despesas ${m(r.expense)} · saldo ${m(r.balance)}" +
                 (r.accumulated?.let { " · saldo acumulado ${m(it)}" } ?: ""),
             style = MaterialTheme.typography.bodySmall, color = p.muted, modifier = Modifier.padding(vertical = 6.dp),
         )
