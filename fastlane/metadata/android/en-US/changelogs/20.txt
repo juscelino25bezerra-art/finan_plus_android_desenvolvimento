@@ -1,0 +1,1 @@
+Consistent redesign: the same To receive, To pay, goals and Forecast numbers on every screen (money already saved in a goal is not subtracted again). My money with dedicated screens and Debts, new expense with chips and Undo, Categories with drag and archive, regrouped Settings. Credit card and overdraft are no longer categories; Loan becomes Debts.
