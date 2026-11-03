@@ -4,8 +4,6 @@
 package com.finanplus.screenshots
 
 import android.app.Application
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -25,6 +23,7 @@ import com.finanplus.data.DevicePrefs
 import com.finanplus.data.Repo
 import com.finanplus.ui.screens.TxTags
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -89,8 +88,14 @@ class LancamentoTelaTest {
     }
 
     /** Cor do botão Salvar (pixel perto da borda esquerda, longe do texto). */
+    private var colorShot = 0
     private fun saveColor(): Int {
-        val bmp = compose.onNode(hasTestTag(TxTags.SAVE)).captureToImage().asAndroidBitmap()
+        compose.waitForIdle()
+        // captureToImage não redesenha no Robolectric; a captura do Roborazzi gera o PNG e lemos o pixel dele
+        val file = File(dir, "tmp-botao-salvar-${colorShot++}.png")
+        compose.onNode(hasTestTag(TxTags.SAVE)).captureRoboImage(file.path)
+        val bmp = android.graphics.BitmapFactory.decodeFile(file.path)
+        file.delete()
         return bmp.getPixel(bmp.width / 12, bmp.height / 2)
     }
 
