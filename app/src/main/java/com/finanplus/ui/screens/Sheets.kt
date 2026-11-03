@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -93,7 +94,7 @@ fun SheetHost(s: AppState, sheet: Sheet, onClose: () -> Unit) {
         } else true
     })
     androidx.compose.runtime.CompositionLocalProvider(LocalSheetGuard provides guard) {
-    ModalBottomSheet(onDismissRequest = onClose, sheetState = state, containerColor = MaterialTheme.colorScheme.surface) {
+    ModalBottomSheet(onDismissRequest = onClose, sheetState = state, containerColor = MaterialTheme.colorScheme.surface, modifier = Modifier.statusBarsPadding()) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 24.dp)) {
             when (sheet) {
                 Sheet.AddChoice -> AddChoiceEditor()
@@ -169,8 +170,9 @@ internal fun Header(title: String, subtitle: String) {
 
 @Composable
 internal fun DeleteButton(label: String, onClick: () -> Unit) {
-    Spacer(Modifier.height(8.dp))
-    PrimaryButton(label, danger = true, onClick = onClick)
+    // exclusão discreta (texto), sempre com confirmação de quem chama
+    Spacer(Modifier.height(4.dp))
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { com.finanplus.ui.components.DangerText(label, onClick = onClick) }
 }
 
 @Composable
@@ -190,10 +192,8 @@ private fun Segmented(options: List<Pair<Kind, String>>, selected: Kind, onSelec
 
 @Composable
 internal fun CheckRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange).padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) { Checkbox(checked, null); Spacer(Modifier.padding(4.dp)); Text(text, fontWeight = FontWeight.SemiBold) }
+    // liga/desliga no padrão único: switch (não checkbox)
+    com.finanplus.ui.components.SwitchRow(text, null, checked, onChange)
 }
 
 // ------------------------------------------------------------------ lançamento
