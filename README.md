@@ -215,7 +215,7 @@ O app inclui bibliotecas de terceiros, todas software livre e compatíveis com a
 
 - **AndroidX / Jetpack** (Compose, Glance, WorkManager, Biometric e outras) e **Kotlin** (biblioteca padrão, kotlinx.coroutines): Apache 2.0. O Glance traz uma cópia do Protocol Buffers (BSD-3-Clause).
 - **Leitura de faturas em PDF:** [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (adaptação do Apache PDFBox por Tom Roush), Apache 2.0, que traz **Bouncy Castle** (MIT), métricas de fontes e CMaps da Adobe, a fonte Liberation Sans (SIL OFL 1.1) e dados Unicode.
-- **Ícones:** Material Symbols Rounded, © Google, Apache 2.0 (convertidos para VectorDrawable, ver [`third_party/material-symbols/`](third_party/material-symbols/)).
+- **Ícones:** Phosphor Icons, © Phosphor Icons, MIT (convertidos para VectorDrawable, ver [`third_party/phosphor/`](third_party/phosphor/) e [ICONES.md](ICONES.md)).
 
 Lista completa, com versões, origens e obrigações: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). Textos originais das licenças e NOTICE: [`third_party/licenses/`](third_party/licenses/). Os testes usam ainda JUnit (EPL 1.0), Robolectric e Roborazzi, que não entram no APK.
 
