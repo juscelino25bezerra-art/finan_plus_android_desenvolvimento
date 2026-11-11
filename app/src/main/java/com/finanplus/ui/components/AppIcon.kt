@@ -72,8 +72,9 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0, @Dra
     TUNE(R.drawable.ph_sliders_horizontal, filled = 0, duo = R.drawable.ph_sliders_horizontal_duotone),
     WALLET(R.drawable.ph_wallet, filled = R.drawable.ph_wallet_fill, duo = R.drawable.ph_wallet_duotone),
     FORECAST(R.drawable.ph_chart_bar, filled = 0, duo = R.drawable.ph_chart_bar_duotone),
-    INCOME(R.drawable.ph_arrow_up, filled = 0, duo = R.drawable.ph_arrow_up_duotone),
-    EXPENSE(R.drawable.ph_arrow_down, filled = 0, duo = R.drawable.ph_arrow_down_duotone),
+    // Receita / Falta receber e Despesa / Falta pagar: setas no círculo (preenchem melhor o quadrado que a seta solta)
+    INCOME(R.drawable.ph_arrow_circle_up, filled = 0, duo = R.drawable.ph_arrow_circle_up_duotone),
+    EXPENSE(R.drawable.ph_arrow_circle_down, filled = 0, duo = R.drawable.ph_arrow_circle_down_duotone),
     LIMIT(R.drawable.ph_target, filled = 0, duo = R.drawable.ph_target_duotone),
     GROUP(R.drawable.ph_users_three, filled = 0, duo = R.drawable.ph_users_three_duotone),
     SHARE(R.drawable.ph_share_network, filled = 0, duo = R.drawable.ph_share_network_duotone),

@@ -19,6 +19,8 @@ No Duotone, a parte clara do desenho é a mesma cor do ícone com opacidade 0,2,
 - Licença e créditos: `third_party/phosphor/`, `THIRD_PARTY_NOTICES.md` e *Ajustes › Sobre › Componentes de terceiros* (`assets/licenca/TERCEIROS.txt`).
 - Os ícones do Finan+ web servido pelo *Acesso pela rede* (`assets/lan/pwa`) continuam Material Symbols até o PWA ser atualizado.
 
+`Ico.INCOME` e `Ico.EXPENSE` (cartões "Falta receber" e "Falta pagar" do Início e a tela "Adicionar movimentação") usam as setas no círculo, que preenchem melhor o quadrado do que uma seta solta. `Ico.UP` e `Ico.DOWN` (Resumo, botões Receita/Despesa) continuam com as setas simples.
+
 ## Mapa completo
 
 | `Ico` | Antes (Material Symbols) | Agora (Phosphor) | Fill |
@@ -67,8 +69,8 @@ No Duotone, a parte clara do desenho é a mesma cor do ícone com opacidade 0,2,
 | `TUNE` | `tune` | `sliders-horizontal` |  |
 | `WALLET` | `account_balance_wallet` | `wallet` | sim |
 | `FORECAST` | `bar_chart` | `chart-bar` |  |
-| `INCOME` | `arrow_upward` | `arrow-up` |  |
-| `EXPENSE` | `arrow_downward` | `arrow-down` |  |
+| `INCOME` | `arrow_upward` | `arrow-circle-up` |  |
+| `EXPENSE` | `arrow_downward` | `arrow-circle-down` |  |
 | `LIMIT` | `track_changes` | `target` |  |
 | `GROUP` | `group` | `users-three` |  |
 | `SHARE` | `share` | `share-network` |  |
