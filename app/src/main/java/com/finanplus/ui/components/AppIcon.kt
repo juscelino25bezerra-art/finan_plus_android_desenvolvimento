@@ -101,6 +101,8 @@ enum class Ico(@DrawableRes val res: Int, @DrawableRes val filled: Int = 0) {
     BANK(R.drawable.ms_account_balance),
     WORK(R.drawable.ms_work),
     REPEAT(R.drawable.ms_repeat),
+    /** transferência entre contas */
+    TRANSFER(R.drawable.ms_swap_horiz),
 }
 
 /** Ícone com a cor do tema. Com [description] nulo o ícone é decorativo (o texto ao lado já descreve). */
@@ -130,6 +132,7 @@ fun categoryIcon(category: String): Ico? {
     return when {
         category == AppState.CARD_PAYMENT_CAT -> Ico.CARD
         category == AppState.GOAL_CAT -> Ico.GOAL
+        category == AppState.TRANSFER_CAT -> Ico.TRANSFER
         c in setOf("alimentacao", "mercado", "supermercado", "comida", "feira") -> Ico.FOOD
         c in setOf("restaurante", "delivery", "lanche", "lanches") -> Ico.RESTAURANT
         c in setOf("transporte", "carro", "uber", "mobilidade") -> Ico.TRANSPORT

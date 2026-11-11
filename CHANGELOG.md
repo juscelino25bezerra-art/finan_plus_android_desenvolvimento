@@ -2,6 +2,7 @@
 
 ## Em desenvolvimento
 
+- **Transferência entre contas:** nova opção "Transferir entre contas" no botão + e em Meu dinheiro › Contas e cartões. O valor sai de uma conta e entra na outra no mesmo dia, sem contar como receita ou despesa (fica fora do Resumo, dos limites, dos relatórios e do assistente). Na lista aparecem os dois lados em cor neutra ("Enviada para…" e "Recebida de…"); editar ou excluir um lado mexe nos dois. Backup, CSV e acesso pela rede preservam a transferência. Detalhes em [TRANSFERENCIAS.md](TRANSFERENCIAS.md).
 - **Acesso pela rede com o Finan+ web 1.5.0:** a cópia do PWA dentro do app (`app/src/main/assets/lan/pwa`) foi atualizada com `tools/sync-pwa.sh` a partir do Finan+ web 1.5.0, com o mesmo visual e as mesmas regras desta versão (cálculo único, Meu dinheiro com páginas, nova tela de lançamento, reservas para meta e despesas compartilhadas). O navegador do computador passa a mostrar e editar as reservas para meta e as despesas compartilhadas.
 
 ## 1.11.0 — Redesign premium e coerente: um número, um nome, uma regra (03/11/2026)
