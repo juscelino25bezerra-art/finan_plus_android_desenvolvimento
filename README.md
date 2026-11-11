@@ -6,6 +6,12 @@ Esta é a versão nativa para Android, em **Kotlin + Jetpack Compose**: dados cr
 
 **English:** [README.en.md](README.en.md)
 
+## Novidades da versão 1.12.0
+
+- **Ícones novos:** todos os ícones do app agora são Phosphor Icons (licença MIT), mais leves e arredondados: traço Regular nas listas e botões, versão preenchida na aba ativa da barra inferior e Duotone nos ícones dentro de quadrados (categorias, Meu dinheiro, Ajustes). "Falta receber" e "Falta pagar" usam setas no círculo. Só o desenho mudou. Detalhes em [ICONES.md](ICONES.md).
+- **Acesso pela rede com o Finan+ web 1.5.0:** o navegador do computador mostra o mesmo visual e as mesmas regras do app, incluindo reservas para meta e despesas compartilhadas.
+- Nenhuma regra de cálculo nem dado salvo mudou. Lista completa em [CHANGELOG.md](CHANGELOG.md).
+
 ## Novidades da versão 1.11.0
 
 - **Um número, um nome, uma regra:** Início, Lançamentos (lista e calendário), Resumo e widget usam o mesmo cálculo de A receber, A pagar, Reservado para metas e Previsto. A meta já guardada não é descontada de novo e os atrasados aparecem no "A pagar".
