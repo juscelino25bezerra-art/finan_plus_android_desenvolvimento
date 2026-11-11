@@ -27,7 +27,7 @@ Os dois lados têm sempre o mesmo valor e a mesma data, ficam na categoria inter
 
 ### Cores
 
-Seguem a regra do app: verde = entrou, vermelho = saiu, âmbar = meta. A transferência não é nenhum dos três, então usa **cor neutra**: ícone de setas (`swap_horiz`) no tom neutro e valor na cor do texto.
+Seguem a regra do app: verde = entrou, vermelho = saiu, âmbar = meta. A transferência não é nenhum dos três, então usa **cor neutra**: ícone de setas (`swap`, Phosphor) no tom neutro e valor na cor do texto.
 
 ## Regras
 
