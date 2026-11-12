@@ -1,6 +1,6 @@
 # Changelog
 
-## Em desenvolvimento
+## 1.13.0 — Transferência entre contas (11/11/2026)
 
 - **Transferência entre contas:** nova opção "Transferir entre contas" no botão + e em Meu dinheiro › Contas e cartões. O valor sai de uma conta e entra na outra no mesmo dia, sem contar como receita ou despesa (fica fora do Resumo, dos limites, dos relatórios e do assistente). Na lista aparecem os dois lados em cor neutra ("Enviada para…" e "Recebida de…"); editar ou excluir um lado mexe nos dois. Backup, CSV e acesso pela rede preservam a transferência. Detalhes em [TRANSFERENCIAS.md](TRANSFERENCIAS.md).
 
