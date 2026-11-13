@@ -39,7 +39,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -99,6 +98,7 @@ import com.finanplus.ui.components.LocalPrivacy
 import com.finanplus.ui.components.MoneyText
 import com.finanplus.ui.components.br
 import com.finanplus.ui.components.glassBorder
+import com.finanplus.ui.components.showUndo
 import com.finanplus.ui.screens.AccountsScreen
 import com.finanplus.ui.screens.HomeScreen
 import com.finanplus.ui.screens.LockScreen
@@ -370,7 +370,7 @@ private fun MainScaffold(s: AppState, dev: DeviceSettings, activity: MainActivit
                 hostState = txSnackbarState,
                 modifier = Modifier.align(Alignment.BottomStart).navigationBarsPadding()
                     .padding(start = 12.dp, end = 82.dp, bottom = 116.dp).widthIn(max = 360.dp),
-            )
+            ) { data -> com.finanplus.ui.components.FinSnackbar(data) }
             SaveErrorBanner(Modifier.align(Alignment.TopCenter)) { reaskProblem++ }
             // Receita e Despesa (novo e editar): tela cheia por cima de tudo (LANCAMENTO-NOVA-TELA.md)
             nav.sheet?.let { sh -> if (sh is Sheet.TxEdit && com.finanplus.ui.screens.usesTxScreen(s, sh)) key(sh) { com.finanplus.ui.screens.TxScreen(s, sh) { nav.sheet = null } } }
@@ -545,11 +545,9 @@ fun TxRow(t: Tx, s: AppState, onToggle: () -> Unit, onOpen: () -> Unit) {
                             onOk = {
                                 onToggle()
                                 scope.launch {
-                                    val result = snackbar.showSnackbar(
-                                        message = if (t.paid) "Movimentação voltou para pendente." else "Movimentação marcada como $action.",
-                                        actionLabel = "Desfazer",
-                                        withDismissAction = true,
-                                        duration = SnackbarDuration.Short,
+                                    val result = snackbar.showUndo(
+                                        if (t.paid) "Movimentação voltou para pendente." else "Movimentação marcada como $action.",
+                                        "Desfazer",
                                     )
                                     if (result == SnackbarResult.ActionPerformed) onToggle()
                                 }
