@@ -2,7 +2,7 @@
 
 ## Em desenvolvimento
 
-- **Aviso "Desfazer" no tema do app:** os avisos "Despesa salva", "Receita salva", "Movimentação marcada como paga" e "Categoria arquivada" seguem as cores do tema escolhido (cartão do tema, texto do tema e "Desfazer" na cor de destaque), em vez da faixa escura padrão do Android, e somem sozinhos depois de cerca de 10 segundos (antes, com o botão "Desfazer", ficavam na tela até tocar). As cores de aviso e dica do Material ("inverse") também passam a vir do tema, para nenhum outro aviso sair com a cor padrão.
+- **Aviso "Desfazer" no tema do app:** os avisos "Despesa salva", "Receita salva", "Movimentação marcada como paga" e "Categoria arquivada" seguem as cores do tema escolhido (cartão do tema, texto do tema e "Desfazer" na cor de destaque), em vez da faixa escura padrão do Android, e somem sozinhos depois de 1 segundo (antes, com o botão "Desfazer", ficavam na tela até tocar). As cores de aviso e dica do Material ("inverse") também passam a vir do tema, para nenhum outro aviso sair com a cor padrão.
 
 ## 1.13.0 — Transferência entre contas (11/11/2026)
 

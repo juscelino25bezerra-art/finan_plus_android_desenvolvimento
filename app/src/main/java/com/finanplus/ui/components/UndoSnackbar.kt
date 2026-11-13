@@ -13,10 +13,12 @@ import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
@@ -24,16 +26,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finanplus.ui.theme.Fin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+/** Quanto tempo o aviso com "Desfazer" fica na tela antes de sumir sozinho. */
+const val UNDO_VISIBLE_MS = 1_000L
+
+private class UndoVisuals(
+    override val message: String,
+    override val actionLabel: String,
+) : SnackbarVisuals {
+    override val withDismissAction = true
+    // o tempo é controlado em showUndo; Indefinite evita que o Material use os 4 s/10 s dele
+    override val duration = SnackbarDuration.Indefinite
+}
 
 /**
  * Aviso com "Desfazer" (salvar lançamento, confirmar pagamento, arquivar categoria).
  *
- * Sempre some sozinho: com um botão de ação o Material deixa o aviso na tela até a pessoa tocar
- * (SnackbarDuration.Indefinite), por isso a duração é sempre [SnackbarDuration.Long] (cerca de 10 s;
- * o Android pode dar mais tempo quando um leitor de tela está ligado). O "×" fecha na hora.
+ * Sempre some sozinho depois de [UNDO_VISIBLE_MS], contados a partir do momento em que o aviso aparece
+ * (se houver outro na fila, o tempo só começa quando for a vez deste). O "×" fecha na hora.
  */
-suspend fun SnackbarHostState.showUndo(message: String, undoLabel: String): SnackbarResult =
-    showSnackbar(message, actionLabel = undoLabel, withDismissAction = true, duration = SnackbarDuration.Long)
+suspend fun SnackbarHostState.showUndo(message: String, undoLabel: String): SnackbarResult = coroutineScope {
+    val visuals = UndoVisuals(message, undoLabel)
+    val timer = launch {
+        val data = snapshotFlow { currentSnackbarData }.first { it?.visuals === visuals } ?: return@launch
+        delay(UNDO_VISIBLE_MS)
+        data.dismiss()
+    }
+    try { showSnackbar(visuals) } finally { timer.cancel() }
+}
 
 /**
  * Visual do aviso no tema do app: fundo do cartão do tema (sem transparência, para o texto ficar legível
