@@ -110,6 +110,7 @@ import com.finanplus.core.TxDraft
 import com.finanplus.core.TxForm
 import com.finanplus.data.Repo
 import com.finanplus.ui.LocalTxSnackbar
+import com.finanplus.ui.components.showUndo
 import com.finanplus.ui.LocalUiScope
 import com.finanplus.ui.Sheet
 import com.finanplus.ui.components.AppIcon
@@ -227,7 +228,7 @@ fun TxScreen(s: AppState, sheet: Sheet.TxEdit, close: () -> Unit) {
             close()
             // aviso com "Desfazer": volta ao estado de antes de salvar
             uiScope?.launch {
-                if (snackbar.showSnackbar(msg, actionLabel = undoLabel, withDismissAction = true) == androidx.compose.material3.SnackbarResult.ActionPerformed) Repo.replace(before)
+                if (snackbar.showUndo(msg, undoLabel) == androidx.compose.material3.SnackbarResult.ActionPerformed) Repo.replace(before)
             }
         } else dialogs.notice(err.title, err.message)
     }

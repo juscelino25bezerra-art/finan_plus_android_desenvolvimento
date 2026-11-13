@@ -128,12 +128,20 @@ private fun scheme(p: Palette): ColorScheme {
         secondaryContainer = p.accent2, onSecondaryContainer = p.text, background = p.bg, onBackground = p.text,
         surface = solidSurface, onSurface = p.text, surfaceVariant = p.accent2, onSurfaceVariant = p.muted,
         surfaceContainerHigh = solidSurface, surfaceContainer = solidSurface, surfaceContainerLow = solidSurface,
+        surfaceContainerHighest = solidSurface, surfaceContainerLowest = solidSurface,
+        // avisos e dicas (Snackbar, tooltip) usam as cores "inverse": no Finan+ seguem o cartão do tema
+        inverseSurface = solidSurface, inverseOnSurface = p.text, inversePrimary = p.accent,
+        secondary = p.accent, onSecondary = p.onAccent, tertiary = p.accent, onTertiary = p.onAccent,
         error = p.red, outline = p.muted, outlineVariant = p.border,
     ) else lightColorScheme(
         primary = p.accent, onPrimary = p.onAccent, primaryContainer = p.accent2, onPrimaryContainer = p.text,
         secondaryContainer = p.accent2, onSecondaryContainer = p.text, background = p.bg, onBackground = p.text,
         surface = Color(0xFFF7F9FF), onSurface = p.text, surfaceVariant = p.accent2, onSurfaceVariant = p.muted,
         surfaceContainerHigh = Color(0xFFF7F9FF), surfaceContainer = Color(0xFFF7F9FF), surfaceContainerLow = Color(0xFFF7F9FF),
+        surfaceContainerHighest = Color(0xFFF7F9FF), surfaceContainerLowest = Color(0xFFF7F9FF),
+        // avisos e dicas (Snackbar, tooltip) usam as cores "inverse": no Finan+ seguem o cartão do tema
+        inverseSurface = Color(0xFFF7F9FF), inverseOnSurface = p.text, inversePrimary = p.accent,
+        secondary = p.accent, onSecondary = p.onAccent, tertiary = p.accent, onTertiary = p.onAccent,
         error = p.red, outline = p.muted, outlineVariant = Color(0xFFD9DEEA),
     )
 }

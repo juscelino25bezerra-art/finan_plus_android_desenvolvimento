@@ -1,5 +1,9 @@
 # Changelog
 
+## Em desenvolvimento
+
+- **Aviso "Desfazer" no tema do app:** os avisos "Despesa salva", "Receita salva", "Movimentação marcada como paga" e "Categoria arquivada" seguem as cores do tema escolhido (cartão do tema, texto do tema e "Desfazer" na cor de destaque), em vez da faixa escura padrão do Android, e somem sozinhos depois de 1 segundo (antes, com o botão "Desfazer", ficavam na tela até tocar). As cores de aviso e dica do Material ("inverse") também passam a vir do tema, para nenhum outro aviso sair com a cor padrão.
+
 ## 1.13.0 — Transferência entre contas (11/11/2026)
 
 - **Transferência entre contas:** nova opção "Transferir entre contas" no botão + e em Meu dinheiro › Contas e cartões. O valor sai de uma conta e entra na outra no mesmo dia, sem contar como receita ou despesa (fica fora do Resumo, dos limites, dos relatórios e do assistente). Na lista aparecem os dois lados em cor neutra ("Enviada para…" e "Recebida de…"); editar ou excluir um lado mexe nos dois. Backup, CSV e acesso pela rede preservam a transferência. Detalhes em [TRANSFERENCIAS.md](TRANSFERENCIAS.md).

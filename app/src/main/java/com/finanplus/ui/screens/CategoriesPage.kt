@@ -54,6 +54,7 @@ import com.finanplus.core.Outcome
 import com.finanplus.core.Words
 import com.finanplus.data.Repo
 import com.finanplus.ui.LocalTxSnackbar
+import com.finanplus.ui.components.showUndo
 import com.finanplus.ui.LocalUiScope
 import com.finanplus.ui.components.AppIcon
 import com.finanplus.ui.components.Glass
@@ -124,7 +125,7 @@ private fun ReorderableList(kind: Kind, list: List<String>) {
             is Outcome.Ok -> {
                 Repo.replace(Ops.deleteCategory(before, kind, name))
                 scope?.launch {
-                    if (snackbar.showSnackbar(archivedMsg.format(name), actionLabel = undo, withDismissAction = true) == SnackbarResult.ActionPerformed)
+                    if (snackbar.showUndo(archivedMsg.format(name), undo) == SnackbarResult.ActionPerformed)
                         Repo.update { it.copy(cats = before.cats, limits = before.limits) }
                 }
             }
